@@ -1,0 +1,95 @@
+.childFormContainer {
+  background: var(--bg-panel); /* #EBECEB or similar grey */
+  border-radius: 12px; /* From image AC--04 */
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  position: relative;
+  background-color: #E6E6E4; /* Matching Step 3 container bg */
+}
+
+.childFormHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.removeButton {
+  background: #E0E0E0; /* Slightly darker pill */
+  border: none;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--error-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-family: var(--font-sans);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  color: var(--text-main);
+  appearance: none; /* Remove default arrow */
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+}
+
+.addButtonContainer {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+  border-top: 1px solid #E5E5E5;
+  padding-top: 2rem;
+  position: relative;
+}
+
+/* Center pill button on the line */
+.addButtonContainer::before {
+  /* content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px solid #E5E5E5; */
+  /* Actually using border-top on container is fine */
+}
+
+.addChildButton {
+  background: #E6E6E4;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.addChildButton:hover {
+  background: #D4D4D4;
+}
+
+@media (max-width: 640px) {
+  .row {
+    flex-direction: column;
+  }
+}

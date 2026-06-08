@@ -1,0 +1,1079 @@
+.tabsContainer {
+  margin-bottom: 2rem;
+}
+
+.tabsList {
+  display: flex;
+  gap: 2rem;
+  border-bottom: 1px solid #E5E5E5;
+  padding-bottom: 1px;
+}
+
+.tab {
+  padding-bottom: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.tab:hover {
+  color: var(--text-main);
+}
+
+.tab.active {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--text-main); /* or green? Mocks show dark underline or pill? */
+  /* If using pills like "Life preferences", "Child details" in user image "Dashboard.png" */
+  /* Wait, "Dashboard.png" shows PILLS: [ Life preferences ] [ Child details ] [ My profile ] */
+  /* User sketch shows Tabs or Pills? "Life" [ ] [ ] [ ] boxy things. */
+  /* I'll stick to the "Dashboard.png" pill style or underlined tabs. Let's do simple text tabs for clean look or Pills if specifically requested. */
+  /* The image "Dashboard.png" clearly shows separate text items, not pills, wait... no, "Dashboard.png" has "Life preferences" "Child details" "My profile" as text links, and "My profile" is a Pill because it's selected? */
+  /* "Overview" sidebar item is active. */
+  /* In the content area, there are pills: Life preferences, Child details, My profile (Active pill green), Delete account(Red text). */
+  /* Okay, I will implement PILL tabs. */
+}
+
+/* Resetting tab styles for Pill variant */
+.tabPills {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  align-items: center;
+}
+
+.pill {
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.pill.active {
+  background-color: #798679; /* Green active pill */
+  color: white;
+}
+
+.deleteAccount {
+  color: var(--error-color);
+  margin-left: auto; /* Push to right? Or just inline? "Dashboard.png" shows it inline */
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Life Chapter Dashboard Sections */
+.dashboardSection {
+  margin-bottom: 1.5rem;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.sectionLabel {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem 0.75rem;
+  border: 1px solid #E5E5E5; /* Minimal border */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* Chapter Selector */
+.chapterSelector {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  padding: 0.75rem 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.currentChapter {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chapterDropdown {
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 0.25rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-main);
+}
+
+.chapterDropdown:hover {
+    background: #F3F4F6;
+}
+
+.changeButton {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+.changeButton:hover {
+    border-color: #798679;
+    color: var(--text-main);
+}
+
+/* Specific Cards */
+.statusCard {
+  border-left: 4px solid var(--primary-green);
+}
+
+.statusContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.statusTitle {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.statusDesc {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.updateStatusButton {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  text-transform: none;
+}
+
+.updateStatusButton:hover {
+  border-color: #798679;
+  color: var(--text-main);
+}
+
+.variabilityCard {
+  background-color: #F9FAFB; /* Light grey for differentiation */
+}
+
+@media (min-width: 769px) {
+  .variabilityCard {
+    padding: 1.25rem;
+  }
+}
+
+.variabilityRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.variabilityLabel {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.variabilityTime {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.variabilityImpact {
+  font-size: 0.9rem;
+  color: #DC2626; /* Red-ish for impact/load? Or neutral? "Increased sensory load" sounds potentially negative/alerting */
+  /* Or just dark grey. Let's use neutral for now. */
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .chapterSelector {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .changeButton {
+    margin-top: 0;
+  }
+  .tabPills {
+    display: none;
+  }
+}
+
+/* New Dashboard Components from Sketch */
+.nextStepCard {
+    background-color: #f9fafb;
+    border: 1px dashed #d1d5db;
+}
+
+.nextStepContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+}
+
+.prepareButton {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: none;
+}
+
+.prepareButton:hover {
+    border-color: #798679;
+    color: var(--text-main);
+}
+
+.variabilityContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .variabilityContainer {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+}
+
+.variabilityCard {
+    padding: 1rem;
+}
+
+.variabilityPoint {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.variabilityContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.childTag {
+    font-size: 0.75rem;
+    color: #798679;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.variabilityMain {
+    font-weight: 500;
+    font-size: 1.05rem;
+    color: #111827;
+}
+
+.variabilityImpact {
+    font-size: 0.9rem;
+    color: #6b7280;
+    /* margin-top: 0.5rem; */
+}
+
+/* Participation Level Selector */
+.participationSelector {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.participationSelectorContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.participationSelectorLeft {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    .participationSelectorContent {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .triggerSelectorButton {
+        width: 100%;
+    }
+    
+    .selectTriggerButton {
+        width: 100%;
+    }
+}
+
+.participationLabel {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-main);
+    margin-bottom: 0.75rem;
+}
+
+.participationButtons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.participationButton {
+    padding: 0.5rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.participationButton:hover {
+    border-color: #798679;
+    color: var(--text-main);
+}
+
+.participationButton.active {
+    background: #798679;
+    color: white;
+    border-color: #798679;
+}
+
+/* Prompt Actions */
+.promptActions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    /* flex-wrap: wrap; */
+}
+
+.promptActions .actionButton {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.promptActions .actionButton:hover {
+    border-color: #798679;
+    color: #798679;
+    background: #f9fafb;
+}
+
+.snapshotCard {
+    padding: 0.75rem 1rem;
+    background-color: #f3f4f6;
+    border: none;
+}
+
+.snapshotItem {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: #4b5563;
+    align-items: center;
+}
+
+.snapshotValue {
+    font-weight: 600;
+    color: #111827;
+}
+
+.divider {
+    color: #d1d5db;
+}
+
+/* Child Management */
+.childList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.childCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Changed to between to push actions to right */
+  gap: 1rem;
+  padding: 1rem;
+  background: white; /* White card for better contrast if list background is grey, or keep list grey? */
+  /* Actually design usually has cards on grey background or bordered cards on white. */
+  /* Let's stick to bordered cards for now as per previous css */
+  background: #FFFFFF;
+  border: 1px solid #E5E5E5;
+  border-radius: 12px;
+}
+
+.childInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.childActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actionButton {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #E5E5E5;
+  background: white;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.actionButton:hover {
+  border-color: #D1D5DB;
+  color: var(--text-main);
+  background: #F9FAFB;
+}
+
+.deleteButton:hover {
+  background: #FEF2F2;
+  border-color: #FECACA;
+  color: #DC2626;
+}
+
+.addChildButton {
+    width: 100%;
+    padding: 1rem;
+    background: #F9FAFB;
+    border: 2px dashed #E5E5E5;
+    border-radius: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 1rem;
+}
+
+.addChildButton:hover {
+    border-color: #D1D5DB;
+    color: var(--text-main);
+}
+
+/* Modal Form */
+.formGroup {
+    margin-bottom: 1rem;
+}
+
+.label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #798679;
+    box-shadow: 0 0 0 3px rgba(121, 134, 121, 0.1);
+}
+
+.select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+/* Profile Enhancements (Fixed) */
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.statCard {
+    background: #f8fafc;
+    padding: 1.75rem;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.statCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.statValue {
+    display: block;
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.statLabel {
+    display: block;
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.profileForm {
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 2.5rem;
+}
+
+.profileFormTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 1.5rem;
+}
+
+.dangerZone {
+    background: #0f172a;
+    color: #fff;
+    padding: 3rem;
+    border-radius: 20px;
+    margin-top: 4rem;
+    border: 1px solid #1e293b;
+}
+
+.dangerTitle {
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #fff;
+    letter-spacing: -0.02em;
+}
+
+.dangerText {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: #94a3b8;
+    margin-bottom: 2.5rem;
+    max-width: 800px;
+}
+
+.deleteButtonLarge {
+    background: #450a0a;
+    color: #f87171;
+    border: 1px solid #7f1d1d;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1.125rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.2s;
+}
+
+.deleteButtonLarge:hover {
+    background: #7f1d1d;
+    border-color: #b91c1c;
+    color: #fff;
+}
+
+.deleteIcon {
+    width: 24px;
+    height: 24px;
+}
+
+.saveProfileButton {
+    margin-top: 2rem;
+    height: 3rem;
+    font-size: 1rem;
+}
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.deleteModal {
+    background: white;
+    width: 90%;
+    max-width: 480px;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.deleteModalTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 1rem;
+}
+
+.deleteModalText {
+    color: #64748b;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.deleteModalActions {
+    display: flex;
+    gap: 1rem;
+}
+
+.cancelBtn {
+    flex: 1;
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    padding: 0.875rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.confirmDeleteBtn {
+    flex: 1;
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 0.875rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Tab Content Wrapper - Max width for readability, left aligned */
+.tabContentWrapper {
+  max-width: 600px;
+  margin: 0;
+  width: 100%;
+}
+
+/* @media (max-width: 768px) { */
+  .dashboardContent {
+    padding: 1rem;
+  }
+  
+  .tabContentWrapper {
+    max-width: 100%;
+  }
+  
+  .promptActions {
+    /* flex-direction: column !important; */
+    display: flex !important;
+  }
+  
+  .promptActions .actionButton {
+    width: 100% !important;
+    /* margin-bottom: 0.5rem; */
+  }
+  
+  .promptActions .actionButton:last-child {
+    margin-bottom: 0;
+  }
+
+/* Trigger Selector Styles */
+.triggerSelectorButton {
+  flex-shrink: 0;
+}
+
+.selectTriggerButton {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: none;
+}
+
+.selectTriggerButton:hover {
+  border-color: #798679;
+  color: var(--text-main);
+}
+
+.triggerSelector {
+  background: white;
+  border: 1px solid #E5E5E5;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  max-width: 100%;
+}
+
+@media (min-width: 769px) {
+  .triggerSelector {
+    padding: 2rem;
+  }
+}
+
+.triggerSelectorHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.triggerSelectorHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.closeTriggerSelector {
+  padding: 0.5rem 1rem;
+  background: #798679;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.closeTriggerSelector:hover {
+  background: #6b7a6a;
+}
+
+.suggestedTriggers {
+  margin-bottom: 2rem;
+}
+
+.suggestedTriggers h4 {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.noSuggestions {
+  color: #6B7280;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.suggestedTriggersList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .suggestedTriggersList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+.suggestedTriggerItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem;
+  background: #F9FAFB;
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+@media (min-width: 769px) {
+  .suggestedTriggerItem {
+    padding: 1.25rem;
+  }
+}
+
+.suggestedTriggerItem:hover {
+  border-color: #798679;
+  background: #f0f4f0;
+}
+
+.suggestedTriggerItem.selected {
+  border-color: #798679;
+  background: #f0f4f0;
+}
+
+.suggestedTriggerText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.suggestedTriggerText strong {
+  font-size: 0.9rem;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.suggestedTriggerText span {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.checkmark {
+  color: #798679;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.customTriggerSection {
+  border-top: 1px solid #E5E5E5;
+  padding-top: 1.5rem;
+}
+
+.customTriggerSection h4 {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.customTriggerInputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+@media (max-width: 768px) {
+  .customTriggerInputs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+.customInput {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.customInput:focus {
+  outline: none;
+  border-color: #798679;
+  box-shadow: 0 0 0 3px rgba(121, 134, 121, 0.1);
+}
+
+.addCustomTriggerButton {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  height: fit-content;
+  align-self: end;
+  text-transform: none;
+}
+
+@media (max-width: 768px) {
+  .addCustomTriggerButton {
+    align-self: flex-start;
+    width: 100%;
+  }
+}
+
+.addCustomTriggerButton:hover:not(:disabled) {
+  border-color: #798679;
+  color: var(--text-main);
+}
+
+.addCustomTriggerButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deleteTriggerButton {
+  padding: 0.5rem 1rem;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #DC2626;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.deleteTriggerIconButton {
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #DC2626;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.deleteTriggerIconButton:hover {
+  background: #FEF2F2;
+  color: #B91C1C;
+}
+
+.emptyTriggerCard {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.emptyTriggerMessage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.emptyTriggerMessage p {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.emptyTriggerMessage span {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.deleteTriggerButton:hover {
+  background: #FEE2E2;
+  border-color: #FCA5A5;
+}
+  
+  .statusContent {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  
+  .updateStatusButton {
+    width: auto;
+  }
+/* } */
