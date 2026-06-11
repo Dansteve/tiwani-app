@@ -288,6 +288,8 @@ export interface CardStrategy {
  *   intro             a short supportive intro line.
  *   strategies        the top strategies, each { title, detail }, for an outsider.
  *   if_difficult      a calm, non-clinical "if things get difficult" line.
+ *   safety_note       a standing health-and-safety boundary (defer anything medical to the
+ *                     family's plan, 999 in an emergency); shown on every card.
  */
 export interface CardContent {
   child_first_name: string;
@@ -298,6 +300,7 @@ export interface CardContent {
   intro: string;
   strategies: CardStrategy[];
   if_difficult: string;
+  safety_note: string;
 }
 
 /**

@@ -9,7 +9,7 @@
 // accent + warm neutrals); the tier band is the accent surface, NOT a status colour, because the card is
 // guidance for a helper, not a pressure or alert signal. Mobile-first, no horizontal overflow at ~375px.
 
-import { Heart, LifeBuoy, Sparkles } from "lucide-react";
+import { Heart, LifeBuoy, ShieldCheck, Sparkles } from "lucide-react";
 
 import type { CardContent } from "@/lib/api/types";
 import { cardTierLabel } from "@/features/card/shareUrl";
@@ -122,6 +122,32 @@ export function CardContentView({ content }: { content: CardContent }) {
               </h2>
               <p className="mt-1 text-base leading-relaxed text-foreground">
                 {content.if_difficult}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Health and safety: a standing boundary for the helper (the family's own plan governs
+            anything to do with food, medicines, or health; the family first, 999 in an emergency).
+            Non-clinical and deferring, the api's governed copy, shown on every card. */}
+        <section
+          aria-labelledby="card-safety"
+          className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-4"
+        >
+          <div className="flex items-start gap-3">
+            <ShieldCheck
+              className="mt-0.5 size-5 shrink-0 text-primary"
+              aria-hidden="true"
+            />
+            <div className="min-w-0">
+              <h2
+                id="card-safety"
+                className="text-sm font-semibold text-foreground"
+              >
+                Health and safety
+              </h2>
+              <p className="mt-1 text-base leading-relaxed text-foreground">
+                {content.safety_note}
               </p>
             </div>
           </div>

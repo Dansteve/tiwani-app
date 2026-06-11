@@ -22,6 +22,8 @@ function makeContent(overrides: Partial<CardContent> = {}): CardContent {
       { title: "Keep instructions short", detail: "Keep instructions short" },
     ],
     if_difficult: "If Ada gets overwhelmed, a quiet break usually helps.",
+    safety_note:
+      "For anything about food, medicines, or Ada's health, follow the family's plan and ask them first.",
     ...overrides,
   };
 }
@@ -41,6 +43,16 @@ describe("CardContentView", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText("If Ada gets overwhelmed, a quiet break usually helps.")
+    ).toBeInTheDocument();
+  });
+
+  it("renders the standing health-and-safety boundary", () => {
+    render(<CardContentView content={makeContent()} />);
+    expect(
+      screen.getByRole("heading", { name: "Health and safety" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/follow the family's plan and ask them first/i)
     ).toBeInTheDocument();
   });
 

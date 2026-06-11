@@ -20,6 +20,8 @@ const CONTENT: CardContent = {
     { title: "Arrive a few minutes early", detail: "So the pool fills up gradually around her." },
   ],
   if_difficult: "If Ada gets overwhelmed, a quiet break usually helps.",
+  safety_note:
+    "For anything about food, medicines, or Ada's health, follow the family's plan and ask them first.",
 };
 
 const getCard = vi.fn();
