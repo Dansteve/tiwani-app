@@ -12,18 +12,18 @@ import {
   targetExists,
 } from "@/features/tour/steps";
 
-// A tiny stand-in for the document's querySelector that "finds" a fixed set of data-tour targets. It
-// parses the [data-tour="x"] selector the helpers build and reports a hit when x is in the present set.
-function rootWith(present: string[]): Pick<Document, "querySelector"> {
+// A tiny stand-in for the document's querySelectorAll that "finds" a fixed set of data-tour targets. It
+// parses the [data-tour="x"] selector the helpers build and returns one match when x is in the present
+// set. The matches carry no getBoundingClientRect, so the visible-aware locator takes them as-is (the
+// real visibility filtering is a DOM concern, exercised by the component tests, not these pure ones).
+function rootWith(present: string[]): Pick<Document, "querySelectorAll"> {
   const set = new Set(present);
   return {
-    querySelector: ((selector: string) => {
+    querySelectorAll: ((selector: string) => {
       const match = /^\[data-tour="(.+)"\]$/.exec(selector);
-      if (match && set.has(match[1])) {
-        return {} as Element;
-      }
-      return null;
-    }) as Document["querySelector"],
+      const hits = match && set.has(match[1]) ? [{} as Element] : [];
+      return hits as unknown as NodeListOf<Element>;
+    }) as Document["querySelectorAll"],
   };
 }
 

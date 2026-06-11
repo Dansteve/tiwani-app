@@ -68,6 +68,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
+                // The Pulse link is an anchor for the dashboard coach-marks (the check-in step).
+                data-tour={item.href === "/pulse" ? "pulse-nav" : undefined}
                 className={cn(
                   "flex min-h-11 items-center gap-3 rounded-md px-3 text-sm transition-colors",
                   active
@@ -84,8 +86,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Secondary links: surfaces that are not top-level tabs (the mobile bar stays at the six
             primary destinations). Your plans and Card history are reached here on desktop and from
-            their own flows on mobile. */}
-        <nav className="mt-6 flex flex-col gap-1 border-t border-sidebar-border pt-4" aria-label="Secondary">
+            their own flows on mobile. The data-tour anchor lets the dashboard coach-marks point here
+            (a desktop-only step; the mobile bottom bar has no secondary section). */}
+        <nav
+          data-tour="secondary-nav"
+          className="mt-6 flex flex-col gap-1 border-t border-sidebar-border pt-4"
+          aria-label="Secondary"
+        >
           {SECONDARY_NAV.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
@@ -132,6 +139,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
+              // The Pulse tab is the mobile anchor for the dashboard coach-marks (the check-in step).
+              data-tour={item.href === "/pulse" ? "pulse-nav" : undefined}
               className={cn(
                 "flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-[11px]",
                 active ? "text-primary font-medium" : "text-muted-foreground"

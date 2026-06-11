@@ -57,6 +57,10 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
     title: "Find your way around",
     body: "Your saved plans, your shared cards, and your settings live here whenever you need them.",
     placement: "right",
+    // Desktop-only: the secondary links live in the sidebar (the mobile bottom bar keeps the primary
+    // tabs). Hidden at the mobile breakpoint, so the tour skips this step there rather than point at a
+    // display:none element.
+    optional: true,
   },
   {
     id: "pulse",
@@ -67,22 +71,51 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-/** Does an element with this `data-tour` value exist in the given root (document by default)? */
+/**
+ * Is an element treated as "on the page" for the tour? It must exist AND be laid out (a non-zero box):
+ * the responsive shell renders the same `data-tour` anchor in both the desktop sidebar and the mobile
+ * bottom bar, with the layout that does not apply hidden via `display:none` (a zero-size rect). Treating
+ * a zero-size element as absent makes the tour point at the visible one and skip the hidden duplicate.
+ */
+function isLaidOut(el: Element): boolean {
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.height > 0;
+}
+
+/**
+ * The first element for this `data-tour` value that is actually laid out (visible), or null. Used both
+ * to decide whether an optional step shows and to position the spotlight, so the tour always anchors to
+ * the on-screen instance at the current breakpoint, never a `display:none` duplicate. In a non-DOM test
+ * root (no getBoundingClientRect) the first match is taken as-is.
+ */
+export function findTourTarget(
+  target: string,
+  root: Pick<Document, "querySelectorAll"> = document
+): Element | null {
+  const matches = Array.from(root.querySelectorAll(`[data-tour="${target}"]`));
+  if (matches.length === 0) return null;
+  const visible = matches.find(
+    (el) => typeof el.getBoundingClientRect !== "function" || isLaidOut(el)
+  );
+  return visible ?? null;
+}
+
+/** Does a laid-out element with this `data-tour` value exist (the visible-aware presence check)? */
 export function targetExists(
   target: string,
-  root: Pick<Document, "querySelector"> = document
+  root: Pick<Document, "querySelectorAll"> = document
 ): boolean {
-  return root.querySelector(`[data-tour="${target}"]`) != null;
+  return findTourTarget(target, root) != null;
 }
 
 /**
  * The steps to actually run, in order: every non-optional step, plus each optional step whose target is
- * currently on the page. Keeps the tour honest (it never points at an element that is not rendered) and
- * is pure over an injected root so it is testable without a real DOM.
+ * currently visible on the page. Keeps the tour honest (it never points at an element that is not
+ * rendered or is hidden at this breakpoint) and is pure over an injected root so it is testable.
  */
 export function resolveVisibleSteps(
   steps: TourStep[] = DASHBOARD_TOUR_STEPS,
-  root: Pick<Document, "querySelector"> = document
+  root: Pick<Document, "querySelectorAll"> = document
 ): TourStep[] {
   return steps.filter((step) => !step.optional || targetExists(step.target, root));
 }

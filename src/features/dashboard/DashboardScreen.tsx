@@ -22,6 +22,9 @@ import { OverallLciIndicator } from "@/features/continuity/OverallLciIndicator";
 import { PulsePrompt } from "@/features/pulse/PulsePrompt";
 import { AlertSurface } from "@/features/alerts/AlertSurface";
 import { useAlerts } from "@/features/alerts/useAlerts";
+import { CoachMarks } from "@/features/tour/CoachMarks";
+import { HelpButton } from "@/features/tour/HelpButton";
+import { useCoachMarks } from "@/features/tour/useCoachMarks";
 
 // The fixed display order is the canonical six (format.CHAPTERS); the api feed is ordered onto it so
 // the grid is stable even if the api returns a different order or (defensively) an incomplete set.
@@ -74,6 +77,11 @@ export function DashboardScreen() {
     chapters !== null &&
     chapters.every((chapter) => chapterStatus(chapter) === "not_started");
 
+  // The onboarding coach-marks (the owner's skipper-style explainer): auto-open once on the first
+  // dashboard visit, re-openable from the "Show me around" button. Auto-open waits until the chapter
+  // grid has rendered (the first card is the tour's first anchor), so it never opens over skeletons.
+  const tour = useCoachMarks(chapters !== null);
+
   return (
     <div className="space-y-6">
       <header className="flex items-start justify-between gap-3">
@@ -83,28 +91,32 @@ export function DashboardScreen() {
             Your six Life Chapters. Pick one to prepare for something.
           </p>
         </div>
-        <a
-          href="https://www.instagram.com/reel/DYmjsCeCCkM/?igsh=OTdsMWFjZDFrZ2J5"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="TIWANI on Instagram"
-          className="mt-1 inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="size-5"
-            aria-hidden="true"
+        <div className="mt-1 flex shrink-0 items-center gap-1">
+          {/* Re-open the coach-marks any time (the auto-open is once-per-first-visit). */}
+          <HelpButton onClick={tour.start} />
+          <a
+            href="https://www.instagram.com/reel/DYmjsCeCCkM/?igsh=OTdsMWFjZDFrZ2J5"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="TIWANI on Instagram"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-            <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-          </svg>
-        </a>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-5"
+              aria-hidden="true"
+            >
+              <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+              <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+            </svg>
+          </a>
+        </div>
       </header>
 
       {/* Continue-onboarding prompt: shown until the Coordinator has set up the person they care for,
@@ -129,9 +141,12 @@ export function DashboardScreen() {
       ) : null}
 
       {/* The overall resilience score + trajectory (Product.md §4.8). Renders only once the api has a
-          snapshot; absence (or an error on this read) leaves the rest of the dashboard untouched. */}
+          snapshot; absence (or an error on this read) leaves the rest of the dashboard untouched. The
+          data-tour anchor lets the coach-marks point at it (an optional step, skipped when absent). */}
       {overallLciQuery.data ? (
-        <OverallLciIndicator snapshot={overallLciQuery.data} />
+        <div data-tour="resilience-score">
+          <OverallLciIndicator snapshot={overallLciQuery.data} />
+        </div>
       ) : null}
 
       {/* The Erosion Alert surfaces (Product.md §4.9): the L2 amber cards at the top of the LCI area
@@ -169,13 +184,15 @@ export function DashboardScreen() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {chapters
-          ? chapters.map((chapter) => (
+          ? chapters.map((chapter, i) => (
               <ChapterCard
                 key={chapter.chapter}
                 status={chapter}
                 alert={alerts.cardAlertByChapter.get(chapter.chapter)}
                 onDismissAlert={() => alerts.dismiss(chapter.chapter)}
                 isDismissingAlert={alerts.dismissingChapter === chapter.chapter}
+                // The first card anchors the coach-marks' opening step (the core Prepare action).
+                tourAnchor={i === 0 ? "chapter-card" : undefined}
               />
             ))
           : // Loading: six skeleton cards keep the grid from jumping (dashboard under 2s, Product.md §5).
@@ -187,6 +204,10 @@ export function DashboardScreen() {
               />
             ))}
       </div>
+
+      {/* The onboarding coach-marks overlay (Product.md onboarding; the owner's skipper-style explainer).
+          Renders only while open; it resolves which steps to show against the anchors above. */}
+      <CoachMarks open={tour.open} onClose={tour.close} />
     </div>
   );
 }

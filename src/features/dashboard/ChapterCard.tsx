@@ -24,6 +24,8 @@ interface ChapterCardProps {
   alert?: AlertRecord;
   onDismissAlert?: () => void;
   isDismissingAlert?: boolean;
+  /** Optional `data-tour` anchor on the card root, so the dashboard coach-marks can point at it. */
+  tourAnchor?: string;
 }
 
 export function ChapterCard({
@@ -31,6 +33,7 @@ export function ChapterCard({
   alert,
   onDismissAlert,
   isDismissingAlert = false,
+  tourAnchor,
 }: ChapterCardProps) {
   const kind = chapterStatus(status);
   const presentation = STATUS_PRESENTATION[kind];
@@ -38,7 +41,10 @@ export function ChapterCard({
   const alertDot = alert ? alertPresentation(alert.level) : null;
 
   return (
-    <div className="flex h-full flex-col justify-between gap-4 rounded-xl border border-border bg-card p-5 text-card-foreground">
+    <div
+      data-tour={tourAnchor}
+      className="flex h-full flex-col justify-between gap-4 rounded-xl border border-border bg-card p-5 text-card-foreground"
+    >
       <div className="space-y-3">
         <h2 className="flex items-center gap-2 text-lg font-semibold leading-tight">
           {alertDot ? (
