@@ -1,0 +1,257 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+
+  /* Shared font system (parity with tiwani-website): Inter, Arial/Helvetica fallback.
+     The app loads Inter via next/font/google (exposed as --font-inter); the website sources the
+     identical family via Google Fonts. Same family, same --font-sans token name and fallback. */
+  --font-sans: var(--font-inter), 'Inter', Arial, Helvetica, sans-serif;
+
+  /* Type scale roles (one shared scale, mapped onto the Tailwind text-* steps; see Docs/Brand.md).
+     These tokenize the hierarchy without changing the rendered text-* sizes. Base body is 16px. */
+  --text-display: var(--text-7xl);   /* hero: 72px desktop (use text-4xl on mobile) */
+  --text-h1: var(--text-4xl);        /* page title: 36px */
+  --text-h2: var(--text-2xl);        /* section heading: 24px */
+  --text-h3: var(--text-xl);         /* card / subsection title: 20px */
+  --text-body: var(--text-base);     /* default text: 16px (the base) */
+  --text-small: var(--text-sm);      /* secondary, supporting: 14px */
+  --text-caption: var(--text-xs);    /* meta, labels: 12px floor, never smaller */
+
+  --leading-display: 1.05;
+  --leading-heading: 1.2;
+  --leading-body: 1.5;
+
+  /* TIWANI Brand Colors */
+  --tiwani-primary: #0F6E56;
+  --tiwani-dark: #04342C;
+  --tiwani-mid: #1D9E75;
+  --tiwani-coral: #D85A30;
+  --tiwani-coral-deep: #993C1D;
+  --tiwani-coral-light: #F0997B;
+  --tiwani-teal-near-white: #E1F5EE;
+  --tiwani-body: #2C2C2A;
+  --tiwani-muted: #5F5E5A;
+  --tiwani-bg: #F1EFE8;
+  --tiwani-surface-warm: #E7E4DA;
+
+  --background: #F1EFE8;
+  --foreground: #2C2C2A;
+  --card: #ffffff;
+  --card-foreground: #2C2C2A;
+  --popover: #ffffff;
+  --popover-foreground: #2C2C2A;
+  --primary: #0F6E56;
+  --primary-foreground: #ffffff;
+  --secondary: #E7E4DA;
+  --secondary-foreground: #2C2C2A;
+  --muted: #E7E4DA;
+  --muted-foreground: #5F5E5A;
+  --accent: #E1F5EE;
+  --accent-foreground: #04342C;
+  --destructive: #D85A30;
+  --destructive-foreground: #ffffff;
+
+  /* Dashboard status semantics (Product.md §4.3 / §4.6 / §4.9), harmonized to the palette.
+     Status is always colour + label + icon, never colour alone (accessibility). */
+  --success: #1D9E75;            /* stable / positive (teal-mid) */
+  --success-foreground: #ffffff;
+  --warning: #C8862B;           /* under pressure (warm amber) */
+  --warning-foreground: #2C2C2A;
+  --critical: #D85A30;          /* needs attention (coral, = destructive) */
+  --critical-foreground: #ffffff;
+  --status-stable: #1D9E75;
+  --status-pressure: #C8862B;
+  --status-critical: #D85A30;
+
+  --border: rgba(44, 44, 42, 0.12);
+  --input: transparent;
+  --input-background: #E7E4DA;
+  --switch-background: #C9C6BD;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #0F6E56;
+
+  /* Categorical chart ramp from the TIWANI palette (teal, coral, teal-mid, amber, deep teal). */
+  --chart-1: #0F6E56;
+  --chart-2: #D85A30;
+  --chart-3: #1D9E75;
+  --chart-4: #C8862B;
+  --chart-5: #04342C;
+  --radius: 0.625rem;
+  --sidebar: #F1EFE8;
+  --sidebar-foreground: #2C2C2A;
+  --sidebar-primary: #0F6E56;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #E7E4DA;
+  --sidebar-accent-foreground: #04342C;
+  --sidebar-border: rgba(44, 44, 42, 0.1);
+  --sidebar-ring: #0F6E56;
+}
+
+.dark {
+  /* Warm dark surfaces anchored toward Deep Teal #04342C; brand tokens brightened for AA contrast. */
+  --background: #15201C;
+  --foreground: #ECEAE3;
+  --card: #1B2723;
+  --card-foreground: #ECEAE3;
+  --popover: #1B2723;
+  --popover-foreground: #ECEAE3;
+  --primary: #1D9E75;
+  --primary-foreground: #04342C;
+  --secondary: #243029;
+  --secondary-foreground: #ECEAE3;
+  --muted: #243029;
+  --muted-foreground: #B7B3A8;
+  --accent: #04342C;
+  --accent-foreground: #E1F5EE;
+  --destructive: #E27A52;
+  --destructive-foreground: #2C1810;
+
+  /* Dashboard status semantics, brightened for the dark surface. */
+  --success: #2BB888;
+  --success-foreground: #04342C;
+  --warning: #E0A03E;
+  --warning-foreground: #2C2C2A;
+  --critical: #E27A52;
+  --critical-foreground: #2C1810;
+  --status-stable: #2BB888;
+  --status-pressure: #E0A03E;
+  --status-critical: #E27A52;
+
+  --border: rgba(236, 234, 227, 0.14);
+  --input: #243029;
+  --input-background: #243029;
+  --switch-background: #3A4640;
+  --ring: #1D9E75;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --chart-1: #2BB888;
+  --chart-2: #E27A52;
+  --chart-3: #5FD0A8;
+  --chart-4: #E0A03E;
+  --chart-5: #7FB5A4;
+  --sidebar: #1B2723;
+  --sidebar-foreground: #ECEAE3;
+  --sidebar-primary: #1D9E75;
+  --sidebar-primary-foreground: #04342C;
+  --sidebar-accent: #243029;
+  --sidebar-accent-foreground: #E1F5EE;
+  --sidebar-border: rgba(236, 234, 227, 0.12);
+  --sidebar-ring: #1D9E75;
+}
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-critical: var(--critical);
+  --color-critical-foreground: var(--critical-foreground);
+  --color-status-stable: var(--status-stable);
+  --color-status-pressure: var(--status-pressure);
+  --color-status-critical: var(--status-critical);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /**
+  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
+  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
+  */
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+}

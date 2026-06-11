@@ -1,0 +1,73 @@
+// Display formatting only. The app does NO math on scores or the index beyond presentation (App
+// SETUP / Lib module): scores arrive 1 to 5, totals 4 to 20, the LCI 0 to 100, already computed by
+// the api. Pure functions, framework-agnostic (Decisions.md D10).
+
+import type {
+  ChapterCode,
+  ParticipationTier,
+  Trajectory,
+} from "@/lib/api/types";
+
+/** Human label for a Life Chapter code. */
+const CHAPTER_LABELS: Record<ChapterCode, string> = {
+  school: "School",
+  career: "Career",
+  family_life: "Family Life & Routine",
+  social_community: "Social & Community",
+  travel_holiday: "Travel & Holiday",
+  culture_faith: "Culture & Faith",
+};
+
+export function chapterLabel(chapter: ChapterCode): string {
+  return CHAPTER_LABELS[chapter];
+}
+
+/** The fixed six Life Chapters in display order (the set is not configurable down to five). */
+export const CHAPTERS: ChapterCode[] = [
+  "school",
+  "career",
+  "family_life",
+  "social_community",
+  "travel_holiday",
+  "culture_faith",
+];
+
+const TIER_LABELS: Record<ParticipationTier, string> = {
+  full_engagement: "Full Engagement",
+  modified_participation: "Modified Participation",
+  continuity_pivot: "Continuity Pivot",
+};
+
+export function tierLabel(tier: ParticipationTier): string {
+  return TIER_LABELS[tier];
+}
+
+const TRAJECTORY_LABELS: Record<Trajectory, string> = {
+  strengthening: "Strengthening",
+  holding_steady: "Holding steady",
+  under_pressure: "Under pressure",
+  building_picture: "Building your picture",
+};
+
+export function trajectoryLabel(trajectory: Trajectory): string {
+  return TRAJECTORY_LABELS[trajectory];
+}
+
+/** Format an LCI value (0 to 100) for display, or a placeholder when there is no score yet. */
+export function formatLci(score: number | null | undefined): string {
+  if (score === null || score === undefined) return "--";
+  return String(Math.round(score));
+}
+
+/** Format a dimension or total score for display (whole number). */
+export function formatScore(score: number): string {
+  return String(Math.round(score));
+}
+
+/** A time-based greeting addressed to the Coordinator by first name (never the child's name). */
+export function greeting(firstName: string, now: Date = new Date()): string {
+  const hour = now.getHours();
+  const part =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  return firstName ? `${part}, ${firstName}` : part;
+}

@@ -1,0 +1,4 @@
+/* TIWANI shared font system: Inter (parity with tiwani-website). */
+/* The app is Next.js, so Inter is loaded via next/font/google in app/layout.tsx and exposed as
+   --font-inter. The website sources the identical family via Google Fonts. Same family, same
+   --font-sans token name and fallback, so the two frontends read as one product (Docs/Brand.md). */
