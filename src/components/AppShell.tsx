@@ -20,6 +20,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/LogoutButton";
+import { ThemeToggle } from "@/features/theme/ThemeToggle";
 
 interface NavItem {
   href: string;
@@ -56,9 +57,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-dvh bg-background text-foreground">
       {/* Desktop sidebar (lg and up). */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar px-4 py-6 lg:flex">
-        <Link href="/dashboard" className="px-2 text-xl font-semibold text-sidebar-foreground">
-          TIWANI
-        </Link>
+        <div className="flex items-center justify-between gap-2 pl-2">
+          <Link href="/dashboard" className="text-xl font-semibold text-sidebar-foreground">
+            TIWANI
+          </Link>
+          {/* Quick theme toggle in the shell header; the full selector lives in Settings. */}
+          <ThemeToggle variant="icon" />
+        </div>
         <nav className="mt-8 flex flex-col gap-1" aria-label="Primary">
           {NAV.map((item) => {
             const active = isActive(pathname, item.href);

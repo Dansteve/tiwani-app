@@ -56,12 +56,17 @@ vi.mock("@/components/LogoutButton", () => ({
 }));
 
 import { SettingsScreen } from "@/features/settings/SettingsScreen";
+import { ThemeProvider } from "@/state/ThemeProvider";
 
 function renderScreen() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // ThemeProvider wraps the screen as it does in the real app (the Appearance card's ThemeToggle reads
+  // useTheme); without it the toggle throws by design.
   return render(
     <QueryClientProvider client={client}>
-      <SettingsScreen />
+      <ThemeProvider>
+        <SettingsScreen />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

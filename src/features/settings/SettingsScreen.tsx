@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/card";
 import { ProfileSection } from "@/features/settings/ProfileSection";
 import { CareRecipientSection } from "@/features/settings/CareRecipientSection";
+import { ThemeToggle } from "@/features/theme/ThemeToggle";
 
 export function SettingsScreen() {
   const profileQuery = useQuery({
@@ -92,6 +93,19 @@ export function SettingsScreen() {
       ) : childQuery.data ? (
         <CareRecipientSection child={childQuery.data} />
       ) : null}
+
+      {/* Appearance (theme). A device preference, set on this device and remembered here. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Appearance</CardTitle>
+          <CardDescription>
+            Choose how TIWANI looks on this device. System follows your device setting.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ThemeToggle variant="segmented" />
+        </CardContent>
+      </Card>
 
       {/* Account (sign out). A device action, kept distinct from the profile edits above. */}
       <Card>
