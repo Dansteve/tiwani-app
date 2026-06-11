@@ -13,6 +13,7 @@ import {
   Activity,
   HeartPulse,
   Settings,
+  History,
   type LucideIcon,
 } from "lucide-react";
 
@@ -69,6 +70,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+        </nav>
+
+        {/* Secondary links: surfaces that are not top-level tabs (the mobile bar stays at the six
+            primary destinations). Card history is reached here on desktop and from the card screens
+            on mobile. */}
+        <nav className="mt-6 border-t border-sidebar-border pt-4" aria-label="Secondary">
+          {(() => {
+            const active = isActive(pathname, "/card/history");
+            return (
+              <Link
+                href="/card/history"
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex min-h-11 items-center gap-3 rounded-md px-3 text-sm transition-colors",
+                  active
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/60"
+                )}
+              >
+                <History className="size-5 shrink-0" aria-hidden="true" />
+                Card history
+              </Link>
+            );
+          })()}
         </nav>
 
         {/* Sign out sits at the bottom of the sidebar (mobile signs out from the Settings tab). */}
