@@ -12,7 +12,7 @@
 import { useMemo, useRef } from "react";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
-import { FileText } from "lucide-react";
+import { FileText, History } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import { buttonVariants } from "@/components/ui/button";
@@ -95,6 +95,14 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
             cardRef={cardRef}
           />
         </div>
+
+        <Link
+          href="/card/history"
+          className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto")}
+        >
+          <History className="size-4 shrink-0" aria-hidden="true" />
+          View your cards
+        </Link>
       </div>
     );
   }
@@ -133,6 +141,12 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
         <FileText className="size-4 shrink-0" aria-hidden="true" />
         {mutation.isPending ? "Creating the card..." : "Generate Continuity Card"}
       </button>
+
+      <p className="text-center text-sm text-muted-foreground">
+        <Link href="/card/history" className="font-medium text-primary underline-offset-4 hover:underline">
+          View the cards you have already shared
+        </Link>
+      </p>
     </div>
   );
 }
