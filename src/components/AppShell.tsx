@@ -14,6 +14,7 @@ import {
   HeartPulse,
   Settings,
   History,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -33,6 +34,15 @@ const NAV: NavItem[] = [
   { href: "/pulse", label: "Pulse", icon: Activity },
   { href: "/continuity", label: "Continuity", icon: HeartPulse },
   { href: "/settings", label: "Settings", icon: Settings },
+];
+
+// Secondary destinations: surfaces that are not top-level tabs, so they stay off the mobile bottom bar
+// (the bar keeps the six primary destinations) and live in the desktop sidebar's secondary section. Your
+// plans (re-open a prepared plan) and Card history (a card's status + revoke) are both reached here on
+// desktop and from their own flows on mobile.
+const SECONDARY_NAV: NavItem[] = [
+  { href: "/plans", label: "Your plans", icon: FileText },
+  { href: "/card/history", label: "Card history", icon: History },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -73,14 +83,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Secondary links: surfaces that are not top-level tabs (the mobile bar stays at the six
-            primary destinations). Card history is reached here on desktop and from the card screens
-            on mobile. */}
-        <nav className="mt-6 border-t border-sidebar-border pt-4" aria-label="Secondary">
-          {(() => {
-            const active = isActive(pathname, "/card/history");
+            primary destinations). Your plans and Card history are reached here on desktop and from
+            their own flows on mobile. */}
+        <nav className="mt-6 flex flex-col gap-1 border-t border-sidebar-border pt-4" aria-label="Secondary">
+          {SECONDARY_NAV.map((item) => {
+            const active = isActive(pathname, item.href);
+            const Icon = item.icon;
             return (
               <Link
-                href="/card/history"
+                key={item.href}
+                href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-11 items-center gap-3 rounded-md px-3 text-sm transition-colors",
@@ -89,11 +101,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     : "text-sidebar-foreground hover:bg-sidebar-accent/60"
                 )}
               >
-                <History className="size-5 shrink-0" aria-hidden="true" />
-                Card history
+                <Icon className="size-5 shrink-0" aria-hidden="true" />
+                {item.label}
               </Link>
             );
-          })()}
+          })}
         </nav>
 
         {/* Sign out sits at the bottom of the sidebar (mobile signs out from the Settings tab). */}
