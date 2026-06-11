@@ -41,8 +41,11 @@ export type Trajectory =
   | "under_pressure"
   | "building_picture";
 
-/** Erosion Alert level (Product.md §4.9). */
+/** Erosion Alert level (Product.md §4.9), the string form used on AlertRecord. */
 export type AlertLevel = "L1" | "L2" | "L3";
+
+/** Erosion Alert level as the api returns it on the dashboard chapter feed (numeric, 1 to 3). */
+export type AlertLevelNumeric = 1 | 2 | 3;
 
 /** "Today" flags the Coordinator can set for a plan; the api applies the effects, never the app. */
 export type DayFlag =
@@ -129,6 +132,22 @@ export interface ChapterLci {
   trajectory: Trajectory;
   pulse_count: number;
   timestamp: string;
+}
+
+/**
+ * The per-chapter status feed for the dashboard (Product.md §4.3), one row per Life Chapter for the
+ * current user. The app maps these inputs to a grey/green/amber/red display status (it does not
+ * compute the LCI or the alert; both arrive computed). Mirrors the api's /api/v3/chapters payload
+ * field-for-field: lci is null before any pulse, alert_level is null when no alert is active, and
+ * last_prepared_at is null until an activity exists.
+ */
+export interface ChapterStatus {
+  chapter: ChapterCode;
+  display_name: string;
+  lci: number | null;
+  alert_level: AlertLevelNumeric | null;
+  last_prepared_at: string | null;
+  activity_count: number;
 }
 
 export interface OverallLciSnapshot {

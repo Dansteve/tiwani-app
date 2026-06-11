@@ -12,6 +12,7 @@ import type {
   AlertRecord,
   CareRecipientProfile,
   ChapterLci,
+  ChapterStatus,
   ContinuityCard,
   OnboardingPayload,
   OverallLciSnapshot,
@@ -148,6 +149,11 @@ export const api = {
 
   getCareRecipient(signal?: AbortSignal): Promise<CareRecipientProfile> {
     return http<CareRecipientProfile>("/api/v3/child", { signal });
+  },
+
+  /** The dashboard chapter feed: one status row per Life Chapter for the current user (Product.md §4.3). */
+  getChapters(signal?: AbortSignal): Promise<ChapterStatus[]> {
+    return http<ChapterStatus[]>("/api/v3/chapters", { signal });
   },
 
   preparePlan(payload: PreparePlanRequest): Promise<PreparationPlan> {

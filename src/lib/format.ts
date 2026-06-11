@@ -64,6 +64,22 @@ export function formatScore(score: number): string {
   return String(Math.round(score));
 }
 
+/**
+ * Format a chapter's last-prepared timestamp for the dashboard card. Null (nothing prepared yet)
+ * reads as a plain prompt; otherwise a short "Prepared 3 Jun 2025" style date. Pure and locale-aware.
+ */
+export function formatLastPrepared(iso: string | null | undefined): string {
+  if (!iso) return "Not prepared yet";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Not prepared yet";
+  const label = date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  return `Prepared ${label}`;
+}
+
 /** A time-based greeting addressed to the Coordinator by first name (never the child's name). */
 export function greeting(firstName: string, now: Date = new Date()): string {
   const hour = now.getHours();
