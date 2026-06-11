@@ -2,9 +2,10 @@ import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
 
-// The app entry. Once Supabase Auth is live this routes by session (signed in to the dashboard,
-// signed out to sign-in/onboarding). For the foundation it is a calm, on-brand welcome into the
-// shell. Static-exportable (no server logic).
+// The app entry: a calm, on-brand welcome. Get started goes to sign-up (then onboarding after the
+// account is made, never straight to the dashboard, Product.md §4.1); returning Coordinators sign in.
+// Session-based redirect (skip this screen when already signed in) lands with the auth-gate in a
+// later slice; for now this is the public front door. Static-exportable (no server logic).
 
 export default function Home() {
   return (
@@ -20,14 +21,14 @@ export default function Home() {
       </p>
 
       <div className="mt-8 flex flex-col gap-3">
-        <Link href="/onboarding" className={buttonVariants()}>
+        <Link href="/sign-up" className={buttonVariants()}>
           Get started
         </Link>
         <Link
-          href="/dashboard"
+          href="/sign-in"
           className={buttonVariants({ variant: "outline" })}
         >
-          Go to dashboard
+          I already have an account
         </Link>
       </div>
     </main>
