@@ -5,7 +5,7 @@
 
 import type { ReactNode } from "react";
 
-import { env } from "@/lib/env";
+import { HomeLink } from "@/components/HomeLink";
 
 interface AuthShellProps {
   title: string;
@@ -18,13 +18,10 @@ interface AuthShellProps {
 export function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-10">
-      <a
-        href={env.websiteUrl}
-        className="mb-6 inline-flex items-center gap-1.5 self-start text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground"
-      >
+      <HomeLink className="mb-6 inline-flex items-center gap-1.5 self-start text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground">
         <span aria-hidden="true">&larr;</span>
         Back to home
-      </a>
+      </HomeLink>
       <span className="text-xl font-semibold text-primary">TIWANI</span>
 
       <div className="mt-8">

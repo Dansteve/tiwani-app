@@ -76,11 +76,35 @@ export function DashboardScreen() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold md:text-3xl">{greeting(firstName)}</h1>
-        <p className="mt-1 text-base text-muted-foreground">
-          Your six Life Chapters. Pick one to prepare for something.
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold md:text-3xl">{greeting(firstName)}</h1>
+          <p className="mt-1 text-base text-muted-foreground">
+            Your six Life Chapters. Pick one to prepare for something.
+          </p>
+        </div>
+        <a
+          href="https://www.instagram.com/reel/DYmjsCeCCkM/?igsh=OTdsMWFjZDFrZ2J5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="TIWANI on Instagram"
+          className="mt-1 inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="size-5"
+            aria-hidden="true"
+          >
+            <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+            <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+          </svg>
+        </a>
       </header>
 
       {/* Continue-onboarding prompt: shown until the Coordinator has set up the person they care for,
