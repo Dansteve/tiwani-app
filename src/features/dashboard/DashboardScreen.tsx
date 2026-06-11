@@ -10,6 +10,7 @@
 // rather than being swallowed. For now every chapter returns grey ("not started"), and a new user (no
 // activity anywhere) also sees the "start by preparing" prompt.
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
@@ -63,6 +64,10 @@ export function DashboardScreen() {
   const alerts = useAlerts();
 
   const firstName = profileQuery.data?.first_name ?? "";
+  // A signed-in user who has not finished onboarding (no care recipient yet) sees the dashboard with a
+  // prompt to continue, rather than being forced through onboarding first.
+  const needsOnboarding =
+    profileQuery.data != null && !profileQuery.data.onboarding_complete;
   const chapters = chaptersQuery.data ? orderChapters(chaptersQuery.data) : null;
   // The new-user empty state: every chapter is "not started" (no plan made anywhere yet).
   const allNotStarted =
@@ -77,6 +82,27 @@ export function DashboardScreen() {
           Your six Life Chapters. Pick one to prepare for something.
         </p>
       </header>
+
+      {/* Continue-onboarding prompt: shown until the Coordinator has set up the person they care for,
+          so they can still look around the dashboard first. */}
+      {needsOnboarding ? (
+        <section className="rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="font-semibold text-foreground">Finish setting up TIWANI</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Add the person you care for so TIWANI can build plans for them. It takes about 60 seconds.
+              </p>
+            </div>
+            <Link
+              href="/onboarding"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              Continue onboarding
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
       {/* The overall resilience score + trajectory (Product.md §4.8). Renders only once the api has a
           snapshot; absence (or an error on this read) leaves the rest of the dashboard untouched. */}

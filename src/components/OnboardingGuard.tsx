@@ -1,12 +1,9 @@
 "use client";
 
-// Gate for the authenticated product surface ((app) segment). It reads the profile (api.me) and:
-//   - sends an unauthenticated caller (401) to /sign-in,
-//   - sends a signed-in-but-not-onboarded caller to /onboarding (no care recipient exists yet, so the
-//     plan / dashboard have nothing to work with, which otherwise surfaced as a confusing "could not
-//     build your plan" 409).
-// Otherwise it renders the app. /onboarding lives in (auth), outside (app), so there is no loop.
-// Shares the ["profile"] query key with the dashboard, so this adds no extra request.
+// Auth gate for the product surface ((app) segment): it sends an unauthenticated caller (401) to
+// /sign-in. A signed-in-but-not-onboarded caller is NOT redirected: they see the app, and the dashboard
+// shows a "Continue onboarding" prompt (DashboardScreen) so they can look around first. Shares the
+// ["profile"] query key with the dashboard, so this adds no extra request.
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -16,21 +13,19 @@ import { api, ApiError } from "@/lib/api/client";
 
 export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { data: profile, isLoading, error } = useQuery({
+  const { isLoading, error } = useQuery({
     queryKey: ["profile"],
     queryFn: ({ signal }) => api.me(signal),
     retry: false,
   });
 
   const unauthenticated = error instanceof ApiError && error.status === 401;
-  const needsOnboarding = profile != null && !profile.onboarding_complete;
 
   useEffect(() => {
     if (unauthenticated) router.replace("/sign-in");
-    else if (needsOnboarding) router.replace("/onboarding");
-  }, [unauthenticated, needsOnboarding, router]);
+  }, [unauthenticated, router]);
 
-  // While loading, or while redirecting, render nothing (avoid a flash of the app with no recipient).
-  if (isLoading || unauthenticated || needsOnboarding) return null;
+  // While loading, or while redirecting an unauthenticated caller, render nothing.
+  if (isLoading || unauthenticated) return null;
   return <>{children}</>;
 }
