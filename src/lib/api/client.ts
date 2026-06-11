@@ -10,13 +10,14 @@
 import { env } from "@/lib/env";
 import type {
   AlertRecord,
+  CardContent,
+  CardCreated,
   CareRecipientProfile,
   CareRecipientUpdate,
   ChapterActivity,
   ChapterCode,
   ChapterLci,
   ChapterStatus,
-  ContinuityCard,
   OnboardingPayload,
   OverallLciSnapshot,
   PendingPulse,
@@ -267,13 +268,31 @@ export const api = {
     });
   },
 
-  generateCard(
-    activityId: string,
-    includeContact: boolean
-  ): Promise<ContinuityCard> {
-    return http<ContinuityCard>("/api/v3/cards", {
+  /**
+   * Generate a Continuity Card for one of the caller's prepared activities (Product.md §4.6). AUTH
+   * REQUIRED: the bearer is attached by http(). Body is { activity_id } (mirrors the api's
+   * CreateCardRequest); the api verifies the activity belongs to the caller (RLS-scoped, a foreign or
+   * unknown id is a 404), assembles the SAFE non-clinical content, stores the card with a hard-to-guess
+   * share token and a 30-day expiry, and returns { content, token, expires_at }. The app previews
+   * `content` and builds the public share link from `token` (it appends no profile detail to the link).
+   */
+  generateCard(activityId: string): Promise<CardCreated> {
+    return http<CardCreated>("/api/v3/cards", {
       method: "POST",
-      body: { activity_id: activityId, include_contact: includeContact },
+      body: { activity_id: activityId },
+    });
+  },
+
+  /**
+   * Read a shared Continuity Card by its token (Product.md §4.6 / §3.3). NO AUTH: a helper opens the
+   * share link with no account, so this carries no bearer (the token is the link's only secret). Returns
+   * only the safe CardContent (first name, activity, tier, intro, strategies, if-difficult). An unknown
+   * or expired token is a 404 (ApiError.status === 404), which the public page renders as a friendly
+   * "ask the family for a new link" state. The api read never exposes any other row or PII.
+   */
+  getCard(token: string, signal?: AbortSignal): Promise<CardContent> {
+    return http<CardContent>(`/api/v3/cards/${encodeURIComponent(token)}`, {
+      signal,
     });
   },
 };

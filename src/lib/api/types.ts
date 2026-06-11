@@ -264,12 +264,53 @@ export interface AlertRecord {
   signposts: AlertSignpost[];
 }
 
-export interface ContinuityCard {
-  pdf_url: string;
-  share_url: string;
-  expiry: string;
-  include_contact: boolean;
-  timestamp: string;
+/**
+ * One strategy on a Continuity Card, written for an outsider (a helper who is new to the care
+ * recipient). Mirrors the api's CardStrategy field-for-field. The source seed carries flat phrases,
+ * so `title` and `detail` may be the same line; the app renders both as the api returns them.
+ */
+export interface CardStrategy {
+  title: string;
+  detail: string;
+}
+
+/**
+ * The SAFE, public Continuity Card content (Product.md §4.6), the exact body GET /api/v3/cards/{token}
+ * returns to a helper with NO account. Mirrors the api's CardContent field-for-field. It deliberately
+ * carries NO PII beyond the care recipient's FIRST name and NO clinical data, and never a user_id /
+ * child_id / activity_id / timestamp. Every string is the api's governed, non-clinical copy: the app
+ * renders it verbatim and authors no card wording.
+ *   child_first_name  the care recipient's first name only (never the full name).
+ *   activity_name     the activity the helper is supporting.
+ *   chapter           the Life Chapter code (context; the app may label it, it is not shown raw).
+ *   tier              the participation tier code (Full / Modified / Pivot).
+ *   tier_label        the tier in plain, warm words (what it means for the helper).
+ *   intro             a short supportive intro line.
+ *   strategies        the top strategies, each { title, detail }, for an outsider.
+ *   if_difficult      a calm, non-clinical "if things get difficult" line.
+ */
+export interface CardContent {
+  child_first_name: string;
+  activity_name: string;
+  chapter: ChapterCode;
+  tier: ParticipationTier;
+  tier_label: string;
+  intro: string;
+  strategies: CardStrategy[];
+  if_difficult: string;
+}
+
+/**
+ * The POST /api/v3/cards response the OWNER (the Coordinator) receives (Product.md §4.6). Mirrors the
+ * api's CardCreated field-for-field: the safe `content` (so the app previews the card without a second
+ * fetch), the opaque share `token` (the link's only secret, ~43 url-safe chars from secrets.token_urlsafe;
+ * the app builds the public share link from it and appends NO profile detail), and `expires_at` (the
+ * link is valid 30 days). The helper who opens the link only ever sees `content`, never the token.
+ */
+export interface CardCreated {
+  content: CardContent;
+  token: string;
+  expires_at: string;
 }
 
 // --- Request payloads ---
