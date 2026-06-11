@@ -11,6 +11,7 @@ import { env } from "@/lib/env";
 import type {
   AlertRecord,
   CareRecipientProfile,
+  CareRecipientUpdate,
   ChapterActivity,
   ChapterCode,
   ChapterLci,
@@ -22,6 +23,7 @@ import type {
   PreparePlanRequest,
   PreparationPlan,
   PressureDimension,
+  ProfileUpdate,
   PulseOutcome,
   PulseRecord,
   StrategyItem,
@@ -144,6 +146,15 @@ export const api = {
     return http<UserProfile>("/api/v3/profile", { signal });
   },
 
+  /**
+   * Update the Coordinator's own profile (PUT /api/v3/profile, partial). The Settings screen sends
+   * only first_name; email is read-only. Returns the updated profile so the caller can invalidate the
+   * ["profile"] read. The api 400s on an empty body, so the caller sends only changed fields.
+   */
+  updateProfile(update: ProfileUpdate): Promise<UserProfile> {
+    return http<UserProfile>("/api/v3/profile", { method: "PUT", body: update });
+  },
+
   completeOnboarding(payload: OnboardingPayload): Promise<CareRecipientProfile> {
     return http<CareRecipientProfile>("/api/v3/onboarding", {
       method: "POST",
@@ -153,6 +164,23 @@ export const api = {
 
   getCareRecipient(signal?: AbortSignal): Promise<CareRecipientProfile> {
     return http<CareRecipientProfile>("/api/v3/child", { signal });
+  },
+
+  /**
+   * Update the care recipient (PUT /api/v3/child/{child_id}, partial). The Settings screen sends only
+   * the changed fields (name, age_band, support_level_code, tags). The id comes from the GET /child
+   * read, never the client's guess; RLS scopes the update to the caller (a forged id matches nothing,
+   * 404). Returns the updated recipient so the caller can invalidate the ["child"] read. Edits apply
+   * to future plans only; historical records never change (Product.md §4.11).
+   */
+  updateCareRecipient(
+    childId: string,
+    update: CareRecipientUpdate
+  ): Promise<CareRecipientProfile> {
+    return http<CareRecipientProfile>(
+      `/api/v3/child/${encodeURIComponent(childId)}`,
+      { method: "PUT", body: update }
+    );
   },
 
   /** The dashboard chapter feed: one status row per Life Chapter for the current user (Product.md §4.3). */

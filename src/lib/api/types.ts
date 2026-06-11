@@ -274,6 +274,28 @@ export interface ContinuityCard {
 
 // --- Request payloads ---
 
+/**
+ * Partial update to the Coordinator's own profile (PUT /api/v3/profile). Mirrors the api's
+ * UserProfileUpdate: every field optional, the Settings screen only sends first_name (email is
+ * read-only, the rest are not user-editable here). first_name must be non-empty when present.
+ */
+export interface ProfileUpdate {
+  first_name?: string;
+}
+
+/**
+ * Partial update to the care recipient (PUT /api/v3/child/{child_id}). Mirrors the api's
+ * ChildProfileUpdate: every field optional, only the changed fields are sent. The api enforces the
+ * single-select Communication (CM-) and Recovery (RC-) families server-side; the Sensory + Transitions
+ * max-10 cap is a UI rule (the table stores every selected tag). age_band is nullable (clearable).
+ */
+export interface CareRecipientUpdate {
+  name?: string;
+  age_band?: string | null;
+  support_level_code?: SupportLevelCode;
+  tags?: TagCode[];
+}
+
 /** The onboarding payload, posted once at the end of the three-screen flow (Product.md §4.2). */
 export interface OnboardingPayload {
   name: string;
