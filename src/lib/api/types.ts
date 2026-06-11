@@ -17,10 +17,10 @@ export type TagCode = string;
 export type ChapterCode =
   | "school"
   | "career"
-  | "family_life"
-  | "social_community"
-  | "travel_holiday"
-  | "culture_faith";
+  | "family"
+  | "social"
+  | "travel"
+  | "culture";
 
 /** Participation tiers (Product.md §4.4). */
 export type ParticipationTier =

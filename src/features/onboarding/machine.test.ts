@@ -162,7 +162,7 @@ describe("onboarding state machine", () => {
     expect(canAdvance(atStep3)).toBe(false);
     const withChapter = onboardingReducer(atStep3, {
       type: "set_chapter",
-      value: "family_life",
+      value: "family",
     });
     expect(canAdvance(withChapter)).toBe(false);
     const withActivity = onboardingReducer(withChapter, {
@@ -176,9 +176,9 @@ describe("onboarding state machine", () => {
     const state = run([
       { type: "set_chapter", value: "school" },
       { type: "set_activity_type", value: "Assembly" },
-      { type: "set_chapter", value: "travel_holiday" },
+      { type: "set_chapter", value: "travel" },
     ]);
-    expect(state.chapter).toBe("travel_holiday");
+    expect(state.chapter).toBe("travel");
     expect(state.activityType).toBeNull();
   });
 

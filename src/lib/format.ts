@@ -12,10 +12,10 @@ import type {
 const CHAPTER_LABELS: Record<ChapterCode, string> = {
   school: "School",
   career: "Career",
-  family_life: "Family Life & Routine",
-  social_community: "Social & Community",
-  travel_holiday: "Travel & Holiday",
-  culture_faith: "Culture & Faith",
+  family: "Family Life & Routine",
+  social: "Social & Community",
+  travel: "Travel & Holiday",
+  culture: "Culture & Faith",
 };
 
 export function chapterLabel(chapter: ChapterCode): string {
@@ -26,10 +26,10 @@ export function chapterLabel(chapter: ChapterCode): string {
 export const CHAPTERS: ChapterCode[] = [
   "school",
   "career",
-  "family_life",
-  "social_community",
-  "travel_holiday",
-  "culture_faith",
+  "family",
+  "social",
+  "travel",
+  "culture",
 ];
 
 const TIER_LABELS: Record<ParticipationTier, string> = {

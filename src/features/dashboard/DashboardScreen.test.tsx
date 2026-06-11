@@ -13,10 +13,10 @@ import type { ChapterStatus, UserProfile } from "@/lib/api/types";
 const GREY_CHAPTERS: ChapterStatus[] = [
   { chapter: "school", display_name: "School", lci: null, alert_level: null, last_prepared_at: null, activity_count: 0 },
   { chapter: "career", display_name: "Career", lci: null, alert_level: null, last_prepared_at: null, activity_count: 0 },
-  { chapter: "family_life", display_name: "Family Life & Routine", lci: null, alert_level: null, last_prepared_at: null, activity_count: 0 },
-  { chapter: "social_community", display_name: "Social & Community", lci: null, alert_level: null, last_prepared_at: null, activity_count: 0 },
-  { chapter: "travel_holiday", display_name: "Travel & Holiday", lci: null, alert_level: null, last_prepared_at: null, activity_count: 0 },
-  { chapter: "culture_faith", display_name: "Culture & Faith", lci: null, alert_level: null, last_prepared_at: null, activity_count: 0 },
+  { chapter: "family", display_name: "Family Life & Routine", lci: null, alert_level: null, last_prepared_at: null, activity_count: 0 },
+  { chapter: "social", display_name: "Social & Community", lci: null, alert_level: null, last_prepared_at: null, activity_count: 0 },
+  { chapter: "travel", display_name: "Travel & Holiday", lci: null, alert_level: null, last_prepared_at: null, activity_count: 0 },
+  { chapter: "culture", display_name: "Culture & Faith", lci: null, alert_level: null, last_prepared_at: null, activity_count: 0 },
 ];
 
 const PROFILE: UserProfile = {
