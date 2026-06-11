@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { LogoutButton } from "@/components/LogoutButton";
 
 interface NavItem {
   href: string;
@@ -69,6 +70,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+
+        {/* Sign out sits at the bottom of the sidebar (mobile signs out from the Settings tab). */}
+        <LogoutButton variant="nav" className="mt-auto" />
       </aside>
 
       {/* Content: room for the sidebar on desktop, room for the bottom tabs on mobile. */}

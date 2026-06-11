@@ -134,5 +134,21 @@ export function useAuthActions() {
     []
   );
 
-  return { pending, signUp, signIn, signInWithGoogle, requestPasswordReset };
+  const signOut = useCallback(async (): Promise<AuthResult> => {
+    setPending(true);
+    try {
+      const supabase = getSupabaseClient();
+      // Clears the local session + revokes it server-side; AuthProvider then sees no session and the
+      // (app) layout sends the user to sign-in. The caller also routes explicitly for an instant exit.
+      const { error } = await supabase.auth.signOut();
+      if (error) return { ok: false, error: messageFrom(error, "Could not sign you out.") };
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: messageFrom(error, "Could not sign you out.") };
+    } finally {
+      setPending(false);
+    }
+  }, []);
+
+  return { pending, signUp, signIn, signInWithGoogle, requestPasswordReset, signOut };
 }
