@@ -242,7 +242,8 @@ export interface OverallLciSnapshot {
  */
 export interface AlertSignpost {
   label: string;
-  url: string;
+  /** Null for a contextual resource the api lists without a link (e.g. "Local carer support organisations"). */
+  url: string | null;
 }
 
 /**

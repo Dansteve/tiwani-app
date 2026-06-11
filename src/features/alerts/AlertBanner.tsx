@@ -34,8 +34,10 @@ export function AlertBanner({
   const presentation = alertPresentation(alert.level);
   const Icon = presentation.icon;
   const isCard = variant === "card";
-  const primary = alert.signposts[0];
-  const rest = alert.signposts.slice(1);
+  // The action CTA targets the first signpost that has a url; the rest render as links (with a url) or
+  // as plain text (a contextual resource the api lists without a link). A signpost url may be null.
+  const actionSignpost = alert.signposts.find((s) => s.url) ?? alert.signposts[0];
+  const otherSignposts = alert.signposts.filter((s) => s !== actionSignpost);
 
   return (
     <section
@@ -72,33 +74,48 @@ export function AlertBanner({
           <p className={cn("text-foreground", isCard ? "text-sm" : "text-base")}>{alert.copy}</p>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            {primary ? (
-              <a
-                href={primary.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(buttonClassForTone(alert.level), "h-11 px-4 text-sm")}
-              >
-                {alert.action_label}
-                <span className="sr-only"> (opens in a new tab)</span>
-              </a>
+            {actionSignpost ? (
+              actionSignpost.url ? (
+                <a
+                  href={actionSignpost.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(buttonClassForTone(alert.level), "h-11 px-4 text-sm")}
+                >
+                  {alert.action_label}
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              ) : (
+                <span className={cn(buttonClassForTone(alert.level), "h-11 px-4 text-sm")}>
+                  {alert.action_label}
+                </span>
+              )
             ) : null}
 
-            {rest.map((signpost) => (
-              <a
-                key={signpost.url}
-                href={signpost.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  "inline-flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline",
-                  presentation.textClass
-                )}
-              >
-                {signpost.label}
-                <span className="sr-only"> (opens in a new tab)</span>
-              </a>
-            ))}
+            {otherSignposts.map((signpost) =>
+              signpost.url ? (
+                <a
+                  key={signpost.label}
+                  href={signpost.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "inline-flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline",
+                    presentation.textClass
+                  )}
+                >
+                  {signpost.label}
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              ) : (
+                <span
+                  key={signpost.label}
+                  className={cn("inline-flex min-h-11 items-center text-sm font-medium", presentation.textClass)}
+                >
+                  {signpost.label}
+                </span>
+              )
+            )}
           </div>
         </div>
 

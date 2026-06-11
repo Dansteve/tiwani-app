@@ -31,8 +31,10 @@ export function AlertOverlay({ alert, onDismiss, isDismissing = false }: AlertOv
   const bodyId = useId();
   const actionRef = useRef<HTMLAnchorElement | null>(null);
   const dismissRef = useRef<HTMLButtonElement | null>(null);
-  const primary = alert.signposts[0];
-  const rest = alert.signposts.slice(1);
+  // The action CTA targets the first signpost that has a url; the rest render as links or plain text
+  // (a contextual resource the api lists without a link). A signpost url may be null.
+  const actionSignpost = alert.signposts.find((s) => s.url) ?? alert.signposts[0];
+  const otherSignposts = alert.signposts.filter((s) => s !== actionSignpost);
 
   // Move focus into the overlay on open (the action if present, else the dismiss), lock body scroll,
   // and close on Escape. Restores the previously focused element and the scroll on unmount.
@@ -103,35 +105,52 @@ export function AlertOverlay({ alert, onDismiss, isDismissing = false }: AlertOv
         </div>
 
         <div className="mt-5 flex flex-col gap-3">
-          {primary ? (
-            <a
-              ref={actionRef}
-              href={primary.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-destructive px-4 font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {alert.action_label}
-              <span className="sr-only"> (opens in a new tab)</span>
-            </a>
+          {actionSignpost ? (
+            actionSignpost.url ? (
+              <a
+                ref={actionRef}
+                href={actionSignpost.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-destructive px-4 font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                {alert.action_label}
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            ) : (
+              <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-destructive px-4 font-medium text-destructive-foreground">
+                {alert.action_label}
+              </span>
+            )
           ) : null}
 
-          {rest.length > 0 ? (
+          {otherSignposts.length > 0 ? (
             <ul className="flex flex-col gap-2">
-              {rest.map((signpost) => (
-                <li key={signpost.url}>
-                  <a
-                    href={signpost.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(
-                      "inline-flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline",
-                      presentation.textClass
-                    )}
-                  >
-                    {signpost.label}
-                    <span className="sr-only"> (opens in a new tab)</span>
-                  </a>
+              {otherSignposts.map((signpost) => (
+                <li key={signpost.label}>
+                  {signpost.url ? (
+                    <a
+                      href={signpost.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "inline-flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline",
+                        presentation.textClass
+                      )}
+                    >
+                      {signpost.label}
+                      <span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  ) : (
+                    <span
+                      className={cn(
+                        "inline-flex min-h-11 items-center text-sm font-medium",
+                        presentation.textClass
+                      )}
+                    >
+                      {signpost.label}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
