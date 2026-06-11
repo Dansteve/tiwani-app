@@ -9,7 +9,7 @@
 // public link (ShareLinkBar, built from the returned token). The app renders the api's safe content and
 // authors no card wording (App SETUP). The link carries the opaque token only, no PII.
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
@@ -59,6 +59,11 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
 
   const card = mutation.data;
 
+  // The card <article> node, captured to a PNG when the Coordinator shares or downloads the card image
+  // (ShareLinkBar -> captureCardImage). Capturing this node means the image is the CARD ONLY, never the
+  // page chrome around it.
+  const cardRef = useRef<HTMLElement>(null);
+
   // Build the share URL from the app's own origin at render time (the page is client-rendered). useMemo
   // keeps it stable per token; on the server / first paint origin is "" and the helper returns a
   // relative path, which the effect-free render tolerates (the field shows the absolute URL on mount).
@@ -81,10 +86,14 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
           </p>
         </header>
 
-        <CardContentView content={card.content} />
+        <CardContentView content={card.content} cardRef={cardRef} />
 
         <div className="rounded-xl border border-border bg-card p-5">
-          <ShareLinkBar url={shareUrl} firstName={card.content.child_first_name} />
+          <ShareLinkBar
+            url={shareUrl}
+            firstName={card.content.child_first_name}
+            cardRef={cardRef}
+          />
         </div>
       </div>
     );

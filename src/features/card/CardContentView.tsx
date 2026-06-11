@@ -17,12 +17,24 @@
 // Each block has a clear, readable place on the deep-teal surface. Mobile-first, no horizontal overflow
 // at ~375px.
 
+import type { Ref } from "react";
 import { Check, Heart, LifeBuoy, ShieldCheck, Share2 } from "lucide-react";
 
 import type { CardContent } from "@/lib/api/types";
 import { cardTierLabel } from "@/features/card/shareUrl";
 
-export function CardContentView({ content }: { content: CardContent }) {
+/**
+ * `cardRef` forwards the deep-teal <article> node so the share flow can capture the CARD ONLY as a PNG
+ * (CardGenerator -> ShareLinkBar -> captureCardImage), never the surrounding app chrome. It is optional:
+ * the public page renders the card with no capture and passes nothing.
+ */
+export function CardContentView({
+  content,
+  cardRef,
+}: {
+  content: CardContent;
+  cardRef?: Ref<HTMLElement>;
+}) {
   const tierLabelText = cardTierLabel(content);
 
   return (
@@ -33,7 +45,10 @@ export function CardContentView({ content }: { content: CardContent }) {
         className="absolute -inset-2 -z-10 rounded-[28px] bg-tiwani-mid/15 sm:-inset-3"
       />
 
-      <article className="overflow-hidden rounded-3xl bg-tiwani-dark text-white shadow-lg">
+      <article
+        ref={cardRef}
+        className="overflow-hidden rounded-3xl bg-tiwani-dark text-white shadow-lg"
+      >
         {/* Header: the TIWANI wordmark + coral dot, and a "Continuity Card" pill. */}
         <header className="flex items-center justify-between gap-3 px-6 pt-6 sm:px-8 sm:pt-7">
           <div className="flex items-center gap-1.5">
