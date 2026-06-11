@@ -137,6 +137,11 @@ export interface PlanStrategy {
  * `tier` is the recomputed participation tier, `strategies` are pre-ranked, `dimension_explanations`
  * is one api-authored sentence per dimension, and `scheduled_pulse_at` is the ISO time the api set
  * for the post-activity Pulse (date + 2h, or 09:00 next day).
+ *
+ * `dimension_explanations` is NULLABLE: it is a derivation the engine produces fresh, NOT a stored
+ * field, so a freshly prepared plan (POST /api/v3/plans) carries the per-dimension sentences, but a
+ * STORED plan re-read from the list (GET /api/v3/plans/{activity_id}) returns it as null. The plan
+ * renderer handles null by omitting the per-dimension sentences (it never assumes the map exists).
  */
 export interface PreparationPlan {
   activity_id: string;
@@ -147,9 +152,40 @@ export interface PreparationPlan {
   total: number;
   tier: ParticipationTier;
   strategies: PlanStrategy[];
-  /** One sentence per dimension explaining its score; authored by the api. */
-  dimension_explanations: Record<PressureDimension, string>;
+  /**
+   * One sentence per dimension explaining its score; authored by the api. Present on a freshly
+   * prepared plan; null on a stored re-read (it is a derivation, not stored). The renderer omits the
+   * breakdown when null.
+   */
+  dimension_explanations: Record<PressureDimension, string> | null;
   scheduled_pulse_at: string;
+}
+
+/**
+ * A row on the "your prepared plans" list (GET /api/v3/plans), one per Preparation Plan the
+ * Coordinator has made, newest first. Mirrors the api's PlanSummary field-for-field. The Coordinator
+ * re-opens a plan from this list (by `activity_id`, via GET /api/v3/plans/{activity_id}) without
+ * re-preparing it. The list reads only the caller's plans (RLS-scoped; a foreign activity_id is a 404
+ * on the detail read). The app renders these and computes no score or tier.
+ *   activity_id    the stored activity, the key the detail read fetches by (GET /plans/{activity_id}).
+ *   chapter        the Life Chapter code (the app labels it; never shown raw).
+ *   activity_name  the activity the plan was prepared for.
+ *   tier           the participation tier the engine assigned when the plan was prepared (a quiet hint
+ *                  on the row; the full plan re-renders the same tier from the detail read).
+ *   total          the pressure total (4 to 20) the engine assigned (display only).
+ *   created_at     when the plan was prepared (the readable "prepared" date the row shows).
+ *   pulse_exists   true once a Pulse has been recorded for this activity (a "check-in done" hint).
+ *   pulse_due      true when the scheduled Pulse is due and not yet done (a "check-in due" hint).
+ */
+export interface PlanSummary {
+  activity_id: string;
+  chapter: ChapterCode;
+  activity_name: string;
+  tier: ParticipationTier;
+  total: number;
+  created_at: string;
+  pulse_exists: boolean;
+  pulse_due: boolean;
 }
 
 /**

@@ -7,7 +7,10 @@
 //   - PARTICIPATION TIER, prominent, with a plain-English explanation of what it means.
 //   - STRATEGY LIST: title + one line each; tap to expand the detail; a remove control (the
 //     suppress-after-3 behaviour is a Task 9 api hook, not implemented here).
-//   - DIMENSION BREAKDOWN: collapsible; one api-authored sentence per dimension + its score.
+//   - DIMENSION BREAKDOWN: collapsible; one api-authored sentence per dimension + its score. This
+//     section is OMITTED when dimension_explanations is null (a stored plan re-read from the "your
+//     prepared plans" list has no explanations: they are an engine derivation, not stored). A freshly
+//     prepared plan always carries them, so this only ever drops the breakdown on a re-opened plan.
 //   - GENERATE CONTINUITY CARD: routes to the card route (Task 8 stub; the card itself is not built).
 //
 // Expand/collapse use native <details>/<summary> so they are keyboard-usable with no extra dependency.
@@ -52,6 +55,10 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
   const visibleStrategies = plan.strategies
     .map((strategy, index) => ({ strategy, index }))
     .filter(({ index }) => !removed.has(index));
+
+  // The per-dimension sentences are null on a stored re-read (an engine derivation, not stored), so the
+  // breakdown section renders only when the api supplied them. Bound here so TypeScript narrows it.
+  const explanations = plan.dimension_explanations;
 
   return (
     <div className="space-y-6">
@@ -148,45 +155,47 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
         )}
       </section>
 
-      {/* DIMENSION BREAKDOWN */}
-      <section aria-labelledby="dimensions-label">
-        <details className="group rounded-xl border border-border bg-card">
-          <summary
-            id="dimensions-label"
-            className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-base font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&::-webkit-details-marker]:hidden"
-          >
-            Why this score
-            <ChevronDown
-              className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
-              aria-hidden="true"
-            />
-          </summary>
-          <ul className="space-y-4 border-t border-border px-5 py-4">
-            {DIMENSION_ORDER.map(({ key, label }) => (
-              <li key={key} className="flex items-start gap-3">
-                <span
-                  aria-hidden="true"
-                  className="mt-0.5 inline-flex min-w-9 shrink-0 items-center justify-center rounded-md bg-secondary px-2 py-1 text-sm font-semibold tabular-nums text-foreground"
-                >
-                  {formatScore(plan.scores[key])}
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-foreground">
-                    {label}
-                    <span className="sr-only">
-                      {" "}
-                      score {formatScore(plan.scores[key])} out of 5
+      {/* DIMENSION BREAKDOWN (omitted on a stored re-read, where dimension_explanations is null). */}
+      {explanations ? (
+        <section aria-labelledby="dimensions-label">
+          <details className="group rounded-xl border border-border bg-card">
+            <summary
+              id="dimensions-label"
+              className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-base font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&::-webkit-details-marker]:hidden"
+            >
+              Why this score
+              <ChevronDown
+                className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                aria-hidden="true"
+              />
+            </summary>
+            <ul className="space-y-4 border-t border-border px-5 py-4">
+              {DIMENSION_ORDER.map(({ key, label }) => (
+                <li key={key} className="flex items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="mt-0.5 inline-flex min-w-9 shrink-0 items-center justify-center rounded-md bg-secondary px-2 py-1 text-sm font-semibold tabular-nums text-foreground"
+                  >
+                    {formatScore(plan.scores[key])}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-foreground">
+                      {label}
+                      <span className="sr-only">
+                        {" "}
+                        score {formatScore(plan.scores[key])} out of 5
+                      </span>
+                    </span>
+                    <span className="block text-sm text-muted-foreground">
+                      {explanations[key]}
                     </span>
                   </span>
-                  <span className="block text-sm text-muted-foreground">
-                    {plan.dimension_explanations[key]}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      </section>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </section>
+      ) : null}
 
       {/* ACTIONS */}
       <div className="flex flex-col gap-3 sm:flex-row">

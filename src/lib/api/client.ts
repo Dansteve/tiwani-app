@@ -23,6 +23,7 @@ import type {
   OnboardingPayload,
   OverallLciSnapshot,
   PendingPulse,
+  PlanSummary,
   PreparePlanRequest,
   PreparationPlan,
   PressureDimension,
@@ -205,6 +206,35 @@ export const api = {
   /** Run the LCE for a chosen activity (+ any "today" flags) and return the plan (Product.md §4.4/§4.5). */
   preparePlan(payload: PreparePlanRequest): Promise<PreparationPlan> {
     return http<PreparationPlan>("/api/v3/plans", { method: "POST", body: payload });
+  },
+
+  /**
+   * List the Preparation Plans the caller has prepared (GET /api/v3/plans), newest first, for the
+   * "your prepared plans" screen (the owner's "toggle plans" ask). AUTH REQUIRED: the bearer is
+   * attached by http(); the api scopes the rows to the caller (RLS), so a user only ever sees their
+   * own plans. Each row is a PlanSummary (activity + chapter + tier + total + prepared date + the two
+   * pulse hints). The optional `chapter` narrows the list to one Life Chapter (the api filters; the app
+   * sends ?chapter=<code> only when set). The app renders the rows and computes no score or tier.
+   */
+  listPlans(chapter?: ChapterCode, signal?: AbortSignal): Promise<PlanSummary[]> {
+    const query = chapter ? `?chapter=${encodeURIComponent(chapter)}` : "";
+    return http<PlanSummary[]>(`/api/v3/plans${query}`, { signal });
+  },
+
+  /**
+   * Re-open one of the caller's OWN Preparation Plans (GET /api/v3/plans/{activity_id}), by
+   * activity_id, WITHOUT re-preparing it. AUTH REQUIRED. The "your prepared plans" View action: the
+   * Coordinator re-opens a plan they made and sees the same PreparationPlan that POST /api/v3/plans
+   * returned, re-rendered by the plan component. A 404 means the plan is not the caller's (RLS-scoped,
+   * a forged or unknown id matches nothing). NOTE: on this STORED read `dimension_explanations` is null
+   * (it is a derivation the engine produces fresh, not a stored field), so the renderer omits the
+   * per-dimension sentences; every other field (scores, total, tier, strategies) is present.
+   */
+  getPlan(activityId: string, signal?: AbortSignal): Promise<PreparationPlan> {
+    return http<PreparationPlan>(
+      `/api/v3/plans/${encodeURIComponent(activityId)}`,
+      { signal }
+    );
   },
 
   getStrategies(chapter: string, signal?: AbortSignal): Promise<StrategyItem[]> {
