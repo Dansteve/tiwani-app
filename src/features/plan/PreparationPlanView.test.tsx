@@ -124,3 +124,20 @@ describe("PreparationPlanView actions", () => {
     expect(link).toHaveAttribute("href", "/card?activity=act_1");
   });
 });
+
+describe("PreparationPlanView stored re-read (dimension_explanations null)", () => {
+  it("omits the 'Why this score' breakdown when dimension_explanations is null and does not crash", () => {
+    // A plan re-opened from the prepared-plans list has no explanations (an engine derivation, not
+    // stored). The breakdown is dropped, but the rest of the plan still renders.
+    renderPlan(makePlan({ dimension_explanations: null }));
+
+    expect(screen.queryByText("Why this score")).not.toBeInTheDocument();
+    expect(screen.queryByText("The timing is fairly forgiving.")).not.toBeInTheDocument();
+
+    // The plan still renders its activity, pressure summary, tier, and strategies.
+    expect(screen.getByRole("heading", { name: "A birthday party" })).toBeInTheDocument();
+    expect(screen.getByText("This looks manageable")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Full Engagement" })).toBeInTheDocument();
+    expect(screen.getByText("Arrive early")).toBeInTheDocument();
+  });
+});
