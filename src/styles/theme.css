@@ -178,6 +178,18 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
+  /* Raw TIWANI brand-token utilities (parity with tiwani-website's @theme inline). These expose the
+     fixed brand values as bg-tiwani-* / text-tiwani-* so the deep-teal Continuity Card surface can be
+     built from tokens, not hex. They are deliberately theme-independent (the card is dark-surfaced in
+     both light and dark mode, like the landing card), so they read from :root and never flip in .dark. */
+  --color-tiwani-primary: var(--tiwani-primary);
+  --color-tiwani-dark: var(--tiwani-dark);
+  --color-tiwani-mid: var(--tiwani-mid);
+  --color-tiwani-coral: var(--tiwani-coral);
+  --color-tiwani-coral-deep: var(--tiwani-coral-deep);
+  --color-tiwani-coral-light: var(--tiwani-coral-light);
+  --color-tiwani-teal-near-white: var(--tiwani-teal-near-white);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
