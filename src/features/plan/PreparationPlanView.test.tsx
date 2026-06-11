@@ -22,7 +22,7 @@ function makePlan(overrides: Partial<PreparationPlan> = {}): PreparationPlan {
     activity_name: "A birthday party",
     scores,
     total: 8,
-    tier: "full_engagement",
+    tier: "Full",
     strategies: [
       { title: "Arrive early", detail: "Get there before the crowd so the room fills up gradually." },
       { title: "Plan an exit", detail: "Agree a quiet signal for when it is time to leave." },
@@ -69,7 +69,7 @@ describe("PreparationPlanView pressure summary (§4.5 bands)", () => {
 
 describe("PreparationPlanView tier", () => {
   it("shows the tier label prominently with its plain-English explanation", () => {
-    renderPlan(makePlan({ tier: "continuity_pivot" as ParticipationTier }));
+    renderPlan(makePlan({ tier: "Pivot" as ParticipationTier }));
     expect(
       screen.getByRole("heading", { name: "Continuity Pivot" })
     ).toBeInTheDocument();

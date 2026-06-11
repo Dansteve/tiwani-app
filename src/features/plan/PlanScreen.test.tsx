@@ -10,8 +10,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ChapterActivity, PreparationPlan } from "@/lib/api/types";
 
 const ACTIVITIES: ChapterActivity[] = [
-  { activity_code: "SOC-BIRTHDAY", activity_name: "A birthday party", tier: "modified_participation" },
-  { activity_code: "SOC-PLAYDATE", activity_name: "A playdate", tier: "full_engagement" },
+  { activity_code: "SOC-BIRTHDAY", activity_name: "A birthday party", tier: "Modified" },
+  { activity_code: "SOC-PLAYDATE", activity_name: "A playdate", tier: "Full" },
 ];
 
 const PLAN: PreparationPlan = {
@@ -21,7 +21,7 @@ const PLAN: PreparationPlan = {
   activity_name: "A birthday party",
   scores: { temporal: 3, sensory: 4, logistical: 3, human: 4 },
   total: 14,
-  tier: "continuity_pivot",
+  tier: "Pivot",
   strategies: [
     { title: "Keep it short", detail: "Plan to stay for half an hour, then leave on a high." },
   ],

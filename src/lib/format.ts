@@ -33,9 +33,9 @@ export const CHAPTERS: ChapterCode[] = [
 ];
 
 const TIER_LABELS: Record<ParticipationTier, string> = {
-  full_engagement: "Full Engagement",
-  modified_participation: "Modified Participation",
-  continuity_pivot: "Continuity Pivot",
+  Full: "Full Engagement",
+  Modified: "Modified Participation",
+  Pivot: "Continuity Pivot",
 };
 
 export function tierLabel(tier: ParticipationTier): string {

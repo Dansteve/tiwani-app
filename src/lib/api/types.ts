@@ -24,9 +24,9 @@ export type ChapterCode =
 
 /** Participation tiers (Product.md §4.4). */
 export type ParticipationTier =
-  | "full_engagement"
-  | "modified_participation"
-  | "continuity_pivot";
+  | "Full"
+  | "Modified"
+  | "Pivot";
 
 /** The four LCE pressure dimensions (each scored 1 to 5). */
 export type PressureDimension = "temporal" | "sensory" | "logistical" | "human";

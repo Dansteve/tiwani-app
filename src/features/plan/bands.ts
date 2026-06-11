@@ -38,11 +38,11 @@ export function pressureCopy(band: PressureBand): string {
  * itself comes from lib/format.tierLabel; this is the one-line meaning shown beneath it.
  */
 const TIER_EXPLANATIONS: Record<ParticipationTier, string> = {
-  full_engagement:
+  Full:
     "Take part fully. With a little preparation this should go well, no big changes needed.",
-  modified_participation:
+  Modified:
     "Take part, with adjustments. Plan to adapt the activity so it stays within reach on the day.",
-  continuity_pivot:
+  Pivot:
     "Protect stability over taking part. The pressure is high, so the goal is to keep your family steady rather than push through.",
 };
 

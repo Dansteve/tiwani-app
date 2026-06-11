@@ -49,8 +49,8 @@ describe("pressureCopy (the §4.5 headline per band)", () => {
 
 describe("tierExplanation (plain-English meaning per tier)", () => {
   it("gives a non-empty plain-English line for every tier", () => {
-    expect(tierExplanation("full_engagement")).toMatch(/fully/i);
-    expect(tierExplanation("modified_participation")).toMatch(/adjust/i);
-    expect(tierExplanation("continuity_pivot")).toMatch(/stability|steady/i);
+    expect(tierExplanation("Full")).toMatch(/fully/i);
+    expect(tierExplanation("Modified")).toMatch(/adjust/i);
+    expect(tierExplanation("Pivot")).toMatch(/stability|steady/i);
   });
 });
