@@ -5,6 +5,7 @@
 import type {
   ChapterCode,
   ParticipationTier,
+  PressureDimension,
   Trajectory,
 } from "@/lib/api/types";
 
@@ -42,6 +43,30 @@ export function tierLabel(tier: ParticipationTier): string {
   return TIER_LABELS[tier];
 }
 
+/**
+ * Warm, non-clinical labels for the four LCE pressure dimensions (Product.md §4.4), used where the
+ * Coordinator names a challenge (the Pulse) or reads a breakdown. Display only; the dimension codes
+ * are the engine's vocabulary, the labels are the human surface.
+ */
+const DIMENSION_LABELS: Record<PressureDimension, string> = {
+  temporal: "Timing",
+  sensory: "Sensory",
+  logistical: "Logistics",
+  human: "People",
+};
+
+export function dimensionLabel(dimension: PressureDimension): string {
+  return DIMENSION_LABELS[dimension];
+}
+
+/** The four pressure dimensions in a stable display order. */
+export const DIMENSIONS: PressureDimension[] = [
+  "temporal",
+  "sensory",
+  "logistical",
+  "human",
+];
+
 const TRAJECTORY_LABELS: Record<Trajectory, string> = {
   strengthening: "Strengthening",
   holding_steady: "Holding steady",
@@ -57,6 +82,32 @@ export function trajectoryLabel(trajectory: Trajectory): string {
 export function formatLci(score: number | null | undefined): string {
   if (score === null || score === undefined) return "--";
   return String(Math.round(score));
+}
+
+/**
+ * The display band for an LCI score, used only to tint the score readout (Product.md §4.3 bands:
+ * >= 60 stable, 30 to 59 under pressure, < 30 needs attention; no score is neutral). This is a
+ * presentation mapping of a number the api computed, never a re-derivation of the index or a status:
+ * the chapter status (which also folds in alerts) is the dashboard's `chapterStatus()`. Pure.
+ */
+export type LciBand = "none" | "stable" | "pressure" | "critical";
+
+export function lciBand(score: number | null | undefined): LciBand {
+  if (score === null || score === undefined) return "none";
+  if (score >= 60) return "stable";
+  if (score >= 30) return "pressure";
+  return "critical";
+}
+
+/**
+ * The sparse-data caption (Product.md §4.8): fewer than 3 Pulses in a chapter shows the score with a
+ * "building your picture" note; this returns that note (or null when there is enough data) for the UI
+ * to render beside the score. The threshold is the spec's (< 3); the app does not compute the score.
+ */
+export function sparseDataNote(pulseCount: number): string | null {
+  if (pulseCount >= 3) return null;
+  if (pulseCount <= 0) return "No check-ins yet";
+  return "Building your picture";
 }
 
 /** Format a dimension or total score for display (whole number). */

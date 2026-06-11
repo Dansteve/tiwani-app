@@ -1,13 +1,9 @@
-import { PlaceholderScreen } from "@/components/PlaceholderScreen";
+import { PulseScreen } from "@/features/pulse/PulseScreen";
 
-// The Pulse check-in (Product.md §4.7): two taps (outcome then main challenge), under 10 seconds.
-// On completion the api recomputes the LCI and evaluates alerts. Foundation stub.
+// The Pulse check-in route (Product.md §4.7): two taps (outcome then main challenge), under 10 seconds.
+// On completion the api recomputes the LCI and evaluates alerts; the app posts and scores nothing. The
+// Pulse also surfaces as an in-app card on the dashboard (the primary path); this tab is a direct home.
 
 export default function PulsePage() {
-  return (
-    <PlaceholderScreen
-      title="Pulse"
-      description="A two-tap check-in: how it went, then the main challenge. The api updates your resilience picture."
-    />
-  );
+  return <PulseScreen />;
 }

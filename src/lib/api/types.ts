@@ -151,20 +151,52 @@ export interface PreparationPlan {
   scheduled_pulse_at: string;
 }
 
+/**
+ * A recorded Pulse (the api's pulse_record, Models.md): the outcome, the main-challenge dimension,
+ * the STORED recommended tier the LCI used (never re-derived in the app), the chapter, and the time.
+ * The app does not read this back to compute anything; it confirms the write and lets TanStack Query
+ * invalidate the LCI/chapter/pending reads. `outcome_code` is the lowercase wire form of PulseOutcome;
+ * `challenge_dimension` is null only for a legacy/partial record (the app requires it before submit).
+ */
 export interface PulseRecord {
   id: string;
   activity_id: string;
   outcome_code: PulseOutcome;
   challenge_dimension: PressureDimension | null;
+  tier_recommended: ParticipationTier;
   chapter: ChapterCode;
   timestamp: string;
 }
 
+/**
+ * One activity awaiting a Pulse (GET /api/v3/pulses/pending), used to raise the in-app Pulse prompt
+ * (Product.md §4.7). The api schedules the Pulse when a plan is prepared; this row is what the app
+ * needs to render and submit the prompt: `activity_id` drives submitPulse, `chapter` colours/labels
+ * it, `activity_name` names the activity, `scheduled_at` is the ISO time the Pulse became due
+ * (activity date + 2h, or 09:00 the next day). Mirrors the api's PendingPulse field-for-field.
+ */
+export interface PendingPulse {
+  activity_id: string;
+  activity_name: string;
+  chapter: ChapterCode;
+  scheduled_at: string;
+}
+
+/**
+ * A chapter's LCI as the api returns it (GET /api/v3/lci/chapters), one row per Life Chapter for the
+ * user. Mirrors the api's ChapterLci field-for-field. `score` is null before the first Pulse (the app
+ * shows "--"); `trajectory` is the weekly band (building_picture with no prior point); `pulse_count`
+ * drives the sparse-data state (< 3 shows the score with a "building your picture" note); `label` is
+ * the api's §4.8 sparse-data label ("building your picture" for 1 to 2 pulses, "--" for none, null at
+ * 3+), NOT the trajectory label (the app derives the trajectory label itself via trajectoryLabel and
+ * the sparse note via sparseDataNote). The app renders these and computes no score or trajectory.
+ */
 export interface ChapterLci {
   chapter: ChapterCode;
-  score: number;
+  score: number | null;
   trajectory: Trajectory;
   pulse_count: number;
+  label: string | null;
   timestamp: string;
 }
 
@@ -184,10 +216,20 @@ export interface ChapterStatus {
   activity_count: number;
 }
 
+/**
+ * The overall resilience snapshot (GET /api/v3/lci/overall, Product.md §4.8): the equal-weighted
+ * average of the chapters that have at least one Pulse, computed by the api. Mirrors the api's
+ * OverallLci field-for-field. `score` is null when no chapter has any Pulse yet (the app shows "--");
+ * `trajectory` is the weekly band; `label` is the api's §4.8 sparse-data label (building_picture while
+ * fewer than 3 pulses exist, "--" when none, else null), NOT the trajectory label (the app derives
+ * the trajectory label itself via trajectoryLabel). `chapters_included` lists the chapters that
+ * contributed a score. The app renders these and computes neither the average nor the trajectory.
+ */
 export interface OverallLciSnapshot {
-  score: number;
+  score: number | null;
   trajectory: Trajectory;
   chapters_included: ChapterCode[];
+  label: string | null;
   timestamp: string;
 }
 

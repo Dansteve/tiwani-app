@@ -18,8 +18,10 @@ import type {
   ContinuityCard,
   OnboardingPayload,
   OverallLciSnapshot,
+  PendingPulse,
   PreparePlanRequest,
   PreparationPlan,
+  PressureDimension,
   PulseOutcome,
   PulseRecord,
   StrategyItem,
@@ -181,10 +183,31 @@ export const api = {
     );
   },
 
-  submitPulse(activityId: string, outcome: PulseOutcome): Promise<PulseRecord> {
+  /** The activities awaiting a Pulse, for the in-app prompt (Product.md §4.7). */
+  getPendingPulses(signal?: AbortSignal): Promise<PendingPulse[]> {
+    return http<PendingPulse[]>("/api/v3/pulses/pending", { signal });
+  },
+
+  /**
+   * Record a Pulse (Product.md §4.7): the outcome and the optional main-challenge dimension for an
+   * activity. The api writes the pulse_record, recomputes the chapter LCI, and evaluates alerts; the
+   * app posts and never scores. Body is { activity_id, outcome_code, challenge_dimension? }, mirroring
+   * the api's PulseSubmission exactly (the chapter and the recommended tier are read server-side from
+   * the stored activity_record, never sent). A skipped Pulse (dismissed twice) is tracked client-side
+   * and never posted (no effect on the LCI, §4.8); only a completed Pulse calls this.
+   */
+  submitPulse(
+    activityId: string,
+    outcome: PulseOutcome,
+    mainChallenge?: PressureDimension
+  ): Promise<PulseRecord> {
     return http<PulseRecord>("/api/v3/pulses", {
       method: "POST",
-      body: { activity_id: activityId, outcome_code: outcome },
+      body: {
+        activity_id: activityId,
+        outcome_code: outcome,
+        ...(mainChallenge ? { challenge_dimension: mainChallenge } : {}),
+      },
     });
   },
 

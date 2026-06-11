@@ -31,11 +31,15 @@ const PROFILE: UserProfile = {
 
 const me = vi.fn();
 const getChapters = vi.fn();
+const getOverallLci = vi.fn();
+const getPendingPulses = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   api: {
     me: (...args: unknown[]) => me(...args),
     getChapters: (...args: unknown[]) => getChapters(...args),
+    getOverallLci: (...args: unknown[]) => getOverallLci(...args),
+    getPendingPulses: (...args: unknown[]) => getPendingPulses(...args),
   },
 }));
 
@@ -51,10 +55,16 @@ function renderScreen() {
 }
 
 beforeEach(() => {
+  window.sessionStorage.clear();
   me.mockReset();
   getChapters.mockReset();
+  getOverallLci.mockReset();
+  getPendingPulses.mockReset();
   me.mockResolvedValue(PROFILE);
   getChapters.mockResolvedValue(GREY_CHAPTERS);
+  // A brand-new user: no overall LCI snapshot yet (the indicator stays hidden) and no pending pulses.
+  getOverallLci.mockRejectedValue(new Error("no snapshot yet"));
+  getPendingPulses.mockResolvedValue([]);
 });
 
 describe("DashboardScreen", () => {

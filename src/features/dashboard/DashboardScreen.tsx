@@ -17,6 +17,8 @@ import { CHAPTERS, chapterLabel, greeting } from "@/lib/format";
 import type { ChapterStatus } from "@/lib/api/types";
 import { chapterStatus } from "@/features/dashboard/status";
 import { ChapterCard } from "@/features/dashboard/ChapterCard";
+import { OverallLciIndicator } from "@/features/continuity/OverallLciIndicator";
+import { PulsePrompt } from "@/features/pulse/PulsePrompt";
 
 // The fixed display order is the canonical six (format.CHAPTERS); the api feed is ordered onto it so
 // the grid is stable even if the api returns a different order or (defensively) an incomplete set.
@@ -46,6 +48,14 @@ export function DashboardScreen() {
     queryFn: ({ signal }) => api.getChapters(signal),
   });
 
+  // The overall LCI for the header indicator (Product.md §4.8). Independent of the chapter feed: if it
+  // is unavailable the indicator simply does not render (the dashboard still works); the screen never
+  // computes the index, it renders what the api returns.
+  const overallLciQuery = useQuery({
+    queryKey: ["lci", "overall"],
+    queryFn: ({ signal }) => api.getOverallLci(signal),
+  });
+
   const firstName = profileQuery.data?.first_name ?? "";
   const chapters = chaptersQuery.data ? orderChapters(chaptersQuery.data) : null;
   // The new-user empty state: every chapter is "not started" (no plan made anywhere yet).
@@ -61,6 +71,16 @@ export function DashboardScreen() {
           Your six Life Chapters. Pick one to prepare for something.
         </p>
       </header>
+
+      {/* The overall resilience score + trajectory (Product.md §4.8). Renders only once the api has a
+          snapshot; absence (or an error on this read) leaves the rest of the dashboard untouched. */}
+      {overallLciQuery.data ? (
+        <OverallLciIndicator snapshot={overallLciQuery.data} />
+      ) : null}
+
+      {/* The in-app Pulse prompt (Product.md §4.7): shows the first pending check-in not skipped this
+          session. Renders nothing when there is no pending Pulse. */}
+      <PulsePrompt />
 
       {chaptersQuery.isError ? (
         <p
