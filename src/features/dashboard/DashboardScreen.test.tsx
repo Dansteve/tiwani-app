@@ -33,6 +33,8 @@ const me = vi.fn();
 const getChapters = vi.fn();
 const getOverallLci = vi.fn();
 const getPendingPulses = vi.fn();
+const getAlerts = vi.fn();
+const dismissAlert = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   api: {
@@ -40,6 +42,8 @@ vi.mock("@/lib/api/client", () => ({
     getChapters: (...args: unknown[]) => getChapters(...args),
     getOverallLci: (...args: unknown[]) => getOverallLci(...args),
     getPendingPulses: (...args: unknown[]) => getPendingPulses(...args),
+    getAlerts: (...args: unknown[]) => getAlerts(...args),
+    dismissAlert: (...args: unknown[]) => dismissAlert(...args),
   },
 }));
 
@@ -60,11 +64,16 @@ beforeEach(() => {
   getChapters.mockReset();
   getOverallLci.mockReset();
   getPendingPulses.mockReset();
+  getAlerts.mockReset();
+  dismissAlert.mockReset();
   me.mockResolvedValue(PROFILE);
   getChapters.mockResolvedValue(GREY_CHAPTERS);
   // A brand-new user: no overall LCI snapshot yet (the indicator stays hidden) and no pending pulses.
   getOverallLci.mockRejectedValue(new Error("no snapshot yet"));
   getPendingPulses.mockResolvedValue([]);
+  // No active Erosion Alerts by default (the surfaces render nothing).
+  getAlerts.mockResolvedValue([]);
+  dismissAlert.mockResolvedValue(undefined);
 });
 
 describe("DashboardScreen", () => {

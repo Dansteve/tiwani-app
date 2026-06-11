@@ -219,8 +219,24 @@ export const api = {
     return http<ChapterLci[]>("/api/v3/lci/chapters", { signal });
   },
 
+  /**
+   * The active Erosion Alerts for the current user, one per chapter at most (Product.md §4.9). Each
+   * carries its level (1 to 3), the governed verbatim copy, the action label, and the support
+   * signposts; the app renders them and authors no alert wording.
+   */
   getAlerts(signal?: AbortSignal): Promise<AlertRecord[]> {
     return http<AlertRecord[]>("/api/v3/alerts", { signal });
+  },
+
+  /**
+   * Dismiss the active alert for a chapter (Product.md §4.9): POST /api/v3/alerts/{chapter}/dismiss.
+   * The api records the dismissal; a dismissed alert returns only if conditions worsen past the next
+   * threshold (the api decides, the app never re-raises a dismissed alert on its own). Returns 204.
+   */
+  dismissAlert(chapter: ChapterCode): Promise<void> {
+    return http<void>(`/api/v3/alerts/${encodeURIComponent(chapter)}/dismiss`, {
+      method: "POST",
+    });
   },
 
   generateCard(

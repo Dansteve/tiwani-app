@@ -41,10 +41,11 @@ export type Trajectory =
   | "under_pressure"
   | "building_picture";
 
-/** Erosion Alert level (Product.md §4.9), the string form used on AlertRecord. */
-export type AlertLevel = "L1" | "L2" | "L3";
-
-/** Erosion Alert level as the api returns it on the dashboard chapter feed (numeric, 1 to 3). */
+/**
+ * Erosion Alert level (Product.md §4.9), numeric 1 to 3, the form the api returns both on the
+ * dashboard chapter feed (ChapterStatus.alert_level) and on the active-alert feed (AlertRecord.level).
+ * One numeric level type across the app: L1/L2 are caution (amber), L3 is critical (coral).
+ */
 export type AlertLevelNumeric = 1 | 2 | 3;
 
 /**
@@ -233,16 +234,33 @@ export interface OverallLciSnapshot {
   timestamp: string;
 }
 
+/**
+ * One signpost on an Erosion Alert: a community or statutory support link (Carers UK, IPSEA,
+ * SENDIASS, a local carer organisation, a statutory-rights page). The label and url are authored by
+ * the api; the app renders the link verbatim and opens it in a new tab. Never a clinical referral
+ * (Product.md §4.9 hard constraint, enforced api-side; the app authors no alert content).
+ */
+export interface AlertSignpost {
+  label: string;
+  url: string;
+}
+
+/**
+ * An active Erosion Alert for a chapter (GET /api/v3/alerts, Product.md §4.9). Mirrors the api's
+ * active-alert shape field-for-field. The copy is GOVERNED and psychiatrist-signed: the app renders
+ * `copy`, `action_label`, and the `signposts` exactly as the api returns them and authors NO alert
+ * wording (App SETUP / Continuity module). `level` is the numeric severity (1 to 2 caution/amber,
+ * 3 critical/coral) and drives the placement (L1 a banner + dot on the chapter card, L2 a card atop
+ * the dashboard, L3 a dashboard overlay). At most one active alert per chapter (the api's
+ * higher-replaces-lower rule), so the alert is keyed and dismissed by chapter; dismissal is
+ * POST /api/v3/alerts/{chapter}/dismiss and a dismissed alert returns only if the api escalates it.
+ */
 export interface AlertRecord {
-  id: string;
   chapter: ChapterCode;
-  level: AlertLevel;
-  /** Governed, psychiatrist-signed copy authored by the api; the app never paraphrases it. */
+  level: AlertLevelNumeric;
   copy: string;
-  cta_label: string | null;
-  cta_url: string | null;
-  dismissed: boolean;
-  created_at: string;
+  action_label: string;
+  signposts: AlertSignpost[];
 }
 
 export interface ContinuityCard {

@@ -19,6 +19,8 @@ import { chapterStatus } from "@/features/dashboard/status";
 import { ChapterCard } from "@/features/dashboard/ChapterCard";
 import { OverallLciIndicator } from "@/features/continuity/OverallLciIndicator";
 import { PulsePrompt } from "@/features/pulse/PulsePrompt";
+import { AlertSurface } from "@/features/alerts/AlertSurface";
+import { useAlerts } from "@/features/alerts/useAlerts";
 
 // The fixed display order is the canonical six (format.CHAPTERS); the api feed is ordered onto it so
 // the grid is stable even if the api returns a different order or (defensively) an incomplete set.
@@ -56,6 +58,10 @@ export function DashboardScreen() {
     queryFn: ({ signal }) => api.getOverallLci(signal),
   });
 
+  // The active Erosion Alerts (Product.md §4.9). One read for all three placements: the L2 cards and
+  // the L3 overlay render here via AlertSurface; each chapter's L1 alert is passed to its card below.
+  const alerts = useAlerts();
+
   const firstName = profileQuery.data?.first_name ?? "";
   const chapters = chaptersQuery.data ? orderChapters(chaptersQuery.data) : null;
   // The new-user empty state: every chapter is "not started" (no plan made anywhere yet).
@@ -77,6 +83,15 @@ export function DashboardScreen() {
       {overallLciQuery.data ? (
         <OverallLciIndicator snapshot={overallLciQuery.data} />
       ) : null}
+
+      {/* The Erosion Alert surfaces (Product.md §4.9): the L2 amber cards at the top of the LCI area
+          and the L3 coral overlay on open. The L1 banner + dot are on each chapter card below. */}
+      <AlertSurface
+        dashboardAlerts={alerts.dashboardAlerts}
+        overlayAlert={alerts.overlayAlert}
+        onDismiss={alerts.dismiss}
+        dismissingChapter={alerts.dismissingChapter}
+      />
 
       {/* The in-app Pulse prompt (Product.md §4.7): shows the first pending check-in not skipped this
           session. Renders nothing when there is no pending Pulse. */}
@@ -105,7 +120,13 @@ export function DashboardScreen() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {chapters
           ? chapters.map((chapter) => (
-              <ChapterCard key={chapter.chapter} status={chapter} />
+              <ChapterCard
+                key={chapter.chapter}
+                status={chapter}
+                alert={alerts.cardAlertByChapter.get(chapter.chapter)}
+                onDismissAlert={() => alerts.dismiss(chapter.chapter)}
+                isDismissingAlert={alerts.dismissingChapter === chapter.chapter}
+              />
             ))
           : // Loading: six skeleton cards keep the grid from jumping (dashboard under 2s, Product.md §5).
             CHAPTERS.map((code) => (
