@@ -92,15 +92,14 @@ export function CoachMarks({ open, onClose, steps = DASHBOARD_TOUR_STEPS }: Coac
   );
 
   const goNext = useCallback(() => {
-    setIndex((i) => {
-      if (i >= visibleSteps.length - 1) {
-        // Last step: Done completes the tour.
-        close(true);
-        return i;
-      }
-      return i + 1;
-    });
-  }, [visibleSteps.length, close]);
+    // Decided from the current index (read from the closure), never inside a setIndex updater: calling
+    // the parent's onClose from within an updater would be a setState during render of another component.
+    if (index >= visibleSteps.length - 1) {
+      close(true); // Last step: Done completes the tour.
+    } else {
+      setIndex((i) => i + 1);
+    }
+  }, [index, visibleSteps.length, close]);
 
   const goBack = useCallback(() => {
     setIndex((i) => Math.max(0, i - 1));

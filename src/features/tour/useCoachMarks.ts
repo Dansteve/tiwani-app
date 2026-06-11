@@ -35,7 +35,11 @@ export interface CoachMarksController {
  */
 export function useCoachMarks(autoStart: boolean = true): CoachMarksController {
   const [open, setOpen] = useState(false);
-  // Guards the one-time auto-open so it cannot fire twice (e.g. if autoStart toggles).
+  // Guards the one-time auto-open so it fires at most once. It is set INSIDE the scheduled callback
+  // (when the open actually commits), not synchronously in the effect body: under React StrictMode's
+  // mount/cleanup/remount in dev the first frame is cancelled before it runs, so setting the guard only
+  // on a real fire lets the remount reschedule and open (a body-level guard would block the remount and
+  // the tour would never appear).
   const autoStarted = useRef(false);
 
   // First-visit auto-open: after mount, if unseen and allowed, open once. Reading the seen flag in an
@@ -46,9 +50,11 @@ export function useCoachMarks(autoStart: boolean = true): CoachMarksController {
   // its anchors before the overlay measures them.
   useEffect(() => {
     if (!autoStart || autoStarted.current) return;
-    autoStarted.current = true;
     if (hasSeenTour(localSeenStore())) return;
-    const frame = requestAnimationFrame(() => setOpen(true));
+    const frame = requestAnimationFrame(() => {
+      autoStarted.current = true;
+      setOpen(true);
+    });
     return () => cancelAnimationFrame(frame);
   }, [autoStart]);
 
