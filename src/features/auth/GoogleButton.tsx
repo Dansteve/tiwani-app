@@ -1,29 +1,37 @@
 "use client";
 
-// The "Continue with Google" button, shared by sign-up and sign-in. It uses the outline Button
-// variant (Google branding is kept restrained, the brand chrome stays TIWANI). The Google "G" is an
-// inline SVG with its official colours, the one place hardcoded hex is appropriate (it is a third
-// party's logo, not a TIWANI surface colour). Disabled while any auth call is pending.
+// The "Continue with Google" button, shared by sign-up and sign-in. Google auth is planned but NOT yet
+// wired, so this button is intentionally non-functional: it never starts the OAuth flow. The button stays
+// visible (so the Coordinator can see Google is coming) but is styled as a muted, secondary path with a
+// "Coming soon" badge, making email + password the clear way in for now. On press it calls onComingSoon,
+// which surfaces a friendly "coming soon" note at the call site; it does not touch the Supabase SDK.
+// The Google "G" is an inline SVG with its official colours, the one place hardcoded hex is appropriate
+// (it is a third party's logo, not a TIWANI surface colour).
 
 import { Button } from "@/components/ui/button";
 
 interface GoogleButtonProps {
-  onClick: () => void;
-  disabled?: boolean;
+  /** Reveal the "Google sign-in is coming soon" note. This button never starts OAuth. */
+  onComingSoon: () => void;
   label: string;
 }
 
-export function GoogleButton({ onClick, disabled, label }: GoogleButtonProps) {
+export function GoogleButton({ onComingSoon, label }: GoogleButtonProps) {
   return (
     <Button
       type="button"
-      variant="outline"
-      onClick={onClick}
-      disabled={disabled}
-      className="w-full"
+      variant="secondary"
+      onClick={onComingSoon}
+      // Reads as a still-disabled, lower-priority option next to the primary email path, while staying
+      // clickable so the press can surface the "coming soon" note (a truly disabled button cannot).
+      aria-disabled="true"
+      className="w-full justify-center text-muted-foreground opacity-80"
     >
       <GoogleMark />
       {label}
+      <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Coming soon
+      </span>
     </Button>
   );
 }

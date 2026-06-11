@@ -18,12 +18,13 @@ import { validateSignIn, hasErrors, type SignInErrors } from "@/features/auth/va
 
 export function SignInForm() {
   const router = useRouter();
-  const { pending, signIn, signInWithGoogle } = useAuthActions();
+  const { pending, signIn } = useAuthActions();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<SignInErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [googleComingSoon, setGoogleComingSoon] = useState(false);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -99,7 +100,15 @@ export function SignInForm() {
         <span className="h-px flex-1 bg-border" />
       </div>
 
-      <GoogleButton onClick={() => void signInWithGoogle()} disabled={pending} label="Continue with Google" />
+      <GoogleButton onComingSoon={() => setGoogleComingSoon(true)} label="Continue with Google" />
+      {googleComingSoon ? (
+        <p
+          role="status"
+          className="mt-2 text-center text-sm text-muted-foreground"
+        >
+          Google sign-in is coming soon. For now, use your email and password.
+        </p>
+      ) : null}
     </AuthShell>
   );
 }

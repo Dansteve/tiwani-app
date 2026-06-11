@@ -23,7 +23,7 @@ import {
 
 export function SignUpForm() {
   const router = useRouter();
-  const { pending, signUp, signInWithGoogle } = useAuthActions();
+  const { pending, signUp } = useAuthActions();
 
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
@@ -31,6 +31,7 @@ export function SignUpForm() {
   const [errors, setErrors] = useState<SignUpErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  const [googleComingSoon, setGoogleComingSoon] = useState(false);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -124,7 +125,15 @@ export function SignUpForm() {
         <span className="h-px flex-1 bg-border" />
       </div>
 
-      <GoogleButton onClick={() => void signInWithGoogle()} disabled={pending} label="Continue with Google" />
+      <GoogleButton onComingSoon={() => setGoogleComingSoon(true)} label="Continue with Google" />
+      {googleComingSoon ? (
+        <p
+          role="status"
+          className="mt-2 text-center text-sm text-muted-foreground"
+        >
+          Google sign-in is coming soon. For now, create your account with email and password.
+        </p>
+      ) : null}
     </AuthShell>
   );
 }
