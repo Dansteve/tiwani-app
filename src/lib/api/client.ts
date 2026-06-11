@@ -12,6 +12,8 @@ import type {
   AlertRecord,
   CardContent,
   CardCreated,
+  CardRevoked,
+  CardSummary,
   CareRecipientProfile,
   CareRecipientUpdate,
   ChapterActivity,
@@ -294,5 +296,31 @@ export const api = {
     return http<CardContent>(`/api/v3/cards/${encodeURIComponent(token)}`, {
       signal,
     });
+  },
+
+  /**
+   * List the Continuity Cards the caller has generated (GET /api/v3/cards, Product.md §4.6), newest
+   * first, for the Card History screen. AUTH REQUIRED: the bearer is attached by http(); the api
+   * scopes the rows to the caller (RLS), so a user only ever sees their own cards. Each row is a
+   * CardSummary (status + ages + is_stale) and carries NO share token (the list never re-exposes the
+   * link's only secret) and no activity_id (re-share regenerates a fresh card, it does not re-mint a
+   * stale link). The app renders the rows; it computes no status.
+   */
+  listCards(signal?: AbortSignal): Promise<CardSummary[]> {
+    return http<CardSummary[]>("/api/v3/cards", { signal });
+  },
+
+  /**
+   * Revoke one of the caller's active cards (POST /api/v3/cards/{card_id}/revoke, Product.md §4.6),
+   * which kills the public share link immediately. AUTH REQUIRED. Returns { card } with the updated
+   * CardSummary (status now "revoked"); a 404 means the card is not the caller's (RLS-scoped). The
+   * caller invalidates the ["cards"] read on success so the row flips to revoked. Only an active card
+   * is revocable; the UI shows no revoke action on an expired or already-revoked card.
+   */
+  revokeCard(cardId: string): Promise<CardRevoked> {
+    return http<CardRevoked>(
+      `/api/v3/cards/${encodeURIComponent(cardId)}/revoke`,
+      { method: "POST" }
+    );
   },
 };

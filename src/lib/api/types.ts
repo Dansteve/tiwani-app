@@ -316,6 +316,47 @@ export interface CardCreated {
   expires_at: string;
 }
 
+/**
+ * The lifecycle status of a generated Continuity Card (the api's card status), shown on the Card
+ * History screen. `active` the share link still works; `expired` the 30-day window has passed;
+ * `revoked` the Coordinator killed the link early (revoke). Only an active card can be revoked; an
+ * expired or revoked card is terminal. Mirrors the api's status enum exactly.
+ */
+export type CardStatus = "active" | "expired" | "revoked";
+
+/**
+ * A row on the Card History list (GET /api/v3/cards), one per card the Coordinator has generated,
+ * newest first. Mirrors the api's CardSummary field-for-field. It deliberately carries NO share
+ * token (so the list never re-exposes the link's only secret) and NO activity_id: re-sharing a past
+ * card is intentionally not possible from the list, because the board wants a re-share to REGENERATE
+ * a fresh card through the /card flow, never re-mint a stale link (so the list is view + status +
+ * revoke only). `generated_at` is when the card was prepared (the readable "prepared" date the list
+ * shows); `created_at`/`expires_at` bound the 30-day link; `is_stale` is the api's helper-safety cue
+ * that the underlying plan may have moved on since the card was made (the app shows a "may be out of
+ * date" caption). The chapter is context the app may label. No PII beyond the recipient's first name.
+ */
+export interface CardSummary {
+  id: string;
+  activity_name: string;
+  child_first_name: string;
+  chapter: ChapterCode;
+  created_at: string;
+  expires_at: string;
+  status: CardStatus;
+  generated_at: string;
+  is_stale: boolean;
+}
+
+/**
+ * The POST /api/v3/cards/{card_id}/revoke response (the Coordinator revoked the card). Mirrors the
+ * api: the updated CardSummary with `status` now "revoked". A 404 means the card is not the caller's
+ * (RLS-scoped, a foreign or unknown id matches nothing); the app surfaces that inline and leaves the
+ * list as-is. The app invalidates the ["cards"] read on success so the row flips to revoked.
+ */
+export interface CardRevoked {
+  card: CardSummary;
+}
+
 // --- Request payloads ---
 
 /**

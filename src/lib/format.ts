@@ -131,6 +131,22 @@ export function formatLastPrepared(iso: string | null | undefined): string {
   return `Prepared ${label}`;
 }
 
+/**
+ * Format an ISO timestamp as a bare, readable date ("3 Jun 2025") for the Card History list, where
+ * the row supplies its own "Prepared" label. Returns a short dash for a missing or unparseable value.
+ * Locale-aware, pure; the app does no date math beyond this display formatting.
+ */
+export function formatCardDate(iso: string | null | undefined): string {
+  if (!iso) return "--";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "--";
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 /** A time-based greeting addressed to the Coordinator by first name (never the child's name). */
 export function greeting(firstName: string, now: Date = new Date()): string {
   const hour = now.getHours();
