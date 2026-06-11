@@ -130,59 +130,61 @@ function safeParse(text: string): unknown {
   }
 }
 
-// --- Typed endpoint functions (mirror the api contract; paths are placeholders pending the api) ---
+// --- Typed endpoint functions (mirror the api contract under /api/v3) ---
+// The built Task 3 endpoints (profile, onboarding, child) match the api exactly. The rest carry the
+// /api/v3 prefix as placeholders; their final paths are set when Tasks 5-9 build those routes.
 
 export const api = {
   me(signal?: AbortSignal): Promise<UserProfile> {
-    return http<UserProfile>("/me", { signal });
+    return http<UserProfile>("/api/v3/profile", { signal });
   },
 
   completeOnboarding(payload: OnboardingPayload): Promise<CareRecipientProfile> {
-    return http<CareRecipientProfile>("/onboarding", {
+    return http<CareRecipientProfile>("/api/v3/onboarding", {
       method: "POST",
       body: payload,
     });
   },
 
   getCareRecipient(signal?: AbortSignal): Promise<CareRecipientProfile> {
-    return http<CareRecipientProfile>("/care-recipient", { signal });
+    return http<CareRecipientProfile>("/api/v3/child", { signal });
   },
 
   preparePlan(payload: PreparePlanRequest): Promise<PreparationPlan> {
-    return http<PreparationPlan>("/plans", { method: "POST", body: payload });
+    return http<PreparationPlan>("/api/v3/plans", { method: "POST", body: payload });
   },
 
   getStrategies(chapter: string, signal?: AbortSignal): Promise<StrategyItem[]> {
     return http<StrategyItem[]>(
-      `/strategies?chapter=${encodeURIComponent(chapter)}`,
+      `/api/v3/strategies?chapter=${encodeURIComponent(chapter)}`,
       { signal }
     );
   },
 
   submitPulse(activityId: string, outcome: PulseOutcome): Promise<PulseRecord> {
-    return http<PulseRecord>("/pulses", {
+    return http<PulseRecord>("/api/v3/pulses", {
       method: "POST",
       body: { activity_id: activityId, outcome_code: outcome },
     });
   },
 
   getOverallLci(signal?: AbortSignal): Promise<OverallLciSnapshot> {
-    return http<OverallLciSnapshot>("/lci/overall", { signal });
+    return http<OverallLciSnapshot>("/api/v3/lci/overall", { signal });
   },
 
   getChapterLci(signal?: AbortSignal): Promise<ChapterLci[]> {
-    return http<ChapterLci[]>("/lci/chapters", { signal });
+    return http<ChapterLci[]>("/api/v3/lci/chapters", { signal });
   },
 
   getAlerts(signal?: AbortSignal): Promise<AlertRecord[]> {
-    return http<AlertRecord[]>("/alerts", { signal });
+    return http<AlertRecord[]>("/api/v3/alerts", { signal });
   },
 
   generateCard(
     activityId: string,
     includeContact: boolean
   ): Promise<ContinuityCard> {
-    return http<ContinuityCard>("/cards", {
+    return http<ContinuityCard>("/api/v3/cards", {
       method: "POST",
       body: { activity_id: activityId, include_contact: includeContact },
     });
