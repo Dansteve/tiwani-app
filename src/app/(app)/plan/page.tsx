@@ -1,13 +1,31 @@
-import { PlaceholderScreen } from "@/components/PlaceholderScreen";
+"use client";
 
-// The Preparation Plan screen (Product.md §4.5): renders the LCE output (pressure summary, tier,
-// ranked strategies, dimension breakdown). Foundation stub; the engine is out of scope this round.
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+
+import { PlanScreen } from "@/features/plan/PlanScreen";
+
+// The Preparation Plan route (Product.md §4.5). It reads the chapter from ?chapter=<code> and hands it
+// to PlanScreen, which loads the chapter's activities, runs the prepare flow, and renders the LCE
+// output the api returns (the app computes no score). useSearchParams needs a Suspense boundary under
+// the App Router (and for the static export), so the reader is wrapped here.
+
+function PlanRoute() {
+  const searchParams = useSearchParams();
+  return <PlanScreen chapterParam={searchParams.get("chapter")} />;
+}
 
 export default function PlanPage() {
   return (
-    <PlaceholderScreen
-      title="Preparation Plan"
-      description="The pressure summary, participation tier, and ranked strategies the engine returns will show here."
-    />
+    <Suspense
+      fallback={
+        <div
+          aria-hidden="true"
+          className="mx-auto h-64 w-full max-w-2xl animate-pulse rounded-xl border border-border bg-card"
+        />
+      }
+    >
+      <PlanRoute />
+    </Suspense>
   );
 }

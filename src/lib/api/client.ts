@@ -11,6 +11,8 @@ import { env } from "@/lib/env";
 import type {
   AlertRecord,
   CareRecipientProfile,
+  ChapterActivity,
+  ChapterCode,
   ChapterLci,
   ChapterStatus,
   ContinuityCard,
@@ -156,6 +158,18 @@ export const api = {
     return http<ChapterStatus[]>("/api/v3/chapters", { signal });
   },
 
+  /** The activity picker list for a chapter (Product.md §4.5): each pickable activity + its tier. */
+  getChapterActivities(
+    chapter: ChapterCode,
+    signal?: AbortSignal
+  ): Promise<ChapterActivity[]> {
+    return http<ChapterActivity[]>(
+      `/api/v3/chapters/${encodeURIComponent(chapter)}/activities`,
+      { signal }
+    );
+  },
+
+  /** Run the LCE for a chosen activity (+ any "today" flags) and return the plan (Product.md §4.4/§4.5). */
   preparePlan(payload: PreparePlanRequest): Promise<PreparationPlan> {
     return http<PreparationPlan>("/api/v3/plans", { method: "POST", body: payload });
   },

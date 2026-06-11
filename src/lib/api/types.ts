@@ -47,13 +47,19 @@ export type AlertLevel = "L1" | "L2" | "L3";
 /** Erosion Alert level as the api returns it on the dashboard chapter feed (numeric, 1 to 3). */
 export type AlertLevelNumeric = 1 | 2 | 3;
 
-/** "Today" flags the Coordinator can set for a plan; the api applies the effects, never the app. */
-export type DayFlag =
-  | "poor_sleep"
-  | "high_anxiety"
-  | "unwell"
-  | "medication_change"
-  | "significant_change";
+/**
+ * "Today" flags the Coordinator can set for a single plan, as the api's day-level Trigger tags
+ * (Product.md §4.4; Api/Modules/SeedData.md "Triggers TG-"). The api applies their exact additive
+ * effects in the engine; the app only collects and sends the codes, it never applies +1/+2 itself.
+ * These map to the six seeded TG- triggers (the app labels them warmly, see features/plan/todayFlags).
+ */
+export type TodayFlagCode =
+  | "TG-FATIGUE"
+  | "TG-ILL"
+  | "TG-ANXIETY"
+  | "TG-MEDS"
+  | "TG-HOME"
+  | "TG-HUNGER";
 
 // --- Core data objects ---
 
@@ -101,20 +107,48 @@ export interface StrategyItem {
 }
 
 /**
+ * One selectable activity in a chapter's picker (the api's per-chapter activity list,
+ * GET /api/v3/chapters/{chapter}/activities). `tier` is the activity's baseline participation tier
+ * from the scenario matrix, shown as a quiet hint before a plan is generated; the engine recomputes
+ * the real tier per plan from the profile + flags (the app never relies on this for the plan).
+ */
+export interface ChapterActivity {
+  activity_code: string;
+  activity_name: string;
+  tier: ParticipationTier;
+}
+
+/**
+ * A single strategy line on a Preparation Plan: a short title and one line of detail. The full
+ * Strategy Library object (StrategyItem, with dimension tags and cross-context) is a Task 9 surface;
+ * the plan carries this lighter shape that the api has already ranked (promoted first, suppressed
+ * excluded, cross-context appended) per Product.md §4.4 step 7.
+ */
+export interface PlanStrategy {
+  title: string;
+  detail: string;
+}
+
+/**
  * The Preparation Plan: the LCE output the plan screen renders (Product.md §4.5). The app displays
- * these values and recomputes none of them.
+ * these values and recomputes none of them. Mirrors the api's POST /api/v3/plans response
+ * field-for-field: `scores` are the final adjusted four dimensions (1 to 5 each), `total` is 4 to 20,
+ * `tier` is the recomputed participation tier, `strategies` are pre-ranked, `dimension_explanations`
+ * is one api-authored sentence per dimension, and `scheduled_pulse_at` is the ISO time the api set
+ * for the post-activity Pulse (date + 2h, or 09:00 next day).
  */
 export interface PreparationPlan {
   activity_id: string;
   chapter: ChapterCode;
-  activity_type: string;
-  base_scores: DimensionScores;
-  adjusted_scores: DimensionScores;
-  total_score: number;
-  tier_recommended: ParticipationTier;
-  strategies: StrategyItem[];
+  activity_code: string;
+  activity_name: string;
+  scores: DimensionScores;
+  total: number;
+  tier: ParticipationTier;
+  strategies: PlanStrategy[];
   /** One sentence per dimension explaining its score; authored by the api. */
   dimension_explanations: Record<PressureDimension, string>;
+  scheduled_pulse_at: string;
 }
 
 export interface PulseRecord {
@@ -191,10 +225,13 @@ export interface OnboardingPayload {
   };
 }
 
-/** The prepare request: the LCE runs server-side and returns a PreparationPlan. */
+/**
+ * The prepare request (POST /api/v3/plans): the LCE runs server-side and returns a PreparationPlan.
+ * The app sends the chosen chapter + activity code and any day-level Trigger flags; it never applies
+ * the flag effects itself. The api schedules the Pulse, so no date is sent (Product.md §4.4 step 9).
+ */
 export interface PreparePlanRequest {
   chapter: ChapterCode;
-  activity_type: string;
-  date?: string;
-  day_flags?: DayFlag[];
+  activity_code: string;
+  today_flags?: TodayFlagCode[];
 }
