@@ -11,14 +11,15 @@
 // established pattern is a role="alert" on the destructive token, as on the Plan/Dashboard/Settings
 // screens), never a swallowed catch.
 //
-// What the list CANNOT do (by design, the board's rule): re-open or re-share a past card. CardSummary
-// carries no share token and no activity_id, so re-sharing REGENERATES a fresh card through the /card
-// flow rather than re-minting a stale link. So the screen is list + status + revoke only.
+// View (ViewControl) re-opens a card the owner made, by card_id via the owner-view endpoint
+// (GET /cards/{card_id}/content), which returns the safe content but NEVER the share token, so viewing
+// cannot re-mint or re-share a stale link. Re-SHARING a fresh link regenerates through the /card flow
+// (the board's rule). So the screen is list + status + view + revoke.
 
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FilePlus2, ShieldX } from "lucide-react";
+import { Eye, FilePlus2, ShieldX } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import type { CardSummary } from "@/lib/api/types";
@@ -26,6 +27,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { chapterLabel, formatCardDate } from "@/lib/format";
 import { cardStatusPresentation } from "@/features/card/cardStatusPresentation";
+import { CardContentView } from "@/features/card/CardContentView";
 
 export function CardHistoryList() {
   const query = useQuery({
@@ -130,9 +132,61 @@ function CardHistoryRow({ card }: { card: CardSummary }) {
         </p>
       ) : null}
 
+      {/* View the card (any status): the owner re-opens it by id, never the share token. */}
+      <ViewControl card={card} />
+
       {/* Revoke only on an active card; an expired or revoked card is terminal (no action). */}
       {isActive ? <RevokeControl card={card} /> : null}
     </article>
+  );
+}
+
+// View the card inline (the owner re-opens a card they made, any status). Fetches the SAFE content by
+// card_id (GET /cards/{card_id}/content) via api.viewCard, NOT the share token, so viewing never
+// re-mints or re-shares a stale link; it renders the same CardContentView a helper sees, including the
+// staleness signal. Toggled open with the fetch enabled only while open (the repo has no Dialog
+// primitive; this matches the row's inline-expand pattern).
+function ViewControl({ card }: { card: CardSummary }) {
+  const [viewing, setViewing] = useState(false);
+  const query = useQuery({
+    queryKey: ["card", card.id, "content"],
+    queryFn: ({ signal }) => api.viewCard(card.id, signal),
+    enabled: viewing,
+  });
+
+  return (
+    <div className="mt-4">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-expanded={viewing}
+        onClick={() => setViewing((open) => !open)}
+      >
+        <Eye className="size-4 shrink-0" aria-hidden="true" />
+        {viewing ? "Hide card" : "View card"}
+      </Button>
+
+      {viewing ? (
+        <div className="mt-3">
+          {query.isLoading ? (
+            <div
+              aria-hidden="true"
+              className="h-72 animate-pulse rounded-3xl bg-secondary"
+            />
+          ) : query.isError ? (
+            <p
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              We could not load that card just now. Please try again.
+            </p>
+          ) : query.data ? (
+            <CardContentView content={query.data} />
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

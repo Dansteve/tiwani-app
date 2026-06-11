@@ -323,4 +323,18 @@ export const api = {
       { method: "POST" }
     );
   },
+
+  /**
+   * View one of the caller's OWN Continuity Cards in full (GET /api/v3/cards/{card_id}/content,
+   * Product.md §4.6), by card_id, NOT the share token. AUTH REQUIRED. The Card History "View" action:
+   * the owner re-opens a card they made and sees the same safe CardContent a helper sees (with the
+   * staleness signal). Reading by id never exposes or re-mints the share link (re-sharing regenerates a
+   * fresh card via createCard). A 404 means the card is not the caller's (RLS-scoped).
+   */
+  viewCard(cardId: string, signal?: AbortSignal): Promise<CardContent> {
+    return http<CardContent>(
+      `/api/v3/cards/${encodeURIComponent(cardId)}/content`,
+      { signal }
+    );
+  },
 };

@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import type { CardSummary } from "@/lib/api/types";
+import type { CardContent, CardSummary } from "@/lib/api/types";
 
 function card(over: Partial<CardSummary> = {}): CardSummary {
   return {
@@ -27,8 +27,21 @@ function card(over: Partial<CardSummary> = {}): CardSummary {
   };
 }
 
+const cardContent: CardContent = {
+  child_first_name: "Ada",
+  activity_name: "Swimming lesson",
+  chapter: "social",
+  tier: "Modified",
+  tier_label: "Take it at their pace",
+  intro: "Ada does best when things are calm.",
+  strategies: [{ title: "Arrive early", detail: "Before it gets busy." }],
+  if_difficult: "If Ada gets overwhelmed, a quiet break helps.",
+  safety_note: "Follow the family's plan for food, medicines, or Ada's health.",
+};
+
 const listCards = vi.fn();
 const revokeCard = vi.fn();
+const viewCard = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   ApiError: class ApiError extends Error {
@@ -41,6 +54,7 @@ vi.mock("@/lib/api/client", () => ({
   api: {
     listCards: (...args: unknown[]) => listCards(...args),
     revokeCard: (...args: unknown[]) => revokeCard(...args),
+    viewCard: (...args: unknown[]) => viewCard(...args),
   },
 }));
 
@@ -59,6 +73,7 @@ function renderList() {
 beforeEach(() => {
   listCards.mockReset();
   revokeCard.mockReset();
+  viewCard.mockReset();
 });
 
 describe("CardHistoryList", () => {
@@ -79,6 +94,22 @@ describe("CardHistoryList", () => {
     expect(screen.getByText("Active")).toBeInTheDocument();
     expect(screen.getByText("Expired")).toBeInTheDocument();
     expect(screen.getByText("Revoked")).toBeInTheDocument();
+  });
+
+  it("views a card inline: fetches the content by id and renders it", async () => {
+    listCards.mockResolvedValue([card({ id: "card_1", activity_name: "Swimming lesson" })]);
+    viewCard.mockResolvedValue(cardContent);
+
+    renderList();
+    await screen.findByText("Swimming lesson");
+
+    fireEvent.click(screen.getByRole("button", { name: /view card/i }));
+
+    // Fetched by card_id (not the share token), and the safe content renders (the plain tier label).
+    await waitFor(() =>
+      expect(viewCard).toHaveBeenCalledWith("card_1", expect.anything())
+    );
+    expect(await screen.findByText("Take it at their pace")).toBeInTheDocument();
   });
 
   it("shows the helper-safety staleness cue only on an is_stale card", async () => {
