@@ -69,8 +69,15 @@ export function RecipientProvider({ children }: { children: ReactNode }) {
   // null means "no explicit choice", which resolves to the first recipient.
   const [chosenId, setChosenId] = useState<string | null>(null);
 
+  // Hydrate the stored choice on mount. The commit is deferred to the next frame so the effect does not
+  // setState synchronously (react-hooks/set-state-in-effect), the same lifecycle ThemeProvider and the
+  // coach-marks hook use; reading storage here (not during render) keeps SSR and the first client render
+  // identical. The frame is cancelled on cleanup.
   useEffect(() => {
-    setChosenId(readStoredRecipientId(localRecipientStore()));
+    const stored = readStoredRecipientId(localRecipientStore());
+    if (stored === null) return;
+    const frame = requestAnimationFrame(() => setChosenId(stored));
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const recipients = useMemo(() => childrenQuery.data ?? [], [childrenQuery.data]);

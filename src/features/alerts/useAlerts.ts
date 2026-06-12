@@ -10,7 +10,7 @@
 // invalidated (the chapter-card dot is fed by the same alert, so it clears too). A dismissed alert
 // returns only if the api escalates it past the next threshold; the app never re-raises it on its own.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
@@ -41,19 +41,13 @@ export function useAlerts(): UseAlertsResult {
   const { activeChildId, ready } = useRecipient();
   const childKey = recipientKey(activeChildId);
 
-  // Chapters dismissed in THIS view: hidden immediately so the tap is responsive. The persistent
-  // truth is the api (a dismissed alert returns only on escalation); this set just bridges the gap
-  // until the invalidated query comes back without it.
-  const [dismissedThisView, setDismissedThisView] = useState<Set<ChapterCode>>(
-    () => new Set()
-  );
-
-  // The view-local dismissals are keyed by chapter only, so they are per recipient in effect: clear them
-  // when the active recipient changes, otherwise a chapter dismissed for one recipient would look
-  // dismissed for the next (the persistent truth is the api, re-read for the new recipient by the key).
-  useEffect(() => {
-    setDismissedThisView(new Set());
-  }, [activeChildId]);
+  // Alerts dismissed in THIS view, hidden immediately so the tap is responsive. The persistent truth is
+  // the api (a dismissed alert returns only on escalation); this set just bridges the gap until the
+  // invalidated query comes back without it. Each entry is keyed by recipient AND chapter
+  // (`${childKey}::${chapter}`), so a chapter dismissed for one recipient never looks dismissed for
+  // another (and switching back to a recipient keeps its own view-local dismissals). Keying it avoids
+  // resetting state on a recipient change, which the React Compiler lint forbids in an effect.
+  const [dismissedThisView, setDismissedThisView] = useState<Set<string>>(() => new Set());
 
   const alertsQuery = useQuery({
     queryKey: ["alerts", childKey],
@@ -74,16 +68,18 @@ export function useAlerts(): UseAlertsResult {
 
   const dismiss = useCallback(
     (chapter: ChapterCode) => {
-      setDismissedThisView((prev) => new Set(prev).add(chapter));
+      setDismissedThisView((prev) => new Set(prev).add(`${childKey}::${chapter}`));
       dismissMutation.mutate(chapter);
     },
-    [dismissMutation]
+    [dismissMutation, childKey]
   );
 
   const active = useMemo(
     () =>
-      (alertsQuery.data ?? []).filter((alert) => !dismissedThisView.has(alert.chapter)),
-    [alertsQuery.data, dismissedThisView]
+      (alertsQuery.data ?? []).filter(
+        (alert) => !dismissedThisView.has(`${childKey}::${alert.chapter}`)
+      ),
+    [alertsQuery.data, dismissedThisView, childKey]
   );
 
   const cardAlertByChapter = useMemo(() => {
