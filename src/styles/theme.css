@@ -267,3 +267,125 @@
     line-height: 1.5;
   }
 }
+
+/* ============================================================================================
+   PUBLIC CONTINUITY CARD: browser-PRINT fallback (the free safety net).
+
+   PDF export is a PAID convenience, so the FREE public web card at /c must be browser-printable
+   carrying the FULL health-and-safety + "if difficult" content, so an offline / print-only helper
+   still gets the safety information on paper (Docs/FeatureDecisions.md, the board's safety-net
+   requirement). The button that triggers this is features/card/PrintCardButton.tsx; the content is
+   unchanged (the api's governed copy, rendered by CardContentView). This block is presentation only.
+
+   Everything is scoped to [data-public-card] (PublicCardView's <main>), so it touches ONLY the public
+   page. The same CardContentView renders inside the (app) preview (CardGenerator) and Card History;
+   those are never wrapped in [data-public-card], so this never re-skins them.
+
+   Two jobs:
+     1. Hide the app chrome (the "Support summary" pill, the Print button + its note, the page footer,
+        the card's decorative share chip), so the sheet is the card and nothing else.
+     2. Re-skin the deep-teal card (bg-tiwani-dark + white/mint/coral text, which a browser would print
+        as either a heavy ink block or, with backgrounds off by default, white-on-white = invisible) to
+        clean BLACK ON WHITE, legible without colour. The health-and-safety boundary and the freshness
+        note keep a solid border so they stay visually distinct on paper (a non-colour signal), and the
+        coral check bullets become dark-outlined rings with a dark tick, so "what helps" reads in mono.
+   ============================================================================================ */
+@media print {
+  /* A modest page margin so nothing is clipped at the sheet edge. */
+  @page {
+    margin: 1.5cm;
+  }
+
+  /* The public card prints on white; drop the warm app background and let the sheet flow its own height
+     (the screen layout caps width/padding, which is irrelevant on paper). */
+  [data-public-card] {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    color: #1a1a1a;
+  }
+
+  /* Hide the app chrome: the header pill, the Print button + its prompt, the page footer (each tagged
+     data-print-hidden in PublicCardView / PrintCardButton). display:none keeps them out of the flow. */
+  [data-public-card] [data-print-hidden] {
+    display: none !important;
+  }
+
+  /* The soft offset glow behind the card (an aria-hidden sibling using bg-tiwani-mid/15) is decoration;
+     it would print as a grey wash, so remove it. */
+  [data-public-card] [aria-hidden="true"].absolute {
+    display: none !important;
+  }
+
+  /* The card surface: deep teal -> white, with a thin grey keyline so the card still reads as a bounded
+     panel on the page. Strip the screen shadow and clip; keep the corners gentle. break-inside: avoid
+     keeps the whole card on one page where it fits. */
+  [data-public-card] article {
+    background: #ffffff !important;
+    color: #1a1a1a !important;
+    border: 1px solid #555555 !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    break-inside: avoid;
+  }
+
+  /* All card text to near-black, overriding the on-teal white/mint opacities (text-white, text-white/90,
+     text-white/70, text-white/50, text-tiwani-teal-near-white, ...) so every line is solid and readable
+     in black and white. The labels keep their smaller size from the utilities; only the colour changes. */
+  [data-public-card] article :where(h1, h2, p, span, li, div) {
+    color: #1a1a1a !important;
+  }
+
+  /* The quiet uppercase labels ("Supporting", "Participation approach", "What helps", section captions)
+     stay legible but a touch lighter than the body, so the hierarchy survives in mono. */
+  [data-public-card] article :where(h2, p).uppercase,
+  [data-public-card] article p.text-white\/50 {
+    color: #555555 !important;
+  }
+
+  /* The header "Continuity Card" pill: drop the translucent fill, keep the label as plain dark text. */
+  [data-public-card] article header span {
+    background: transparent !important;
+    color: #555555 !important;
+    padding: 0 !important;
+  }
+
+  /* The soft inset panels (intro, "if things get difficult", freshness: bg-white/5) become plain on
+     white with a light keyline, so each block still reads as its own grouped note. */
+  [data-public-card] article section.bg-white\/5 {
+    background: #ffffff !important;
+    border: 1px solid #cccccc !important;
+  }
+
+  /* The health-and-safety boundary (the coral-edged panel) is the firm line: a stronger, solid border
+     marks it on paper without relying on the coral fill printing. Colour is never the only signal here,
+     it keeps its ShieldCheck icon + "Health and safety" heading. */
+  [data-public-card] article section[aria-labelledby="card-safety"] {
+    background: #ffffff !important;
+    border: 2px solid #1a1a1a !important;
+  }
+
+  /* The "what helps" check bullets are coral discs with a white tick on screen; on white paper that would
+     vanish. Make each a dark-outlined ring and recolour its tick dark, so the checklist reads in mono. */
+  [data-public-card] article ul li > span[aria-hidden="true"] {
+    background: transparent !important;
+    border: 1.5px solid #1a1a1a !important;
+  }
+  [data-public-card] article ul li > span[aria-hidden="true"] svg {
+    color: #1a1a1a !important;
+  }
+
+  /* Lucide accent icons (the coral Heart / LifeBuoy / ShieldCheck and the mint clock) print as dark
+     line icons so they are visible but calm; sized by their utilities already. */
+  [data-public-card] article section > svg {
+    color: #1a1a1a !important;
+  }
+
+  /* The card's own footer (the decorative coral "Share" chip + "Shareable, no personal data") is a
+     screen affordance with no meaning on paper; hide it so the printed card ends on its content. */
+  [data-public-card] article > footer {
+    display: none !important;
+  }
+}

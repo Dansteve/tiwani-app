@@ -68,6 +68,26 @@ describe("PublicCardView", () => {
     expect(getCard).toHaveBeenCalledWith("tok_abc123", expect.anything());
   });
 
+  it("offers a Print affordance on a valid card (the free browser-print safety net)", async () => {
+    // PDF export is a paid convenience, so the free public card must be browser-printable: a Print button
+    // is the affordance, the @media print stylesheet carries the full health-and-safety content to paper.
+    getCard.mockResolvedValue(CONTENT);
+    renderPublic("tok_abc123");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Ada" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /print this card/i })).toBeInTheDocument();
+  });
+
+  it("shows no Print affordance when there is no card to print (error / missing states)", async () => {
+    // The button only makes sense over real card content; the expired/unknown and missing-link states
+    // have nothing to print, so they must not offer it.
+    getCard.mockRejectedValue(new ApiError(404, "Card not found or expired"));
+    renderPublic("tok_expired");
+
+    expect(await screen.findByRole("heading", { name: /no longer available/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /print this card/i })).not.toBeInTheDocument();
+  });
+
   it("shows the freshness note to a scanner when the api flags the card stale (board condition B1)", async () => {
     // A helper opening an OLD link (e.g. scanning the QR in an emergency) must be told the info may be
     // out of date. The api sends is_stale + a governed freshness_note on the token read; the public card
