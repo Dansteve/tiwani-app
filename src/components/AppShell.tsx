@@ -25,6 +25,7 @@ import { Wordmark } from "@/components/Wordmark";
 import { LogoutButton } from "@/components/LogoutButton";
 import { RecipientSwitcher } from "@/components/RecipientSwitcher";
 import { PendingInviteBanner } from "@/features/sharing/PendingInviteBanner";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 
 interface NavItem {
@@ -149,6 +150,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Content: room for the sidebar on desktop, room for the bottom tabs on mobile. */}
       <div className="lg:pl-60">
         <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 lg:pb-10 lg:pt-10">
+          {/* Offline awareness (PWA): the app loads from cache offline, but the engine is server-side,
+              so this says preparing a plan needs a connection. Renders nothing while online. */}
+          <OfflineBanner />
           {/* On mobile / tablet the sidebar is hidden, so the recipient switcher rides at the top of the
               content (still only when there is more than one recipient). On desktop it lives in the
               sidebar above, so this copy is hidden there. */}
