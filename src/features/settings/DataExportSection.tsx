@@ -13,6 +13,7 @@ import { Check, Download } from "lucide-react";
 import { api, ApiError } from "@/lib/api/client";
 import { downloadJson } from "@/lib/download";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -45,14 +46,11 @@ export function DataExportSection() {
       </CardHeader>
       <CardContent>
         {mutation.isError ? (
-          <p
-            role="alert"
-            className="mb-4 rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          >
+          <Alert variant="destructive" className="mb-4">
             {mutation.error instanceof ApiError
               ? "We could not prepare your export just now. Please try again."
               : "Something went wrong preparing your export. Please try again."}
-          </p>
+          </Alert>
         ) : null}
 
         <div className="flex flex-wrap items-center gap-3">

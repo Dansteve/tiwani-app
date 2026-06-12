@@ -19,6 +19,7 @@ import { CalendarClock, MapPin } from "lucide-react";
 import { api, ApiError } from "@/lib/api/client";
 import type { NeedSummary } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { villageCopy } from "@/features/village/copy";
 import { formatNeedWindow } from "@/lib/format";
 import { NeedStatusBadge } from "@/features/village/NeedStatusBadge";
@@ -63,9 +64,9 @@ export function OpenNeedsList({ recipientId }: { recipientId: string }) {
       </div>
 
       {query.isError ? (
-        <p role="alert" className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <Alert variant="destructive">
           We could not load the board just now. Please try again shortly.
-        </p>
+        </Alert>
       ) : null}
 
       {query.isLoading && !query.isError ? (
@@ -165,9 +166,9 @@ function OpenNeedCard({
       ) : (
         <div className="mt-4 space-y-2">
           {claimFailed ? (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <Alert variant="destructive">
               We could not claim that just now. Please try again.
-            </p>
+            </Alert>
           ) : null}
 
           {need.is_claimed || justTaken ? (

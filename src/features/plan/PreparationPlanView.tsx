@@ -28,6 +28,7 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { chapterLabel, formatScore, tierLabel } from "@/lib/format";
 import type { ChapterCode, PlanStrategy, PreparationPlan, PressureDimension } from "@/lib/api/types";
@@ -211,12 +212,9 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
         )}
 
         {isError ? (
-          <p
-            role="alert"
-            className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          >
+          <Alert variant="destructive">
             We could not update that strategy just now. Please try again.
-          </p>
+          </Alert>
         ) : null}
       </section>
 

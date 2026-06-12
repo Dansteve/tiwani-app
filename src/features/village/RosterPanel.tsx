@@ -18,6 +18,7 @@ import { api } from "@/lib/api/client";
 import type { VillageMember } from "@/lib/api/types";
 import { villageCopy } from "@/features/village/copy";
 import { formatCardDate } from "@/lib/format";
+import { Alert } from "@/components/ui/alert";
 
 export function RosterPanel({ recipientId }: { recipientId: string }) {
   const query = useQuery({
@@ -35,9 +36,9 @@ export function RosterPanel({ recipientId }: { recipientId: string }) {
       </div>
 
       {query.isError ? (
-        <p role="alert" className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <Alert variant="destructive">
           We could not load the village just now. Please try again shortly.
-        </p>
+        </Alert>
       ) : null}
 
       {query.isLoading && !query.isError ? (

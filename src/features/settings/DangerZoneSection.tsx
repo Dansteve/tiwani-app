@@ -21,6 +21,7 @@ import { AlertTriangle } from "lucide-react";
 import { api, ApiError } from "@/lib/api/client";
 import { useAuthActions } from "@/features/auth/useAuthActions";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -102,12 +103,9 @@ export function DangerZoneSection() {
             </div>
 
             {mutation.isError ? (
-              <p
-                role="alert"
-                className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-              >
+              <Alert variant="destructive">
                 {mutation.error instanceof ApiError ? COPY.error : COPY.error}
-              </p>
+              </Alert>
             ) : null}
 
             <div className="flex flex-wrap items-center gap-3">

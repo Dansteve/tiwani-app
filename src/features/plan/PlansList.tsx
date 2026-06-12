@@ -24,6 +24,7 @@ import { CalendarCheck, CalendarClock, Eye, FilePlus2 } from "lucide-react";
 import { api } from "@/lib/api/client";
 import type { ChapterCode, PlanSummary } from "@/lib/api/types";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { chapterLabel, CHAPTERS, formatCardDate, tierLabel } from "@/lib/format";
 import { PreparationPlanView } from "@/features/plan/PreparationPlanView";
@@ -50,12 +51,9 @@ export function PlansList() {
       <ChapterFilter selected={chapter} onSelect={setChapter} />
 
       {query.isError ? (
-        <p
-          role="alert"
-          className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
+        <Alert variant="destructive">
           We could not load your plans just now. Please try again shortly.
-        </p>
+        </Alert>
       ) : null}
 
       {query.isLoading && !query.isError ? (
@@ -218,12 +216,9 @@ function PlanViewControl({ plan }: { plan: PlanSummary }) {
               className="h-72 animate-pulse rounded-xl bg-secondary"
             />
           ) : query.isError ? (
-            <p
-              role="alert"
-              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            >
+            <Alert variant="destructive">
               We could not open that plan just now. Please try again.
-            </p>
+            </Alert>
           ) : query.data ? (
             <PreparationPlanView plan={query.data} onPrepareAnother={() => setViewing(false)} />
           ) : null}

@@ -10,6 +10,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { Alert } from "@/components/ui/alert";
 import { AuthShell } from "@/features/auth/AuthShell";
 import { useAuthActions } from "@/features/auth/useAuthActions";
 import { isValidEmail } from "@/features/auth/validation";
@@ -67,9 +68,9 @@ export function ResetRequestForm() {
     >
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
         {formError ? (
-          <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+          <Alert variant="destructive">
             {formError}
-          </p>
+          </Alert>
         ) : null}
 
         <Field

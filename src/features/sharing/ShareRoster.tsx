@@ -17,6 +17,7 @@ import { AlertCircle, Clock, Loader2, Trash2, UserCheck } from "lucide-react";
 import { api, ApiError } from "@/lib/api/client";
 import type { RosterEntry, ShareRoster as ShareRosterData } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { sharingCopy } from "@/features/sharing/copy";
 import { formatCardDate } from "@/lib/format";
 
@@ -41,9 +42,9 @@ export function ShareRoster({ recipientId, firstName }: ShareRosterProps) {
     // A 404 means the recipient is not the caller's (RLS); any error resolves to the same calm inline
     // message (the roster is not actionable without it).
     return (
-      <p role="alert" className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      <Alert variant="destructive">
         We could not load who can see {firstName} just now. Please try again shortly.
-      </p>
+      </Alert>
     );
   }
 

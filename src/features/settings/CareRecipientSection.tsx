@@ -18,6 +18,7 @@ import { api, ApiError } from "@/lib/api/client";
 import type { CareRecipientProfile } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { Alert } from "@/components/ui/alert";
 import { TagPill } from "@/components/TagPill";
 import { ChoiceCard } from "@/components/ChoiceCard";
 import {
@@ -186,14 +187,11 @@ export function CareRecipientSection({ child }: { child: CareRecipientProfile })
           </div>
 
           {mutation.isError ? (
-            <p
-              role="alert"
-              className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-            >
+            <Alert variant="destructive">
               {mutation.error instanceof ApiError
                 ? "We could not save these details just now. Please try again."
                 : "Something went wrong saving these details. Please try again."}
-            </p>
+            </Alert>
           ) : null}
 
           <div className="flex flex-wrap items-center gap-3">

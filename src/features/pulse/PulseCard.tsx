@@ -17,6 +17,7 @@ import { SmilePlus, Meh, CloudRain, Check, type LucideIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils";
 import { chapterLabel, dimensionLabel, DIMENSIONS } from "@/lib/format";
+import { Alert } from "@/components/ui/alert";
 import type {
   PendingPulse,
   PressureDimension,
@@ -154,12 +155,9 @@ export function PulseCard({
       ) : null}
 
       {isError ? (
-        <p
-          role="alert"
-          className="mt-4 rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
+        <Alert variant="destructive" className="mt-4">
           We could not save your check-in just now. Please try again.
-        </p>
+        </Alert>
       ) : null}
 
       {/* ACTIONS: Done is enabled only when both questions are answered (§4.7 "both required"). */}
