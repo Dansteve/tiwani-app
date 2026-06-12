@@ -87,3 +87,27 @@ describe("VillageScreen viewer ceiling", () => {
     expect(screen.getByTestId("open-needs-list")).toBeInTheDocument();
   });
 });
+
+// The Village tour anchors on the real screen (the app-wide "Show me around"): the button is present for
+// everyone, the owner-only "Post & track" tour anchor renders only for an owner (so its step drops for a
+// viewer via resolveVisibleSteps), and the everyone "Ways to help" anchor is always present.
+describe("VillageScreen tour anchors", () => {
+  it("offers the 'Show me around' button and the owner 'post' anchor for an OWNER", () => {
+    recipientState.activeRole = "owner";
+    const { container } = renderVillage();
+    expect(screen.getByRole("button", { name: /show me around/i })).toBeInTheDocument();
+    expect(container.querySelector('[data-tour="village-post-tab"]')).not.toBeNull();
+    expect(container.querySelector('[data-tour="village-help-tab"]')).not.toBeNull();
+  });
+
+  it("drops the owner 'post' anchor for a VIEWER but keeps 'help' (the viewer-safe tour)", () => {
+    recipientState.activeRole = "viewer";
+    recipientState.activeRecipient = { id: "rec_1", first_name: "Ada", role: "viewer" };
+    const { container } = renderVillage();
+    expect(screen.getByRole("button", { name: /show me around/i })).toBeInTheDocument();
+    // The owner-only tab is not rendered, so its tour step has no target and auto-skips.
+    expect(container.querySelector('[data-tour="village-post-tab"]')).toBeNull();
+    // The everyone tab anchor is present, so the viewer still gets a useful tour.
+    expect(container.querySelector('[data-tour="village-help-tab"]')).not.toBeNull();
+  });
+});

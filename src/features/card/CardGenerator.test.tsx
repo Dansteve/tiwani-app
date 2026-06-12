@@ -100,4 +100,13 @@ describe("CardGenerator", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/could not find that prepared activity/i);
   });
+
+  it("offers the 'Show me around' tour with its anchors in the generate phase", () => {
+    const { container } = renderGen("act_99");
+    // The on-demand tour button sits in the generate-phase header.
+    expect(screen.getByRole("button", { name: /show me around/i })).toBeInTheDocument();
+    // Its steps point at the generate button + the cards-you-have-shared link, both present here.
+    expect(container.querySelector('[data-tour="card-generate"]')).not.toBeNull();
+    expect(container.querySelector('[data-tour="card-history-link"]')).not.toBeNull();
+  });
 });

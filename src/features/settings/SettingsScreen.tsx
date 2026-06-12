@@ -44,6 +44,7 @@ import { DataExportSection } from "@/features/settings/DataExportSection";
 import { DangerZoneSection } from "@/features/settings/DangerZoneSection";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { ReplayTourButton } from "@/features/tour/ReplayTourButton";
+import { PageTour } from "@/features/tour/PageTour";
 import { useRecipient } from "@/state/RecipientProvider";
 
 // The tabs, in display order. Profile is first (the default active tab). "Plans & billing" is the
@@ -103,20 +104,29 @@ export function SettingsScreen() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold md:text-3xl">Settings</h1>
-        <p className="mt-1 text-base text-muted-foreground">
-          Your profile and the person you care for. Editable any time.
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold md:text-3xl">Settings</h1>
+          <p className="mt-1 text-base text-muted-foreground">
+            Your profile and the person you care for. Editable any time.
+          </p>
+        </div>
+        {/* On-demand "Show me around" for Settings (one step on the tabs). Distinct from the "Replay the
+            tour" card in the Profile tab, which re-runs the dashboard walkthrough. */}
+        <PageTour page="settings" buttonClassName="mt-1" />
       </header>
 
-      <TabsList
-        tabs={SETTINGS_TABS}
-        value={tab}
-        onValueChange={(next) => setTab(next as SettingsTab)}
-        label="Settings sections"
-        idBase={TABS_ID}
-      />
+      {/* The coach-marks anchor for the "everything in one place" step (the tabs are present for everyone,
+          so this works under the viewer ceiling too). */}
+      <div data-tour="settings-tabs">
+        <TabsList
+          tabs={SETTINGS_TABS}
+          value={tab}
+          onValueChange={(next) => setTab(next as SettingsTab)}
+          label="Settings sections"
+          idBase={TABS_ID}
+        />
+      </div>
 
       {/* Profile: the Coordinator's own settings, kept together: their profile, how the app looks on this
           device (Appearance), and signing out (Account, a device action distinct from a profile edit). */}

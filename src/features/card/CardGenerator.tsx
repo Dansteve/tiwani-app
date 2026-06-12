@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { CardContentView } from "@/features/card/CardContentView";
 import { ShareLinkBar } from "@/features/card/ShareLinkBar";
 import { buildCardShareUrl } from "@/features/card/shareUrl";
+import { PageTour } from "@/features/tour/PageTour";
 
 interface CardGeneratorProps {
   /** The prepared activity_record id from ?activity= (the card is generated for this id). */
@@ -111,9 +112,14 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
   return (
     <div className="mx-auto w-full max-w-xl space-y-6">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Continuity Card
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Continuity Card
+          </p>
+          {/* The on-demand "Show me around" tour for the Card screen (points at the generate button and
+              the cards-you-have-shared link below). */}
+          <PageTour page="card" buttonClassName="-mt-1" />
+        </div>
         <h1 className="text-2xl font-semibold md:text-3xl">Create a Continuity Card</h1>
         <p className="text-base text-muted-foreground">
           A one-page support summary you can share with a babysitter, teacher, or respite carer. It
@@ -135,12 +141,14 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
         onClick={() => mutation.mutate()}
         disabled={mutation.isPending}
         className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full")}
+        // The coach-marks anchor for the "make a Continuity Card" step.
+        data-tour="card-generate"
       >
         <FileText className="size-4 shrink-0" aria-hidden="true" />
         {mutation.isPending ? "Creating the card..." : "Generate Continuity Card"}
       </button>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm text-muted-foreground" data-tour="card-history-link">
         <Link href="/card/history" className="font-medium text-primary underline-offset-4 hover:underline">
           View the cards you have already shared
         </Link>

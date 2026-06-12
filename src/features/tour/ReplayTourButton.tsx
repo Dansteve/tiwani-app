@@ -23,9 +23,9 @@ export function ReplayTourButton({ href = "/dashboard" }: ReplayTourButtonProps)
   const router = useRouter();
 
   function replay() {
-    // Unset the seen flag, then go to the dashboard: its useCoachMarks auto-opens the tour once it reads
-    // "not seen" and the chapter grid has laid out (so the overlay points at the real controls).
-    clearTourSeen(localSeenStore());
+    // Unset the dashboard seen flag, then go to the dashboard: its useCoachMarks auto-opens the tour once
+    // it reads "not seen" and the chapter grid has laid out (so the overlay points at the real controls).
+    clearTourSeen(localSeenStore(), "dashboard");
     router.push(href);
   }
 

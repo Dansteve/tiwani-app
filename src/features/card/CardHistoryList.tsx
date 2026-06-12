@@ -30,6 +30,7 @@ import { downloadBlob } from "@/lib/download";
 import { chapterLabel, formatCardDate } from "@/lib/format";
 import { cardStatusPresentation } from "@/features/card/cardStatusPresentation";
 import { CardContentView } from "@/features/card/CardContentView";
+import { PageTour } from "@/features/tour/PageTour";
 
 export function CardHistoryList() {
   const query = useQuery({
@@ -39,11 +40,17 @@ export function CardHistoryList() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold md:text-3xl">Your Continuity Cards</h1>
-        <p className="text-base text-muted-foreground">
-          The cards you have shared with helpers. Revoke any active card to switch off its link.
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        {/* The header is the coach-marks anchor for the Card History tour (always present, so the
+            on-demand "Show me around" always has a target even before any card exists). */}
+        <div className="space-y-1" data-tour="card-history-list">
+          <h1 className="text-2xl font-semibold md:text-3xl">Your Continuity Cards</h1>
+          <p className="text-base text-muted-foreground">
+            The cards you have shared with helpers. Revoke any active card to switch off its link.
+          </p>
+        </div>
+        {/* On-demand "Show me around" for Card History. */}
+        <PageTour page="card-history" buttonClassName="mt-1" />
       </header>
 
       {query.isError ? (

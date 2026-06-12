@@ -27,9 +27,17 @@ export function LciPanel({ overall, chapters }: LciPanelProps) {
 
   return (
     <div className="space-y-6">
-      <OverallLciIndicator snapshot={overall} />
+      {/* The coach-marks anchor for the "your overall picture" step. */}
+      <div data-tour="continuity-overall">
+        <OverallLciIndicator snapshot={overall} />
+      </div>
 
-      <section aria-labelledby="chapter-lci-label" className="space-y-3">
+      <section
+        aria-labelledby="chapter-lci-label"
+        className="space-y-3"
+        // The coach-marks anchor for the "chapter by chapter" step.
+        data-tour="continuity-chapters"
+      >
         <h2 id="chapter-lci-label" className="text-lg font-semibold">
           By Life Chapter
         </h2>

@@ -21,6 +21,13 @@ export interface TabItem {
   value: string;
   /** The visible tab label. */
   label: string;
+  /**
+   * Optional `data-tour` anchor on this tab's trigger, so a page's coach-marks can point a step at it.
+   * A viewer-hidden tab (one dropped from the tab set under the viewer ceiling) is simply not rendered,
+   * so its tour step auto-skips, which is how an owner-only step (e.g. "Post & track") stays off a
+   * viewer's tour without any extra logic.
+   */
+  tour?: string;
 }
 
 export interface TabsProps {
@@ -97,6 +104,7 @@ export function TabsList({ tabs, value, onValueChange, label, idBase, className 
             type="button"
             role="tab"
             id={`${idBase}-tab-${tab.value}`}
+            data-tour={tab.tour}
             aria-selected={selected}
             aria-controls={`${idBase}-panel-${tab.value}`}
             // Roving tabIndex: only the active tab is reachable by Tab; arrows move between them.

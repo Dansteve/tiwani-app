@@ -91,8 +91,9 @@ export function DashboardScreen() {
 
   // The onboarding coach-marks (the owner's skipper-style explainer): auto-open once on the first
   // dashboard visit, re-openable from the "Show me around" button. Auto-open waits until the chapter
-  // grid has rendered (the first card is the tour's first anchor), so it never opens over skeletons.
-  const tour = useCoachMarks(chapters !== null);
+  // grid has rendered (the first card is the tour's first anchor), so it never opens over skeletons. The
+  // dashboard is the one first-run, auto-opening tour; the other pages are on-demand (PageTour).
+  const tour = useCoachMarks("dashboard", chapters !== null);
 
   return (
     <div className="space-y-6">
