@@ -64,6 +64,12 @@ vi.mock("@/components/LogoutButton", () => ({
   LogoutButton: () => <button type="button">Sign out</button>,
 }));
 
+// The Profile tab's "Replay the tour" button uses the Next router; mock it so the screen renders (its
+// own click behaviour is pinned in ReplayTourButton.test).
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 // The data-export and account-deletion sections have their own focused tests (DataExportSection.test,
 // DangerZoneSection.test) and pull in the api client / auth actions; stub them here so this screen test
 // stays about the profile + care-recipient reads it owns, not those flows.
@@ -225,12 +231,14 @@ describe("SettingsScreen tabs", () => {
     expect(screen.queryByTestId("data-export-section")).not.toBeInTheDocument();
   });
 
-  it("keeps the Account sign-out + Appearance under the Profile tab", async () => {
+  it("keeps the Account sign-out + Appearance + Replay tour under the Profile tab", async () => {
     renderScreen();
     await screen.findByDisplayValue("Sam");
     // Sign-out (the stubbed LogoutButton) and the theme control sit with the Coordinator's own profile.
     expect(screen.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
     expect(screen.getByRole("radiogroup", { name: /theme/i })).toBeInTheDocument();
+    // The "Replay the tour" control (the Settings way back into the dashboard coach-marks) is here too.
+    expect(screen.getByRole("button", { name: /replay the tour/i })).toBeInTheDocument();
   });
 
   it("shows the recipient list + the 'removing someone' copy under Care recipients", async () => {
