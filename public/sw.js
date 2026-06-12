@@ -1,9 +1,12 @@
-const CACHE_NAME = 'tiwani-v1';
+// Bump the cache name whenever a precached asset changes so the activate step evicts the old cache
+// (here: the v2 brand mark replaces the prototype's grey-green icon).
+const CACHE_NAME = 'tiwani-v2';
 const urlsToCache = [
     '/',
     '/dashboard',
     '/icon-only.svg',
-    '/apple.svg'
+    '/apple.svg',
+    '/apple-touch-icon.png'
 ];
 
 // Install event - cache resources

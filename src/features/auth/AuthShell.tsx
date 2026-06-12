@@ -6,6 +6,7 @@
 import type { ReactNode } from "react";
 
 import { HomeLink } from "@/components/HomeLink";
+import { Wordmark } from "@/components/Wordmark";
 
 interface AuthShellProps {
   title: string;
@@ -22,7 +23,7 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
         <span aria-hidden="true">&larr;</span>
         Back to home
       </HomeLink>
-      <span className="text-xl font-semibold text-primary">TIWANI</span>
+      <Wordmark className="text-xl" />
 
       <div className="mt-8">
         <h1 className="text-2xl font-semibold md:text-3xl">{title}</h1>

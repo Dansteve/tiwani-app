@@ -20,8 +20,9 @@ export const metadata: Metadata = {
     "TIWANI helps Coordinators turn lived experience into reusable preparation, and see whether life is holding.",
   icons: {
     icon: "/icon-only.svg",
-    apple: "/icon-only.svg",
+    apple: "/apple-touch-icon.png",
   },
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
