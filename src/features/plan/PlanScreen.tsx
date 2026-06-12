@@ -11,6 +11,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { UserPlus } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import { buttonVariants } from "@/components/ui/button";
@@ -125,14 +126,34 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
       />
 
       {planMutation.isError ? (
-        <p
-          role="alert"
-          className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
-          {planMutation.error instanceof ApiError
-            ? `We could not build your ${chapterLabel(chapter)} plan just now. Please try again.`
-            : "Something went wrong building your plan. Please try again."}
-        </p>
+        planMutation.error instanceof ApiError && planMutation.error.status === 409 ? (
+          // No care recipient set up yet (the api 409s the prepare): a calm, specific nudge to
+          // finish onboarding, not the generic error. Colour + icon + label + a real 44px link.
+          <div
+            role="alert"
+            className="flex flex-col gap-3 rounded-lg border border-dashed border-border bg-secondary/40 px-4 py-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between"
+          >
+            <span className="flex items-center gap-2">
+              <UserPlus className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              Finish setting up your care recipient to prepare a plan.
+            </span>
+            <Link
+              href="/onboarding"
+              className={cn(buttonVariants({ size: "sm" }), "min-h-11 shrink-0")}
+            >
+              Finish setup
+            </Link>
+          </div>
+        ) : (
+          <p
+            role="alert"
+            className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          >
+            {planMutation.error instanceof ApiError
+              ? `We could not build your ${chapterLabel(chapter)} plan just now. Please try again.`
+              : "Something went wrong building your plan. Please try again."}
+          </p>
+        )
       ) : null}
     </div>
   );
