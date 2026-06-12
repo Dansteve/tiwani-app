@@ -59,6 +59,16 @@ vi.mock("@/components/LogoutButton", () => ({
   LogoutButton: () => <button type="button">Sign out</button>,
 }));
 
+// The data-export and account-deletion sections have their own focused tests (DataExportSection.test,
+// DangerZoneSection.test) and pull in the api client / auth actions; stub them here so this screen test
+// stays about the profile + care-recipient reads it owns, not those flows.
+vi.mock("@/features/settings/DataExportSection", () => ({
+  DataExportSection: () => <div data-testid="data-export-section" />,
+}));
+vi.mock("@/features/settings/DangerZoneSection", () => ({
+  DangerZoneSection: () => <div data-testid="danger-zone-section" />,
+}));
+
 import { SettingsScreen } from "@/features/settings/SettingsScreen";
 import { ThemeProvider } from "@/state/ThemeProvider";
 import { RecipientProvider } from "@/state/RecipientProvider";

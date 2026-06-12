@@ -27,6 +27,8 @@ import {
 import { ProfileSection } from "@/features/settings/ProfileSection";
 import { CareRecipientSection } from "@/features/settings/CareRecipientSection";
 import { RecipientsSection } from "@/features/settings/RecipientsSection";
+import { DataExportSection } from "@/features/settings/DataExportSection";
+import { DangerZoneSection } from "@/features/settings/DangerZoneSection";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { useRecipient } from "@/state/RecipientProvider";
 
@@ -124,6 +126,10 @@ export function SettingsScreen() {
         </CardContent>
       </Card>
 
+      {/* Your data (export). Download a copy of everything the account holds; the file saves to the
+          device and nothing is rendered from it. */}
+      <DataExportSection />
+
       {/* Account (sign out). A device action, kept distinct from the profile edits above. */}
       <Card>
         <CardHeader>
@@ -136,6 +142,10 @@ export function SettingsScreen() {
           <LogoutButton variant="button" />
         </CardContent>
       </Card>
+
+      {/* Close account (the deletion flow). A calm two-step confirm with honest, factual copy: the
+          account is closed and the data is retained per the retention policy, not erased on the spot. */}
+      <DangerZoneSection />
     </div>
   );
 }

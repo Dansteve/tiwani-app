@@ -453,3 +453,34 @@ export interface PreparePlanRequest {
   activity_code: string;
   today_flags?: TodayFlagCode[];
 }
+
+// --- Account data rights (data export + account closure) ---
+
+/**
+ * The data-export document (GET /api/v3/me/export). The api gathers, RLS-scoped to the caller, every
+ * row that belongs to them: their profile, their care recipients, and the records keyed to them
+ * (activities, pulses, LCI snapshots, alerts, cards). The app does NOT render this; it downloads it as
+ * a JSON file, so the record arrays are deliberately typed as raw rows (unknown[]) rather than
+ * re-modelled here, while the two first-class objects (user_profile, child_profile) keep their typed
+ * shapes. user_profile is null only for an account with no profile row yet.
+ */
+export interface AccountExport {
+  user_profile: UserProfile | null;
+  child_profile: CareRecipientProfile[];
+  activity_record: unknown[];
+  pulse_record: unknown[];
+  lci_snapshot: unknown[];
+  alert_record: unknown[];
+  card_record: unknown[];
+}
+
+/**
+ * The account-closure confirmation (POST /api/v3/me/delete). Deletion is a SOFT delete: the api sets
+ * user_profile.deleted_at and RETAINS the data per the retention policy (it is not erased immediately).
+ * `deleted` is true on success; `deleted_at` is the ISO timestamp the account was closed at. After this
+ * returns, the app signs the user out and every other api route treats the account as gone (410).
+ */
+export interface AccountDeletionResult {
+  deleted: boolean;
+  deleted_at: string;
+}

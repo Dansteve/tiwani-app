@@ -9,6 +9,8 @@
 
 import { env } from "@/lib/env";
 import type {
+  AccountDeletionResult,
+  AccountExport,
   AlertRecord,
   CardContent,
   CardCreated,
@@ -430,5 +432,27 @@ export const api = {
       `/api/v3/cards/${encodeURIComponent(cardId)}/content`,
       { signal }
     );
+  },
+
+  /**
+   * Export the caller's OWN data (GET /api/v3/me/export, the data-rights export). AUTH REQUIRED: the
+   * bearer is attached by http(); the api gathers, RLS-scoped to the caller, every row that belongs to
+   * them (profile, care recipients, activities, pulses, LCI snapshots, alerts, cards) and returns it as
+   * one JSON document. It can never contain another user's data. The Settings "Export my data" action
+   * fetches this and saves it to a file on the device; the app renders nothing from it.
+   */
+  exportMyData(signal?: AbortSignal): Promise<AccountExport> {
+    return http<AccountExport>("/api/v3/me/export", { signal });
+  },
+
+  /**
+   * Close (delete) the caller's account (POST /api/v3/me/delete). AUTH REQUIRED. Deletion is a SOFT
+   * delete: the api sets user_profile.deleted_at and RETAINS the data per the retention policy (it is
+   * not erased immediately; the hard delete is done manually later). Idempotent. Returns the
+   * confirmation { deleted, deleted_at }. On success the Settings delete flow signs the user out; every
+   * other api route then treats the closed account as gone (410).
+   */
+  deleteMyAccount(): Promise<AccountDeletionResult> {
+    return http<AccountDeletionResult>("/api/v3/me/delete", { method: "POST" });
   },
 };
