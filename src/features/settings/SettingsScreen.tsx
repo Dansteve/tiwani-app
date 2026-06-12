@@ -36,15 +36,19 @@ import { TabsList, TabPanel, type TabItem } from "@/components/ui/tabs";
 import { ProfileSection } from "@/features/settings/ProfileSection";
 import { CareRecipientSection } from "@/features/settings/CareRecipientSection";
 import { RecipientsSection } from "@/features/settings/RecipientsSection";
+import { PlansBillingSection } from "@/features/settings/PlansBillingSection";
 import { DataExportSection } from "@/features/settings/DataExportSection";
 import { DangerZoneSection } from "@/features/settings/DangerZoneSection";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { useRecipient } from "@/state/RecipientProvider";
 
-// The three tabs, in display order. Profile is first (the default active tab).
+// The tabs, in display order. Profile is first (the default active tab). "Plans & billing" is the
+// subscription surface (the plan list + the caller's current plan + the upgrade CTA); it sits before
+// "Data & privacy" so the money/account-level sections read together at the end.
 const SETTINGS_TABS = [
   { value: "profile", label: "Profile" },
   { value: "recipients", label: "Care recipients" },
+  { value: "billing", label: "Plans & billing" },
   { value: "data", label: "Data & privacy" },
 ] as const satisfies readonly TabItem[];
 
@@ -179,6 +183,16 @@ export function SettingsScreen() {
           ) : editorChild ? (
             <CareRecipientSection key={editorChild.id} child={editorChild} />
           ) : null}
+        </TabPanel>
+      ) : null}
+
+      {/* Plans & billing: the subscription plans, the caller's current plan, and the upgrade CTA. The
+          section owns its own reads (the plan list + the caller's subscription) and the checkout
+          mutation; checkout is stubbed today, so an upgrade shows a calm "coming soon" state, not an
+          error (Docs/FeatureDecisions.md, the Subscription DEFER entry). */}
+      {tab === "billing" ? (
+        <TabPanel value="billing" idBase={TABS_ID} className="space-y-6">
+          <PlansBillingSection />
         </TabPanel>
       ) : null}
 

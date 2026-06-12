@@ -154,3 +154,20 @@ export function greeting(firstName: string, now: Date = new Date()): string {
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   return firstName ? `${part}, ${firstName}` : part;
 }
+
+/**
+ * Format an integer GBP-pence amount (minor units, the api's plan_tier price shape) as a pounds
+ * string for display, e.g. 1999 -> "£19.99", 0 -> "Free", null -> "--". Money is stored as integer
+ * pence so it is exact and never a float (Subscription.md); this is presentation only, the app does no
+ * arithmetic on a price beyond dividing the stored pence into pounds for display. The locale is pinned
+ * to en-GB (TIWANI prices in GBP) so the £ symbol and two-decimal format are deterministic across
+ * runtimes, rather than following the host locale and rendering "GBP 19.99" on some ICU builds.
+ */
+export function formatPence(pence: number | null | undefined): string {
+  if (pence === null || pence === undefined) return "--";
+  if (pence === 0) return "Free";
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+  }).format(pence / 100);
+}

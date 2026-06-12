@@ -13,6 +13,8 @@ import type {
   AccountExport,
   AccountStatus,
   AlertRecord,
+  BillingCadence,
+  CheckoutSession,
   CardContent,
   CardCreated,
   CardRevoked,
@@ -25,8 +27,10 @@ import type {
   ChapterLci,
   ChapterStatus,
   OnboardingPayload,
+  MySubscription,
   OverallLciSnapshot,
   PendingPulse,
+  PlanList,
   PlanSummary,
   PreparePlanRequest,
   PreparationPlan,
@@ -481,5 +485,49 @@ export const api = {
    */
   reactivateAccount(): Promise<ReactivateResult> {
     return http<ReactivateResult>("/api/v3/me/reactivate", { method: "POST" });
+  },
+
+  /**
+   * The active subscription plan/price list (GET /api/v3/billing/plans, Docs/FeatureDecisions.md the
+   * Subscription DEFER entry). AUTH REQUIRED: the bearer is attached by http(). Returns { tiers: [...] }
+   * (PlanList), free first, prices in GBP pence exactly as stored (the api reads plan_tier reference
+   * data). The app SHOWS this list; it never decides paid access from it (the authoritative gate is the
+   * server-side require_entitlement). The app renders the rows and computes nothing but the pence ->
+   * pounds display formatting.
+   */
+  listBillingPlans(signal?: AbortSignal): Promise<PlanList> {
+    return http<PlanList>("/api/v3/billing/plans", { signal });
+  },
+
+  /**
+   * The caller's OWN subscription state (GET /api/v3/billing/me), RLS-scoped to the caller. AUTH
+   * REQUIRED. Returns { tier, status, current_period_end } (MySubscription); a user who has never paid
+   * resolves to the free default (tier 'free', status 'none', no period end). The app shows the current
+   * plan; it never trusts this to gate (the gate re-resolves the tier server-side).
+   */
+  getMySubscription(signal?: AbortSignal): Promise<MySubscription> {
+    return http<MySubscription>("/api/v3/billing/me", { signal });
+  },
+
+  /**
+   * Start a Stripe-hosted Checkout for a tier + cadence (POST /api/v3/billing/checkout). AUTH REQUIRED:
+   * the user_id is taken from the session, never the client, and starting a checkout can NEVER set the
+   * caller's own tier (only the Stripe webhook writes subscription state). Body is { tier_key, cadence }
+   * (the api's CheckoutRequest); on success it returns { url } (CheckoutSession), the Stripe-hosted page
+   * the app redirects to (PCI stays out of scope).
+   *
+   * STUBBED (PENDING OWNER STRIPE KEYS): with no Stripe account yet the api returns 503
+   * (ApiError.status === 503). The caller catches that and renders a calm "upgrade is coming soon" state
+   * (the same calm-state pattern as the one-recipient 409), NOT an error. When the keys land this
+   * returns a real session URL with no app change.
+   */
+  startCheckout(
+    tierKey: string,
+    cadence: BillingCadence = "monthly"
+  ): Promise<CheckoutSession> {
+    return http<CheckoutSession>("/api/v3/billing/checkout", {
+      method: "POST",
+      body: { tier_key: tierKey, cadence },
+    });
   },
 };

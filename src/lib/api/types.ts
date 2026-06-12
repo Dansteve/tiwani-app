@@ -527,3 +527,61 @@ export interface AccountStatus {
 export interface ReactivateResult {
   reactivated: boolean;
 }
+
+// --- Subscription & billing (Docs/FeatureDecisions.md, the Subscription DEFER entry;
+// HardRules/Api/Modules/Subscription.md) ---
+//
+// The app SHOWS the plan/price list and the caller's current tier; it never decides paid access on
+// its own (the authoritative gate is the server-side require_entitlement). These mirror the api's
+// pydantic schemas (app/models/subscription.py) field-for-field. Prices are integer GBP pence (minor
+// units), never a float, exactly as stored; a price the owner has not set for a cadence is null.
+
+/** The subscription tiers (mirrors the api's SubscriptionTier enum: free first, two paid tiers). */
+export type SubscriptionTierKey = "free" | "standard" | "premium";
+
+/**
+ * One tier in the public price list (GET /api/v3/billing/plans). Mirrors a public.plan_tier row as
+ * the api serialises it (PlanTier): the join key, the human name, the monthly/yearly price in GBP
+ * pence (null where that cadence has no charge or is not sold yet, e.g. yearly until the owner sets
+ * it), whether the tier is active, and the display order. The Stripe price ids are a server-side
+ * detail the checkout path uses and are NOT in this response; the app needs only the human price.
+ */
+export interface PlanTier {
+  key: SubscriptionTierKey;
+  name: string;
+  price_monthly_pence: number | null;
+  price_yearly_pence: number | null;
+  active: boolean;
+  sort: number;
+}
+
+/** The price-list response wrapper (GET /api/v3/billing/plans). */
+export interface PlanList {
+  tiers: PlanTier[];
+}
+
+/**
+ * The caller's own subscription state (GET /api/v3/billing/me), RLS-scoped to the caller. `tier` is
+ * the authoritative tier the gate resolves (written only by the billing webhook); a user who has
+ * never paid resolves to 'free' with status 'none' and no period end. The app shows this; it does not
+ * gate on it. `status` is the Stripe-style lifecycle string ('none', 'active', 'past_due', ...) and
+ * `current_period_end` is the ISO instant the current paid period ends (null on the free default).
+ */
+export interface MySubscription {
+  tier: SubscriptionTierKey;
+  status: string;
+  current_period_end: string | null;
+}
+
+/** The billing cadence a checkout is started for (monthly is the only cadence priced today). */
+export type BillingCadence = "monthly" | "yearly";
+
+/**
+ * The checkout session response (POST /api/v3/billing/checkout): the Stripe-hosted URL the app
+ * redirects the caller to. STUBBED today (PENDING OWNER STRIPE KEYS): the route returns 503 until the
+ * owner provides Stripe keys, so the app never receives this body yet and renders a calm
+ * "coming soon" state on the 503 instead (the same calm-state pattern as the one-recipient 409).
+ */
+export interface CheckoutSession {
+  url: string;
+}

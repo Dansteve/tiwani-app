@@ -73,6 +73,12 @@ vi.mock("@/features/settings/DataExportSection", () => ({
 vi.mock("@/features/settings/DangerZoneSection", () => ({
   DangerZoneSection: () => <div data-testid="danger-zone-section" />,
 }));
+// The Plans & billing section fires its own reads (the plan list + the caller's subscription) and the
+// checkout mutation; it has its own focused test (PlansBillingSection.test). Stub it here so this screen
+// test stays about the tab shell + the profile/recipient reads it owns.
+vi.mock("@/features/settings/PlansBillingSection", () => ({
+  PlansBillingSection: () => <div data-testid="plans-billing-section" />,
+}));
 
 import { SettingsScreen } from "@/features/settings/SettingsScreen";
 import { ThemeProvider } from "@/state/ThemeProvider";
@@ -203,12 +209,12 @@ describe("SettingsScreen", () => {
   });
 });
 
-// The tab shell: every section that was on the flat screen is reachable under exactly one of the three
-// tabs (Profile / Care recipients / Data & privacy), Profile active by default, and switching a tab
-// reveals that tab's content (and only it). This is the regrouping's contract: nothing dropped, one home
-// per section.
+// The tab shell: every section that was on the flat screen is reachable under exactly one of the four
+// tabs (Profile / Care recipients / Plans & billing / Data & privacy), Profile active by default, and
+// switching a tab reveals that tab's content (and only it). This is the regrouping's contract: nothing
+// dropped, one home per section.
 describe("SettingsScreen tabs", () => {
-  it("shows three tabs with Profile active by default", async () => {
+  it("shows the four tabs with Profile active by default", async () => {
     renderScreen();
     // Profile's own content (the first-name field) is visible on load, before any tab interaction.
     expect(await screen.findByDisplayValue("Sam")).toBeInTheDocument();
@@ -217,11 +223,13 @@ describe("SettingsScreen tabs", () => {
     expect(tabs.map((t) => t.textContent)).toEqual([
       "Profile",
       "Care recipients",
+      "Plans & billing",
       "Data & privacy",
     ]);
     expect(screen.getByRole("tab", { name: "Profile" })).toHaveAttribute("aria-selected", "true");
     // Only the active tab's panel is rendered: the other tabs' content is absent until selected.
     expect(screen.queryByDisplayValue("Ade")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("plans-billing-section")).not.toBeInTheDocument();
     expect(screen.queryByTestId("data-export-section")).not.toBeInTheDocument();
   });
 
@@ -248,6 +256,19 @@ describe("SettingsScreen tabs", () => {
     ).toBeInTheDocument();
     // Profile-tab content is no longer mounted.
     expect(screen.queryByDisplayValue("Sam")).not.toBeInTheDocument();
+  });
+
+  it("shows the plans section under Plans & billing", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+    await screen.findByDisplayValue("Sam");
+
+    await tabTo(user, /plans & billing/i);
+    // The subscription surface (stubbed here, its own test covers it) lands under this one tab.
+    expect(screen.getByTestId("plans-billing-section")).toBeInTheDocument();
+    // Other tabs' content is not mounted while this tab is active.
+    expect(screen.queryByDisplayValue("Sam")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("data-export-section")).not.toBeInTheDocument();
   });
 
   it("shows the export + close-account sections under Data & privacy", async () => {
