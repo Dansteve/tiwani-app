@@ -106,7 +106,7 @@ export function DashboardScreen() {
           {/* Re-open the coach-marks any time (the auto-open is once-per-first-visit). */}
           <HelpButton onClick={tour.start} />
           <a
-            href="https://www.instagram.com/reel/DYmjsCeCCkM/?igsh=OTdsMWFjZDFrZ2J5"
+            href="https://www.instagram.com/tiwanilife/reels/"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="TIWANI on Instagram"
