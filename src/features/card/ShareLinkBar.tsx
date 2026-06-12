@@ -23,6 +23,7 @@ import {
   canShareUrl,
   captureCardImage,
 } from "@/features/card/cardImage";
+import { CardShareQr } from "@/features/card/CardShareQr";
 
 interface ShareLinkBarProps {
   /** The absolute public card URL (<origin>/c?t=<token>). */
@@ -202,6 +203,21 @@ export function ShareLinkBar({ url, firstName, cardRef }: ShareLinkBarProps) {
           Download card image
         </Button>
         <ImageStatusNote status={imageStatus} fileShare={nativeShareAvailable} />
+      </div>
+
+      {/* The same public link as a QR: a helper can SCAN it to open the card instead of typing the link
+          (it encodes the identical opaque-token URL, no extra PII, and inherits its expiry/revocation). */}
+      <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:gap-5">
+        <CardShareQr url={url} firstName={firstName} />
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Or scan to open
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Show this QR on screen or print it. A helper can scan it to open the same card, no link to
+            type.
+          </p>
+        </div>
       </div>
 
       <p className="text-sm text-muted-foreground">
