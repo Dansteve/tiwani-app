@@ -241,6 +241,27 @@ describe("CardHistoryList", () => {
     expect(downloadBlob).not.toHaveBeenCalled();
   });
 
+  it("shows a calm upgrade prompt (not an error) when the PDF export is paywalled (402)", async () => {
+    listCards.mockResolvedValue([card({ id: "card_1", activity_name: "Swimming lesson" })]);
+    downloadCardPdf.mockRejectedValue(
+      new ApiError(402, "A paid plan is needed to export this card as a PDF.")
+    );
+
+    renderList();
+    await screen.findByText("Swimming lesson");
+
+    fireEvent.click(screen.getByRole("button", { name: /download pdf/i }));
+
+    // The governed paywall copy + a route to the plans screen, NOT the destructive "could not prepare"
+    // error (and never the raw JSON the api returns).
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/a paid plan is needed to export this card as a pdf/i);
+    expect(screen.getByRole("link", { name: /see plans/i })).toHaveAttribute("href", "/settings");
+    expect(screen.queryByText(/could not prepare the pdf/i)).not.toBeInTheDocument();
+    // The paywall is informational: nothing was saved.
+    expect(downloadBlob).not.toHaveBeenCalled();
+  });
+
   it("shows a calm empty state pointing at preparing a plan when there are no cards", async () => {
     listCards.mockResolvedValue([]);
 

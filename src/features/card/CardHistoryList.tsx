@@ -210,13 +210,14 @@ function ViewControl({ card }: { card: CardSummary }) {
 // them with the filename the api supplied (Content-Disposition), reusing lib/download.downloadBlob (the
 // same anchor mechanism the Settings export and the card-image download use). Like View, it reads by id
 // and never touches the share link. The fetch + save runs as a useMutation so the button shows a busy
-// state and a failure surfaces inline (role="alert" on the destructive token), never a swallowed catch.
+// state and a failure surfaces inline, never a swallowed catch.
 //
-// PAID FEATURE (`card.pdf_export`, Docs/FeatureDecisions.md): built visible/ungated for now because the
-// free public web card is browser-printable. AT INTEGRATION, gate this control on the entitlement: when
-// the user lacks `card.pdf_export`, render an upgrade-prompt affordance here instead of triggering the
-// download (e.g. `if (!hasEntitlement("card.pdf_export")) { openUpgradePrompt(); return; }` as the first
-// line of onClick), so an unentitled tap never reaches api.downloadCardPdf.
+// PAID FEATURE (`card.pdf_export`, Docs/FeatureDecisions.md): the api gates the export and returns 402
+// with the governed paywall copy for a free user (the free public web card stays browser-printable, so
+// the safety net is untouched). We handle that REACTIVELY: a 402 renders a calm upgrade prompt (the
+// governed message + a route to the plans screen), distinct from the destructive 404/again error. A
+// PRE-CLICK gate (read the caller's entitlement and never fire the request when unentitled) is a possible
+// later refinement; the reactive 402 path is correct on its own since the api is the entitlement source.
 function DownloadPdfControl({ card }: { card: CardSummary }) {
   const mutation = useMutation({
     mutationFn: async () => {
@@ -224,6 +225,12 @@ function DownloadPdfControl({ card }: { card: CardSummary }) {
       downloadBlob(blob, filename);
     },
   });
+
+  const error = mutation.error;
+  // The PDF export is the paid convenience (`card.pdf_export`): the api returns 402 with the governed
+  // paywall copy. That is NOT a transient failure, so it gets a CALM upgrade prompt (not the destructive
+  // error token, and never the raw JSON the api sends), distinct from a 404/again error below.
+  const isPaywall = error instanceof ApiError && error.status === 402;
 
   if (mutation.isError) {
     return (
@@ -234,21 +241,40 @@ function DownloadPdfControl({ card }: { card: CardSummary }) {
           size="sm"
           onClick={() => {
             mutation.reset();
-            mutation.mutate();
+            // A paywall would 402 again on retry, so just clear back to the default control and let the
+            // user choose a plan; a transient failure (or 404) does re-attempt.
+            if (!isPaywall) mutation.mutate();
           }}
         >
           <FileDown className="size-4 shrink-0" aria-hidden="true" />
           Download PDF
         </Button>
         <div className="order-last basis-full">
-          <p
-            role="alert"
-            className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-          >
-            {mutation.error instanceof ApiError && mutation.error.status === 404
-              ? "That card is no longer available to download. Refresh to see its current status."
-              : "We could not prepare the PDF just now. Please try again."}
-          </p>
+          {isPaywall ? (
+            <div
+              role="alert"
+              className="space-y-2 rounded-md border border-border bg-secondary/50 px-3 py-2.5 text-sm"
+            >
+              <p className="font-medium text-foreground">
+                {error.message || "Saving a card as a PDF is part of a paid plan."}
+              </p>
+              <Link
+                href="/settings"
+                className={cn(buttonVariants({ variant: "default", size: "sm" }))}
+              >
+                See plans
+              </Link>
+            </div>
+          ) : (
+            <p
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              {error instanceof ApiError && error.status === 404
+                ? "That card is no longer available to download. Refresh to see its current status."
+                : "We could not prepare the PDF just now. Please try again."}
+            </p>
+          )}
         </div>
       </>
     );
@@ -260,8 +286,8 @@ function DownloadPdfControl({ card }: { card: CardSummary }) {
       variant="outline"
       size="sm"
       disabled={mutation.isPending}
-      // AT INTEGRATION: gate on `card.pdf_export` here (upgrade prompt for an unentitled user) before
-      // calling the download, since the PDF export is the paid convenience (the free card is printable).
+      // A free user's tap returns 402, handled above as the calm upgrade prompt (the api is the
+      // entitlement source of truth; the PDF export is the paid convenience, the free card is printable).
       onClick={() => mutation.mutate()}
     >
       {mutation.isPending ? (
