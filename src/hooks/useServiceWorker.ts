@@ -25,9 +25,13 @@ export function useServiceWorker() {
     let interval: number | undefined;
 
     navigator.serviceWorker
-      .register('/sw.js')
+      // updateViaCache: 'none' so the browser never serves sw.js from the HTTP cache when checking
+      // for a new worker (paired with the no-cache header on /sw.js in firebase.json), otherwise a
+      // cached worker keeps serving the old app after a deploy.
+      .register('/sw.js', { updateViaCache: 'none' })
       .then((registration) => {
-        // Check for updates hourly.
+        // Check once on load, then hourly.
+        registration.update();
         interval = window.setInterval(() => {
           registration.update();
         }, 60 * 60 * 1000);
