@@ -407,6 +407,22 @@ export interface CardRevoked {
   card: CardSummary;
 }
 
+/**
+ * The downloaded PDF of one of the caller's OWN Continuity Cards (GET /api/v3/cards/{card_id}/pdf, the
+ * owner-only printable export). NOT a JSON body: the api returns a binary application/pdf attachment,
+ * so the typed client returns the bytes as a Blob plus the filename it should save under, rather than a
+ * parsed object. `blob` is the application/pdf payload (saved via lib/download.downloadBlob); `filename`
+ * is taken from the response's Content-Disposition header (the api sends
+ * `continuity-card-{card_id}.pdf`), with a PII-minimal default when the header is absent. A 404 from
+ * this read means the card is not the caller's (RLS-scoped, a foreign or unknown id matches nothing),
+ * exactly like the View-by-id read. The PDF content is the api's governed, non-clinical card body (the
+ * app requests and saves it; it authors no card wording).
+ */
+export interface CardPdf {
+  blob: Blob;
+  filename: string;
+}
+
 // --- Request payloads ---
 
 /**

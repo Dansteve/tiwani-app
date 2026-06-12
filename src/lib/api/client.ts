@@ -15,6 +15,7 @@ import type {
   AlertRecord,
   CardContent,
   CardCreated,
+  CardPdf,
   CardRevoked,
   CardSummary,
   CareRecipientCreate,
@@ -144,6 +145,88 @@ function safeParse(text: string): unknown {
   } catch {
     return text;
   }
+}
+
+/**
+ * The binary sibling of http(): for an endpoint that returns a FILE, not JSON (the Continuity Card PDF
+ * export). It attaches the same Supabase bearer and base URL as http(), but reads the body as a Blob
+ * (so the application/pdf bytes are preserved) and pulls the suggested filename from Content-Disposition
+ * instead of parsing JSON. A non-2xx still throws ApiError, parsing the JSON error envelope the api
+ * sends on failure (e.g. the 404 "Card not found"), so the caller surfaces it exactly like a JSON call
+ * rather than handing a Blob of an error page to the browser. `fallbackFilename` is used when the header
+ * is missing. Kept here (not in lib/download) so the one token provider + base URL + error contract are
+ * not duplicated; download.ts only triggers the save.
+ */
+async function httpBlob(
+  path: string,
+  fallbackFilename: string,
+  signal?: AbortSignal
+): Promise<{ blob: Blob; filename: string }> {
+  if (!env.apiUrl) {
+    throw new ApiError(
+      0,
+      "API base URL is not configured (set NEXT_PUBLIC_API_URL).",
+      "config_missing"
+    );
+  }
+
+  const token = await tokenProvider();
+  const headers: Record<string, string> = { Accept: "application/pdf" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const url = `${env.apiUrl.replace(/\/$/, "")}${path}`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, { method: "GET", headers, signal });
+  } catch (cause) {
+    throw new ApiError(0, "Network request failed.", "network_error", cause);
+  }
+
+  if (!response.ok) {
+    // The api returns its JSON error envelope (not a PDF) on failure; parse it so the caller gets the
+    // same structured ApiError as a JSON endpoint (status + code), never a Blob of an error body.
+    const text = await response.text().catch(() => "");
+    const envelope = (text ? safeParse(text) : {}) as {
+      message?: string;
+      error?: string;
+      detail?: string;
+      code?: string;
+    };
+    throw new ApiError(
+      response.status,
+      envelope.message ?? envelope.error ?? envelope.detail ?? `Request failed (${response.status}).`,
+      envelope.code,
+      envelope.detail
+    );
+  }
+
+  const blob = await response.blob();
+  const filename = filenameFromContentDisposition(
+    response.headers.get("Content-Disposition"),
+    fallbackFilename
+  );
+  return { blob, filename };
+}
+
+/**
+ * Pull the suggested download filename from a Content-Disposition header, falling back to `fallback`
+ * when the header is absent or carries no filename. Reads RFC 5987 `filename*=` first (percent-decoded)
+ * then the plain quoted/unquoted `filename=`. Pure; no window dependency.
+ */
+function filenameFromContentDisposition(header: string | null, fallback: string): string {
+  if (!header) return fallback;
+  const extended = /filename\*=(?:UTF-8'')?([^;]+)/i.exec(header);
+  if (extended?.[1]) {
+    try {
+      return decodeURIComponent(extended[1].trim().replace(/^"|"$/g, ""));
+    } catch {
+      // A malformed encoding falls through to the plain filename / the fallback.
+    }
+  }
+  const plain = /filename=("?)([^";]+)\1/i.exec(header);
+  if (plain?.[2]) return plain[2].trim();
+  return fallback;
 }
 
 /**
@@ -433,6 +516,29 @@ export const api = {
     return http<CardContent>(
       `/api/v3/cards/${encodeURIComponent(cardId)}/content`,
       { signal }
+    );
+  },
+
+  /**
+   * Download one of the caller's OWN Continuity Cards as a PDF (GET /api/v3/cards/{card_id}/pdf,
+   * Product.md §4.6), by card_id, NOT the share token. AUTH REQUIRED. The Card History "Download PDF"
+   * action: the owner saves a printable PDF of the SAME governed content the View shows (same
+   * read-by-id, RLS-scoped, so a 404 means the card is not the caller's). Returns the application/pdf
+   * bytes as a Blob plus the filename from the response's Content-Disposition (the api sends
+   * `continuity-card-{card_id}.pdf`); the caller saves it via lib/download.downloadBlob. Reading by id
+   * never exposes or re-mints the share link. This is a binary endpoint, so it goes through httpBlob
+   * (not http<T>), which still attaches the bearer and throws ApiError on a non-2xx.
+   *
+   * PAID FEATURE (`card.pdf_export`, Docs/FeatureDecisions.md): built visible/ungated now because the
+   * free public web card is browser-printable; the entitlement check + upgrade prompt gate the CALLER
+   * of this (the Card History control) at integration, not the client function. The api handler is
+   * ungated to match (the api-side gate lands on feat/api-subscription-foundation).
+   */
+  downloadCardPdf(cardId: string, signal?: AbortSignal): Promise<CardPdf> {
+    return httpBlob(
+      `/api/v3/cards/${encodeURIComponent(cardId)}/pdf`,
+      `continuity-card-${cardId}.pdf`,
+      signal
     );
   },
 
