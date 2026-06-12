@@ -7,11 +7,27 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import type { ChapterActivity, PreparationPlan } from "@/lib/api/types";
+import type { CareRecipientProfile, ChapterActivity, PreparationPlan } from "@/lib/api/types";
 
 const ACTIVITIES: ChapterActivity[] = [
   { activity_code: "SOC-BIRTHDAY", activity_name: "A birthday party", tier: "Modified" },
   { activity_code: "SOC-PLAYDATE", activity_name: "A playdate", tier: "Full" },
+];
+
+// One recipient so RecipientProvider resolves a stable active id; the plan POST must carry it as the
+// child_id (the plan is prepared for the recipient currently being viewed).
+const ACTIVE_CHILD_ID = "child-1";
+const RECIPIENTS: CareRecipientProfile[] = [
+  {
+    id: ACTIVE_CHILD_ID,
+    user_id: "user-1",
+    name: "Ade",
+    age_band: "5 to 7",
+    support_level_code: "SL-MED",
+    tags: ["SN-NOISE"],
+    created_at: "2025-01-01T00:00:00Z",
+    updated_at: "2025-01-01T00:00:00Z",
+  },
 ];
 
 const PLAN: PreparationPlan = {
@@ -36,22 +52,29 @@ const PLAN: PreparationPlan = {
 
 const getChapterActivities = vi.fn();
 const preparePlan = vi.fn();
+const getChildren = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   ApiError: class ApiError extends Error {},
   api: {
     getChapterActivities: (...args: unknown[]) => getChapterActivities(...args),
     preparePlan: (...args: unknown[]) => preparePlan(...args),
+    getChildren: (...args: unknown[]) => getChildren(...args),
   },
 }));
 
 import { PlanScreen } from "@/features/plan/PlanScreen";
+import { RecipientProvider } from "@/state/RecipientProvider";
 
 function renderScreen(chapterParam: string | null) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // RecipientProvider supplies the active recipient the plan POST scopes to (the screen reads
+  // useRecipient), the same way the real app wraps it; getChildren feeds it the recipients list.
   return render(
     <QueryClientProvider client={client}>
-      <PlanScreen chapterParam={chapterParam} />
+      <RecipientProvider>
+        <PlanScreen chapterParam={chapterParam} />
+      </RecipientProvider>
     </QueryClientProvider>
   );
 }
@@ -59,8 +82,10 @@ function renderScreen(chapterParam: string | null) {
 beforeEach(() => {
   getChapterActivities.mockReset();
   preparePlan.mockReset();
+  getChildren.mockReset();
   getChapterActivities.mockResolvedValue(ACTIVITIES);
   preparePlan.mockResolvedValue(PLAN);
+  getChildren.mockResolvedValue(RECIPIENTS);
 });
 
 describe("PlanScreen prepare flow", () => {
@@ -100,12 +125,16 @@ describe("PlanScreen prepare flow", () => {
     expect(screen.getByRole("heading", { name: "Continuity Pivot" })).toBeInTheDocument();
     expect(screen.getByText("Keep it short")).toBeInTheDocument();
 
-    // The request carried the chosen activity_code and the TG- flag (the app never applies effects).
-    expect(preparePlan).toHaveBeenCalledWith({
-      chapter: "social",
-      activity_code: "SOC-BIRTHDAY",
-      today_flags: ["TG-ANXIETY"],
-    });
+    // The request carried the chosen activity_code and the TG- flag (the app never applies effects),
+    // scoped to the active recipient's child_id (the plan is prepared for the recipient being viewed).
+    expect(preparePlan).toHaveBeenCalledWith(
+      {
+        chapter: "social",
+        activity_code: "SOC-BIRTHDAY",
+        today_flags: ["TG-ANXIETY"],
+      },
+      ACTIVE_CHILD_ID
+    );
   });
 
   it("surfaces an inline error when preparing the plan fails (never swallowed)", async () => {
@@ -129,11 +158,14 @@ describe("PlanScreen prepare flow", () => {
     fireEvent.click(screen.getByRole("button", { name: /generate plan/i }));
 
     await waitFor(() => expect(preparePlan).toHaveBeenCalled());
-    expect(preparePlan).toHaveBeenCalledWith({
-      chapter: "social",
-      activity_code: "SOC-PLAYDATE",
-      today_flags: undefined,
-    });
+    expect(preparePlan).toHaveBeenCalledWith(
+      {
+        chapter: "social",
+        activity_code: "SOC-PLAYDATE",
+        today_flags: undefined,
+      },
+      ACTIVE_CHILD_ID
+    );
   });
 
   it("sends the Coordinator to the dashboard when the chapter is missing or unknown", () => {

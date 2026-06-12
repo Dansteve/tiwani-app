@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { chapterLabel } from "@/lib/format";
 import type { ChapterCode, TodayFlagCode } from "@/lib/api/types";
 import { CHAPTERS } from "@/lib/format";
+import { useRecipient } from "@/state/RecipientProvider";
 import { PrepareFlow } from "@/features/plan/PrepareFlow";
 import { PreparationPlanView } from "@/features/plan/PreparationPlanView";
 
@@ -60,6 +61,12 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
   const [selectedFlags, setSelectedFlags] = useState<TodayFlagCode[]>([]);
 
+  // The plan is prepared for the ACTIVE recipient (the switcher's selection): the POST carries this
+  // child_id so the activity_record belongs to the recipient currently being viewed (single-recipient
+  // resolves to that one, and a null id lets the api fall back to the sole recipient). Same source the
+  // dashboard/LCI/alerts reads scope by, so a plan is never made for the wrong recipient.
+  const { activeChildId } = useRecipient();
+
   const activitiesQuery = useQuery({
     queryKey: ["chapter-activities", chapter],
     queryFn: ({ signal }) => api.getChapterActivities(chapter, signal),
@@ -67,11 +74,14 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
 
   const planMutation = useMutation({
     mutationFn: () =>
-      api.preparePlan({
-        chapter,
-        activity_code: selectedActivity as string,
-        today_flags: selectedFlags.length > 0 ? selectedFlags : undefined,
-      }),
+      api.preparePlan(
+        {
+          chapter,
+          activity_code: selectedActivity as string,
+          today_flags: selectedFlags.length > 0 ? selectedFlags : undefined,
+        },
+        activeChildId
+      ),
   });
 
   function toggleFlag(code: TodayFlagCode) {

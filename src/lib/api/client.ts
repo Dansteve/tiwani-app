@@ -244,9 +244,18 @@ export const api = {
     );
   },
 
-  /** Run the LCE for a chosen activity (+ any "today" flags) and return the plan (Product.md §4.4/§4.5). */
-  preparePlan(payload: PreparePlanRequest): Promise<PreparationPlan> {
-    return http<PreparationPlan>("/api/v3/plans", { method: "POST", body: payload });
+  /**
+   * Run the LCE for a chosen activity (+ any "today" flags) and return the plan (Product.md §4.4/§4.5).
+   * `childId` selects WHICH recipient the plan is for (threaded as ?child_id=): the plan-prep flow passes
+   * the ACTIVE recipient from the switcher so the plan belongs to the recipient currently being viewed.
+   * Omitted, the api defaults to the caller's sole recipient (single-recipient behaviour unchanged); a
+   * child_id the caller does not own is a 409 (it is invisible under RLS, so the api reads it as "none").
+   */
+  preparePlan(payload: PreparePlanRequest, childId?: string | null): Promise<PreparationPlan> {
+    return http<PreparationPlan>(`/api/v3/plans${childQuery(childId)}`, {
+      method: "POST",
+      body: payload,
+    });
   },
 
   /**
