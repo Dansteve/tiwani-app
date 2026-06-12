@@ -132,11 +132,20 @@ function CardHistoryRow({ card }: { card: CardSummary }) {
         </p>
       ) : null}
 
-      {/* View the card (any status): the owner re-opens it by id, never the share token. */}
-      <ViewControl card={card} />
+      {/*
+        The default action buttons sit side by side in a flex row that wraps to stacked on narrow
+        widths (no horizontal overflow at ~375px). View is offered on every status; Revoke only on an
+        active card, so a non-active card's row holds just View. Each control's expanded region (the
+        inline card preview, the revoke confirm, the error) is `basis-full order-last`, so it wraps
+        onto its own full-width line AFTER both buttons (it stays "below the row", never between them).
+      */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {/* View the card (any status): the owner re-opens it by id, never the share token. */}
+        <ViewControl card={card} />
 
-      {/* Revoke only on an active card; an expired or revoked card is terminal (no action). */}
-      {isActive ? <RevokeControl card={card} /> : null}
+        {/* Revoke only on an active card; an expired or revoked card is terminal (no action). */}
+        {isActive ? <RevokeControl card={card} /> : null}
+      </div>
     </article>
   );
 }
@@ -154,8 +163,10 @@ function ViewControl({ card }: { card: CardSummary }) {
     enabled: viewing,
   });
 
+  // The trigger button is a direct child of the action row (sits beside Revoke); the inline preview is
+  // `basis-full order-last` so it wraps onto its own full-width line below both buttons.
   return (
-    <div className="mt-4">
+    <>
       <Button
         type="button"
         variant="outline"
@@ -168,7 +179,7 @@ function ViewControl({ card }: { card: CardSummary }) {
       </Button>
 
       {viewing ? (
-        <div className="mt-3">
+        <div className="order-last basis-full">
           {query.isLoading ? (
             <div
               aria-hidden="true"
@@ -186,7 +197,7 @@ function ViewControl({ card }: { card: CardSummary }) {
           ) : null}
         </div>
       ) : null}
-    </div>
+    </>
   );
 }
 
@@ -209,7 +220,7 @@ function RevokeControl({ card }: { card: CardSummary }) {
 
   if (mutation.isError) {
     return (
-      <div className="mt-4 space-y-2">
+      <div className="order-last basis-full space-y-2">
         <p
           role="alert"
           className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
@@ -235,7 +246,7 @@ function RevokeControl({ card }: { card: CardSummary }) {
 
   if (confirming) {
     return (
-      <div className="mt-4 rounded-md border border-border bg-secondary/50 p-3">
+      <div className="order-last basis-full rounded-md border border-border bg-secondary/50 p-3">
         <p className="text-sm font-medium text-foreground">
           Revoke this card? The link stops working for anyone you shared it with.
         </p>
@@ -263,18 +274,19 @@ function RevokeControl({ card }: { card: CardSummary }) {
     );
   }
 
+  // The default trigger is a direct child of the action row (sits beside View). It is the destructive
+  // variant (the --destructive brand token, coral), so Revoke reads as destructive; the ShieldX icon +
+  // the "Revoke" label remain, so colour is not the only signal (WCAG: colour + label + icon).
   return (
-    <div className="mt-4">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setConfirming(true)}
-      >
-        <ShieldX className="size-4 shrink-0" aria-hidden="true" />
-        Revoke
-      </Button>
-    </div>
+    <Button
+      type="button"
+      variant="destructive"
+      size="sm"
+      onClick={() => setConfirming(true)}
+    >
+      <ShieldX className="size-4 shrink-0" aria-hidden="true" />
+      Revoke
+    </Button>
   );
 }
 
