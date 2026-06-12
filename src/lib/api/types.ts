@@ -844,3 +844,167 @@ export interface ShareConsentCreate {
 export interface ShareRedeemRequest {
   token: string;
 }
+
+// --- The Village Hub (Product.md §6 / FeatureDecisions.md 2026-06-12 "Village Delegation Hub") ---
+//
+// A Coordinator (the owner) posts a specific, time + place bounded NEED for ONE care recipient; the
+// recipient's village roster (the members) sees the OPEN needs (the need + logistics only); a member
+// CLAIMS one (atomic, first-claim-wins); the owner sees it covered + who; the claimer/owner then sees
+// the exact location + contact; the confirm/done/dropped + auto-re-broadcast loop runs. These mirror
+// the api's /api/v3/village contract field-for-field. Framework-agnostic (Decisions.md D10).
+//
+// THE VISIBILITY CEILING (hard, mirrors the api + the board decision): a member sees the NEED + LOGISTICS
+// only (title, detail, area_label, window, recipient FIRST name). The exact location_text / contact_name /
+// contact_phone live ONLY on NeedDetail and the api populates them ONLY for the live claimer or the owner
+// (else null); a member NEVER sees the recipient's tag profile, LCI, alerts, or scores. The Continuity
+// Card is the ceiling. There is no "where is [name] now" view; whereabouts is per-need, per-occurrence.
+
+/** A village member's role on a recipient. `owner` is the Coordinator (the only role that posts/confirms/cancels). */
+export type VillageRole = "owner" | "member";
+
+/**
+ * A need's lifecycle status (the api's need status). `open` is broadcast and claimable; `claimed` a member
+ * has it; `confirmed` the owner confirmed the plan; `done` the claimer marked it complete; `cancelled` the
+ * owner withdrew it; `dropped` the claimer stepped back (the api auto-RE-BROADCASTS, so a dropped need
+ * returns to the board as a fresh `open` one, and this terminal `dropped` is the audit of the prior claim).
+ * Mirrors the api's status enum exactly.
+ */
+export type NeedStatus =
+  | "open"
+  | "claimed"
+  | "confirmed"
+  | "done"
+  | "cancelled"
+  | "dropped";
+
+/**
+ * A copy key the api returns on a NeedActionResult (the action -> key map in the api's
+ * app/engines/village/copy.py). The api renders the warm, governed `message` for the app to show
+ * verbatim; this key identifies WHICH governed line it is, so the app can, if it chooses, theme the
+ * confirmation by action (it still renders the api's `message`, never re-authoring it). The set of
+ * result keys mirrors RESULT_KEY_BY_ACTION in the contract.
+ */
+export type VillageResultCopyKey =
+  | "need.posted_confirmation"
+  | "need.claim_confirmation"
+  | "need.confirmed_confirmation"
+  | "need.done_confirmation"
+  | "need.drop_confirmation"
+  | "need.cancelled_confirmation";
+
+/**
+ * One OPEN-board row (GET /api/v3/village/needs?recipient_id=, MEMBER auth). The roster's view of a need:
+ * the need + logistics ONLY (the visibility ceiling). Mirrors the api's NeedSummary field-for-field. It
+ * deliberately carries NO exact location and NO contact (those are NeedDetail, claimer/owner-only).
+ *   id                  the need id (the key the detail read + the lifecycle actions act on).
+ *   status              the lifecycle status (drives the badge + which action is offered).
+ *   title               what the need is (required when posted; the headline a member reads).
+ *   detail              an optional fuller description of the need.
+ *   area_label          a COARSE area only (e.g. "near the school", a town/area), never the exact address.
+ *   starts_at/ends_at   the time window the need is bounded to (ISO; specific offers convert, vague ones do not).
+ *   recipient_first_name the recipient's FIRST name only (never the full name), for a warm "help with [name]".
+ *   claimed_by_me       true when the CURRENT member is the live claimer (so the app offers done/drop + the detail).
+ *   is_claimed          true when ANY member has claimed it (so the board shows "covered", claim disabled).
+ */
+export interface NeedSummary {
+  id: string;
+  status: NeedStatus;
+  title: string;
+  detail: string | null;
+  area_label: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  recipient_first_name: string;
+  claimed_by_me: boolean;
+  is_claimed: boolean;
+}
+
+/**
+ * The FULL need (GET /api/v3/village/needs/{need_id}). The NeedSummary fields PLUS the exact logistics,
+ * which the api populates ONLY for the LIVE claimer or the owner (else null): the visibility ceiling in
+ * the wire shape. Mirrors the api's NeedDetail field-for-field. The app shows the exact location/contact
+ * ONLY when they are non-null (i.e. only the claimer/owner ever receives them), and never requests this
+ * for an unclaimed need on behalf of a non-claimer.
+ *   location_text   the exact meeting place / address, claimer + owner only (null otherwise).
+ *   contact_name    who to contact on the day, claimer + owner only (null otherwise).
+ *   contact_phone   the contact number, claimer + owner only (null otherwise).
+ */
+export interface NeedDetail extends NeedSummary {
+  location_text: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+}
+
+/**
+ * The result of a need write (POST /api/v3/village/needs and the five lifecycle actions
+ * claim/confirm/done/drop/cancel). Mirrors the api's NeedActionResult field-for-field. The api authors
+ * the warm, GOVERNED confirmation: the app renders `message` VERBATIM and authors no need wording (the
+ * governed-copy rule). `copy_key` names which governed line it is (the RESULT_KEY_BY_ACTION map).
+ *   id        the need the action applied to.
+ *   status    the need's new lifecycle status after the action (the app re-reads the board off this).
+ *   copy_key  the governed result key (need.posted_confirmation, need.claim_confirmation, ...).
+ *   message   the api-rendered governed confirmation line (only {name} -> first-name substituted), shown verbatim.
+ */
+export interface NeedActionResult {
+  id: string;
+  status: NeedStatus;
+  copy_key: VillageResultCopyKey;
+  message: string;
+}
+
+/**
+ * One member on a recipient's village roster (the api's VillageMember). Mirrors it field-for-field. The
+ * roster is the visible "who is in [name]'s village" list (the board's mandatory transparency surface).
+ *   user_id     the member's user id (stable key; never shown raw).
+ *   role        owner (the Coordinator) or member.
+ *   granted_at  when they were added to the village (ISO).
+ *   is_me       true for the current viewer's own row (so the app can label "You").
+ */
+export interface VillageMember {
+  user_id: string;
+  role: VillageRole;
+  granted_at: string;
+  is_me: boolean;
+}
+
+/**
+ * A recipient's village roster (GET /api/v3/village/roster?recipient_id=, MEMBER auth). Mirrors the api's
+ * RosterResponse field-for-field: the recipient's first name (for the warm title) + the members list. The
+ * app renders the rows and computes nothing; the roster is read-only here (adding/revoking members is the
+ * owner's invite flow, a separate surface).
+ */
+export interface RosterResponse {
+  recipient_first_name: string;
+  members: VillageMember[];
+}
+
+/**
+ * The per-recipient consent record (POST /api/v3/village/consent, OWNER auth). Mirrors the api's
+ * ConsentRecorded. The api supplies the governed `consent_text` (the `consent.share_with_village` line,
+ * stored verbatim); the owner records consent ONCE before any need can be posted (the CONSENT gate, Art. 9).
+ *   recipient_id  the recipient the consent is recorded for.
+ *   consent_text  the governed consent line the api stored (shown back verbatim; the app authors none).
+ */
+export interface ConsentRecorded {
+  recipient_id: string;
+  consent_text: string;
+}
+
+/**
+ * Post a need (POST /api/v3/village/needs, OWNER + CONSENT-gated). Mirrors the api's CreateNeedRequest
+ * field-for-field. `recipient_id` scopes the need to ONE recipient (the multi-recipient isolation rule);
+ * `title` is required (the api 422s on an empty title); the rest are optional logistics. The contact /
+ * exact location are part of the need but are revealed by the api ONLY to the live claimer + owner (the
+ * ceiling); the board never shows them. A bounded window (`starts_at`/`ends_at`) makes the offer specific.
+ */
+export interface CreateNeedRequest {
+  recipient_id: string;
+  title: string;
+  detail?: string;
+  location_text?: string;
+  area_label?: string;
+  contact_name?: string;
+  contact_phone?: string;
+  starts_at?: string;
+  ends_at?: string;
+}

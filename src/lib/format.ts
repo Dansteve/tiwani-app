@@ -147,6 +147,61 @@ export function formatCardDate(iso: string | null | undefined): string {
   });
 }
 
+/**
+ * Format a Village need's time window for display (Product.md §6 Village Hub). A need is TIME-bounded, so
+ * unlike the date-only card/plan formatters this carries date + time (a helper needs to know when to show
+ * up). Handles the three shapes the api can send: both ends -> "Sat 14 Jun, 2:00 to 4:00 PM" (the end
+ * collapses to just its time when it is the same calendar day, else it shows its own date); a start only ->
+ * "Sat 14 Jun, 2:00 PM"; neither -> "Time to be arranged" (a need can be posted before the time is pinned).
+ * Locale-aware, pure; the app does no date math beyond this display formatting.
+ */
+export function formatNeedWindow(
+  startIso: string | null | undefined,
+  endIso: string | null | undefined
+): string {
+  const start = parseDate(startIso);
+  const end = parseDate(endIso);
+
+  if (!start && !end) return "Time to be arranged";
+  // An end with no start is unusual; show it as a single point rather than invent a start.
+  if (!start && end) return formatDateTime(end);
+  if (start && !end) return formatDateTime(start);
+
+  const s = start as Date;
+  const e = end as Date;
+  const sameDay =
+    s.getFullYear() === e.getFullYear() &&
+    s.getMonth() === e.getMonth() &&
+    s.getDate() === e.getDate();
+  // Same day: show the date once on the start, then only the end TIME (e.g. "Sat 14 Jun, 2:00 to 4:00 PM").
+  return sameDay
+    ? `${formatDateTime(s)} to ${formatTime(e)}`
+    : `${formatDateTime(s)} to ${formatDateTime(e)}`;
+}
+
+function parseDate(iso: string | null | undefined): Date | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDateTime(date: Date): string {
+  return date.toLocaleString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 /** A time-based greeting addressed to the Coordinator by first name (never the child's name). */
 export function greeting(firstName: string, now: Date = new Date()): string {
   const hour = now.getHours();
