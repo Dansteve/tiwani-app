@@ -20,6 +20,7 @@ import { CalendarClock, CheckCircle2, MapPin, Users } from "lucide-react";
 import { api, ApiError } from "@/lib/api/client";
 import type { NeedSummary } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { villageCopy } from "@/features/village/copy";
 import { formatNeedWindow } from "@/lib/format";
 import { NeedStatusBadge } from "@/features/village/NeedStatusBadge";
@@ -58,9 +59,9 @@ export function OwnerNeedsList({ recipientId }: { recipientId: string }) {
       </div>
 
       {query.isError ? (
-        <p role="alert" className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <Alert variant="destructive">
           We could not load your needs just now. Please try again shortly.
-        </p>
+        </Alert>
       ) : null}
 
       {query.isLoading && !query.isError ? (
@@ -156,11 +157,11 @@ function OwnerNeedRow({
       ) : null}
 
       {anyError ? (
-        <p role="alert" className="mt-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <Alert variant="destructive" className="mt-3">
           {cancelMutation.error instanceof ApiError && cancelMutation.error.status === 404
             ? "This need is no longer available."
             : "We could not update that just now. Please try again."}
-        </p>
+        </Alert>
       ) : null}
 
       {confirmingCancel ? (

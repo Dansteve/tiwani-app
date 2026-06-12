@@ -27,6 +27,7 @@ import { useAlerts } from "@/features/alerts/useAlerts";
 import { CoachMarks } from "@/features/tour/CoachMarks";
 import { HelpButton } from "@/features/tour/HelpButton";
 import { useCoachMarks } from "@/features/tour/useCoachMarks";
+import { Alert } from "@/components/ui/alert";
 
 // The fixed display order is the canonical six (format.CHAPTERS); the api feed is ordered onto it so
 // the grid is stable even if the api returns a different order or (defensively) an incomplete set.
@@ -174,12 +175,9 @@ export function DashboardScreen() {
       <PulsePrompt />
 
       {chaptersQuery.isError ? (
-        <p
-          role="alert"
-          className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
+        <Alert variant="destructive">
           We could not load your chapters just now. Please try again shortly.
-        </p>
+        </Alert>
       ) : null}
 
       {allNotStarted ? (

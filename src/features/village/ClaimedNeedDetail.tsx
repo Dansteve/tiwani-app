@@ -20,6 +20,7 @@ import { Clock, MapPin, Phone, RotateCcw, User } from "lucide-react";
 import { api, ApiError } from "@/lib/api/client";
 import type { NeedActionResult, NeedDetail } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { villageCopy } from "@/features/village/copy";
 import { formatNeedWindow } from "@/lib/format";
 
@@ -41,9 +42,9 @@ export function ClaimedNeedDetail({ needId, onActioned }: ClaimedNeedDetailProps
 
   if (query.isError || !query.data) {
     return (
-      <p role="alert" className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      <Alert variant="destructive">
         We could not load the details just now. Please try again shortly.
-      </p>
+      </Alert>
     );
   }
 
@@ -107,17 +108,17 @@ function ClaimedNeedBody({
       </dl>
 
       {doneMutation.isError ? (
-        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <Alert variant="destructive">
           We could not update that just now. Please try again.
-        </p>
+        </Alert>
       ) : null}
 
       {dropMutation.isError ? (
-        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <Alert variant="destructive">
           {dropMutation.error instanceof ApiError && dropMutation.error.status === 404
             ? "This need is no longer available."
             : "We could not update that just now. Please try again."}
-        </p>
+        </Alert>
       ) : null}
 
       {/* done + drop. drop is behind a one-tap confirm (it re-broadcasts the need to the village). */}

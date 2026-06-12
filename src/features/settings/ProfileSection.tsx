@@ -15,6 +15,7 @@ import { api, ApiError } from "@/lib/api/client";
 import type { UserProfile } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { Alert } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -90,14 +91,11 @@ export function ProfileSection({ profile }: { profile: UserProfile }) {
           />
 
           {mutation.isError ? (
-            <p
-              role="alert"
-              className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-            >
+            <Alert variant="destructive">
               {mutation.error instanceof ApiError
                 ? "We could not save your profile just now. Please try again."
                 : "Something went wrong saving your profile. Please try again."}
-            </p>
+            </Alert>
           ) : null}
 
           <div className="flex flex-wrap items-center gap-3">

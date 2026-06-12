@@ -27,6 +27,7 @@ import type {
 } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { sharingCopy } from "@/features/sharing/copy";
 import { buildRedeemUrl } from "@/features/sharing/shareLink";
@@ -221,15 +222,15 @@ export function ShareInvitePanel({
       ) : null}
 
       {notOwned ? (
-        <p role="alert" className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <Alert variant="destructive">
           We could not find that recipient. Try switching to them and sharing again.
-        </p>
+        </Alert>
       ) : null}
 
       {otherError ? (
-        <p role="alert" className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <Alert variant="destructive">
           We could not create the invite just now. Please try again.
-        </p>
+        </Alert>
       ) : null}
 
       <Button type="submit" disabled={!canSubmit} className={cn("w-full sm:w-auto")}>

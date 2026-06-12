@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { Stepper } from "@/components/Stepper";
 import { Wordmark } from "@/components/Wordmark";
 import { api, ApiError } from "@/lib/api/client";
@@ -131,9 +132,9 @@ export function OnboardingFlow() {
       </div>
 
       {errorMessage ? (
-        <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+        <Alert variant="destructive" className="mt-4">
           {errorMessage}
-        </p>
+        </Alert>
       ) : null}
 
       <div className="sticky bottom-0 mt-6 flex items-center gap-3 bg-background pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-3">

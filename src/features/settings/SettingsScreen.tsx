@@ -35,6 +35,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TabsList, TabPanel, type TabItem } from "@/components/ui/tabs";
+import { Alert } from "@/components/ui/alert";
 import { ProfileSection } from "@/features/settings/ProfileSection";
 import { CareRecipientSection } from "@/features/settings/CareRecipientSection";
 import { RecipientsSection } from "@/features/settings/RecipientsSection";
@@ -272,11 +273,8 @@ function SectionSkeleton({ lines }: { lines: number }) {
 /** The shared inline read-error message (the repo's pattern: role="alert" on the destructive token). */
 function SectionError({ children }: { children: React.ReactNode }) {
   return (
-    <p
-      role="alert"
-      className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-    >
+    <Alert variant="destructive">
       {children}
-    </p>
+    </Alert>
   );
 }

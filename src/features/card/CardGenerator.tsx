@@ -16,6 +16,7 @@ import { FileText, History } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import { buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { CardContentView } from "@/features/card/CardContentView";
 import { ShareLinkBar } from "@/features/card/ShareLinkBar";
@@ -122,14 +123,11 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
       </header>
 
       {mutation.isError ? (
-        <p
-          role="alert"
-          className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
+        <Alert variant="destructive">
           {mutation.error instanceof ApiError && mutation.error.status === 404
             ? "We could not find that prepared activity. Try preparing it again, then create the card."
             : "We could not create the card just now. Please try again."}
-        </p>
+        </Alert>
       ) : null}
 
       <button

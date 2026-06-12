@@ -20,6 +20,7 @@ import { api, ApiError } from "@/lib/api/client";
 import type { CareRecipientCreate, SupportLevelCode } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { Alert } from "@/components/ui/alert";
 import { ChoiceCard } from "@/components/ChoiceCard";
 import {
   Card,
@@ -170,12 +171,9 @@ export function RecipientsSection() {
             ) : null}
 
             {otherError ? (
-              <p
-                role="alert"
-                className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-              >
+              <Alert variant="destructive">
                 We could not add this person just now. Please try again.
-              </p>
+              </Alert>
             ) : null}
 
             <div className="flex flex-wrap items-center gap-3">

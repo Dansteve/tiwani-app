@@ -21,6 +21,7 @@ import { api, ApiError } from "@/lib/api/client";
 import { useAuthActions } from "@/features/auth/useAuthActions";
 import { formatCardDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -103,12 +104,9 @@ export function ReactivationInterstitial({ deletedAt }: { deletedAt: string | nu
           ) : null}
 
           {reactivate.isError && !isGone ? (
-            <p
-              role="alert"
-              className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-            >
+            <Alert variant="destructive">
               {COPY.error}
-            </p>
+            </Alert>
           ) : null}
 
           <div className="flex flex-wrap items-center gap-3">

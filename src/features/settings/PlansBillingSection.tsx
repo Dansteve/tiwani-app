@@ -34,6 +34,7 @@ import type {
 } from "@/lib/api/types";
 import { formatPence } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -122,12 +123,9 @@ export function PlansBillingSection() {
         {plansQuery.isLoading ? (
           <PlansSkeleton />
         ) : plansQuery.isError ? (
-          <p
-            role="alert"
-            className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          >
+          <Alert variant="destructive">
             We could not load the plans just now. Please try again shortly.
-          </p>
+          </Alert>
         ) : plansQuery.data && plansQuery.data.tiers.length > 0 ? (
           <ul className="flex flex-col gap-3">
             {plansQuery.data.tiers.map((tier) => {
@@ -196,12 +194,9 @@ export function PlansBillingSection() {
                       ) : null}
 
                       {showFailed ? (
-                        <p
-                          role="alert"
-                          className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-                        >
+                        <Alert variant="destructive">
                           We could not start that just now. Please try again shortly.
-                        </p>
+                        </Alert>
                       ) : null}
                     </div>
                   ) : null}
@@ -240,12 +235,9 @@ function CurrentPlan({
 
   if (isError || !me) {
     return (
-      <p
-        role="alert"
-        className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-      >
+      <Alert variant="destructive">
         We could not load your current plan just now. Please try again shortly.
-      </p>
+      </Alert>
     );
   }
 

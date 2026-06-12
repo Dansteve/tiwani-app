@@ -15,6 +15,7 @@ import { UserPlus } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import { buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { chapterLabel } from "@/lib/format";
 import type { ChapterCode, TodayFlagCode } from "@/lib/api/types";
@@ -145,14 +146,11 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
             </Link>
           </div>
         ) : (
-          <p
-            role="alert"
-            className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          >
+          <Alert variant="destructive">
             {planMutation.error instanceof ApiError
               ? `We could not build your ${chapterLabel(chapter)} plan just now. Please try again.`
               : "Something went wrong building your plan. Please try again."}
-          </p>
+          </Alert>
         )
       ) : null}
     </div>

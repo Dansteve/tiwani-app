@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
 import { PulsePrompt } from "@/features/pulse/PulsePrompt";
+import { Alert } from "@/components/ui/alert";
 
 export function PulseScreen() {
   const pendingQuery = useQuery({
@@ -30,12 +31,9 @@ export function PulseScreen() {
       </header>
 
       {pendingQuery.isError ? (
-        <p
-          role="alert"
-          className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
+        <Alert variant="destructive">
           We could not load your check-ins just now. Please try again shortly.
-        </p>
+        </Alert>
       ) : null}
 
       {pendingQuery.isLoading ? (

@@ -9,6 +9,7 @@
 import { ChoiceCard } from "@/components/ChoiceCard";
 import { TagPill } from "@/components/TagPill";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { chapterLabel, tierLabel } from "@/lib/format";
 import type { ChapterActivity, ChapterCode, TodayFlagCode } from "@/lib/api/types";
 import { TODAY_FLAGS } from "@/features/plan/todayFlags";
@@ -57,12 +58,9 @@ export function PrepareFlow({
         </h3>
 
         {isActivitiesError ? (
-          <p
-            role="alert"
-            className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          >
+          <Alert variant="destructive">
             We could not load activities for this chapter just now. Please try again shortly.
-          </p>
+          </Alert>
         ) : null}
 
         {isLoadingActivities ? (

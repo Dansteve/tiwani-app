@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert } from "@/components/ui/alert";
 import { villageCopy } from "@/features/village/copy";
 
 interface PostNeedFormProps {
@@ -245,9 +246,9 @@ export function PostNeedForm({ recipientId, recipientFirstName, onPosted }: Post
               {villageCopy("consent.share_with_village")}
             </p>
             {consentMutation.isError ? (
-              <p role="alert" className="mt-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <Alert variant="destructive" className="mt-2">
                 We could not record that just now. Please try again.
-              </p>
+              </Alert>
             ) : null}
             <div className="mt-3">
               <Button
@@ -264,11 +265,11 @@ export function PostNeedForm({ recipientId, recipientFirstName, onPosted }: Post
         ) : null}
 
         {postFailed ? (
-          <p role="alert" className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <Alert variant="destructive">
             {notOwner
               ? "Only the Coordinator can post a need for this person."
               : "We could not post that just now. Please try again."}
-          </p>
+          </Alert>
         ) : null}
 
         {/* The success line: the api's GOVERNED posted confirmation, rendered VERBATIM (the app authors none). */}

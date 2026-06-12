@@ -12,6 +12,7 @@ import { api } from "@/lib/api/client";
 import { LciPanel } from "@/features/continuity/LciPanel";
 import { useRecipient } from "@/state/RecipientProvider";
 import { recipientKey } from "@/state/selectedRecipient";
+import { Alert } from "@/components/ui/alert";
 
 export function ContinuityScreen() {
   // The active care recipient scopes both LCI reads (in the key, so a switch refetches, and in the call).
@@ -46,12 +47,9 @@ export function ContinuityScreen() {
       </header>
 
       {isError ? (
-        <p
-          role="alert"
-          className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
+        <Alert variant="destructive">
           We could not load your resilience picture just now. Please try again shortly.
-        </p>
+        </Alert>
       ) : null}
 
       {isLoading && !isError ? (
