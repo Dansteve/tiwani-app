@@ -47,6 +47,7 @@ const base: CardContent = {
   strategies: [],
   if_difficult: "if difficult",
   safety_note: "follow the family's plan",
+  is_stale: false,
 };
 
 describe("cardTierLabel", () => {

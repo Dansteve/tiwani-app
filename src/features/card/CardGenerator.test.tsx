@@ -23,6 +23,7 @@ const CONTENT: CardContent = {
   if_difficult: "If Ada gets overwhelmed, a quiet break usually helps.",
   safety_note:
     "For anything about food, medicines, or Ada's health, follow the family's plan and ask them first.",
+  is_stale: false,
 };
 
 const CREATED: CardCreated = {

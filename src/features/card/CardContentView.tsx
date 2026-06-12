@@ -13,12 +13,13 @@
 //
 // Contents in order (Product.md §4.6): the care recipient's FIRST name + the activity, the participation
 // approach in plain words (tier_label), a short supportive intro, the strategies written for an outsider
-// ("What helps"), the calm "if things get difficult" line, and the standing health-and-safety boundary.
-// Each block has a clear, readable place on the deep-teal surface. Mobile-first, no horizontal overflow
-// at ~375px.
+// ("What helps"), the calm "if things get difficult" line, the standing health-and-safety boundary, and
+// (only when the api flags the card stale) a calm freshness line so a helper who opens an old link, e.g.
+// by scanning the QR, knows the plan may have moved on. Each block has a clear, readable place on the
+// deep-teal surface. Mobile-first, no horizontal overflow at ~375px.
 
 import type { Ref } from "react";
-import { Check, Heart, LifeBuoy, ShieldCheck, Share2 } from "lucide-react";
+import { CalendarClock, Check, Heart, LifeBuoy, ShieldCheck, Share2 } from "lucide-react";
 
 import type { CardContent } from "@/lib/api/types";
 import { Wordmark } from "@/components/Wordmark";
@@ -198,6 +199,35 @@ export function CardContentView({
               </p>
             </div>
           </section>
+
+          {/* Freshness: a card is a point-in-time snapshot, so when the api flags it stale (is_stale,
+              the underlying plan has moved on since it was prepared) a helper who opens this link, e.g.
+              by scanning the QR in a hurry, is told it may be out of date. Calm and non-clinical: the
+              api's governed freshness_note copy verbatim (the app authors no card wording), on a quiet
+              muted inset with a neutral clock icon, never the coral alarm treatment. Only rendered when
+              the api both flags staleness AND sends the note; a fresh card shows nothing here. */}
+          {content.is_stale && content.freshness_note ? (
+            <section
+              aria-labelledby="card-freshness"
+              className="flex items-start gap-3 rounded-2xl bg-white/5 px-4 py-3.5"
+            >
+              <CalendarClock
+                className="mt-0.5 size-5 shrink-0 text-tiwani-teal-near-white"
+                aria-hidden="true"
+              />
+              <div className="min-w-0">
+                <h2
+                  id="card-freshness"
+                  className="text-xs font-semibold uppercase tracking-wide text-white/50"
+                >
+                  When this was prepared
+                </h2>
+                <p className="mt-1 text-sm leading-relaxed text-white/70">
+                  {content.freshness_note}
+                </p>
+              </div>
+            </section>
+          ) : null}
         </div>
 
         {/* Footer: the "no personal data" reassurance + a coral Share chip (decorative on the card; the

@@ -22,6 +22,7 @@ const CONTENT: CardContent = {
   if_difficult: "If Ada gets overwhelmed, a quiet break usually helps.",
   safety_note:
     "For anything about food, medicines, or Ada's health, follow the family's plan and ask them first.",
+  is_stale: false,
 };
 
 const getCard = vi.fn();
@@ -65,6 +66,31 @@ describe("PublicCardView", () => {
     // The helper-orienting line names the care recipient and frames the card as a guide.
     expect(screen.getByText(/shared this one-page summary to help you support/i)).toBeInTheDocument();
     expect(getCard).toHaveBeenCalledWith("tok_abc123", expect.anything());
+  });
+
+  it("shows the freshness note to a scanner when the api flags the card stale (board condition B1)", async () => {
+    // A helper opening an OLD link (e.g. scanning the QR in an emergency) must be told the info may be
+    // out of date. The api sends is_stale + a governed freshness_note on the token read; the public card
+    // surfaces it calmly, alongside the normal card content.
+    const freshness =
+      "This plan was prepared on 1 May 2026. A child's needs change over time, so if this is more than a few weeks old, please ask the family for an up to date version.";
+    getCard.mockResolvedValue({ ...CONTENT, is_stale: true, freshness_note: freshness });
+    renderPublic("tok_stale");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Ada" })).toBeInTheDocument();
+    expect(screen.getByText(freshness)).toBeInTheDocument();
+    // It is informational, never an alarm.
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows no freshness note for a fresh card (is_stale false)", async () => {
+    getCard.mockResolvedValue(CONTENT); // CONTENT is is_stale: false
+    renderPublic("tok_fresh");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Ada" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "When this was prepared" })
+    ).not.toBeInTheDocument();
   });
 
   it("shows the friendly expired state on a 404", async () => {

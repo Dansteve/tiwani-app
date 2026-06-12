@@ -24,6 +24,7 @@ function makeContent(overrides: Partial<CardContent> = {}): CardContent {
     if_difficult: "If Ada gets overwhelmed, a quiet break usually helps.",
     safety_note:
       "For anything about food, medicines, or Ada's health, follow the family's plan and ask them first.",
+    is_stale: false,
     ...overrides,
   };
 }
@@ -78,5 +79,57 @@ describe("CardContentView", () => {
     expect(
       screen.getByText("No specific strategies were added for this one.")
     ).toBeInTheDocument();
+  });
+
+  // The board condition (psychiatrist sign-off B1): a helper who opens an OLD link, e.g. by scanning the
+  // QR in an emergency, must be told the care info may be out of date. When the api flags the card stale
+  // it sends a governed freshness_note; the card renders it verbatim, calmly, only then.
+  describe("freshness note (the stale-card safety cue)", () => {
+    const FRESHNESS =
+      "This plan was prepared on 1 May 2026. A child's needs change over time, so if this is more than a few weeks old, please ask the family for an up to date version.";
+
+    it("shows the api freshness note verbatim when the card is stale", () => {
+      render(
+        <CardContentView
+          content={makeContent({ is_stale: true, freshness_note: FRESHNESS })}
+        />
+      );
+      expect(screen.getByText(FRESHNESS)).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "When this was prepared" })
+      ).toBeInTheDocument();
+    });
+
+    it("renders nothing freshness-related on a fresh card (is_stale false)", () => {
+      render(
+        <CardContentView
+          content={makeContent({ is_stale: false, freshness_note: FRESHNESS })}
+        />
+      );
+      expect(screen.queryByText(FRESHNESS)).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "When this was prepared" })
+      ).not.toBeInTheDocument();
+    });
+
+    it("renders nothing when the card is stale but the api sent no note (guarded)", () => {
+      render(<CardContentView content={makeContent({ is_stale: true })} />);
+      expect(
+        screen.queryByRole("heading", { name: "When this was prepared" })
+      ).not.toBeInTheDocument();
+    });
+
+    it("frames the freshness cue calmly, not as an alert (no alarm role, no clinical words)", () => {
+      render(
+        <CardContentView
+          content={makeContent({ is_stale: true, freshness_note: FRESHNESS })}
+        />
+      );
+      // The cue is informational, never an alert/destructive shout, and carries no clinical language.
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(screen.getByText(FRESHNESS).textContent ?? "").not.toMatch(
+        /\b(medical|clinical|diagnos|symptom|condition)\b/i
+      );
+    });
   });
 });

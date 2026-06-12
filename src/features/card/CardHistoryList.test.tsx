@@ -37,6 +37,7 @@ const cardContent: CardContent = {
   strategies: [{ title: "Arrive early", detail: "Before it gets busy." }],
   if_difficult: "If Ada gets overwhelmed, a quiet break helps.",
   safety_note: "Follow the family's plan for food, medicines, or Ada's health.",
+  is_stale: false,
 };
 
 const listCards = vi.fn();

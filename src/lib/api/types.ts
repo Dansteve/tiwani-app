@@ -314,8 +314,8 @@ export interface CardStrategy {
  * The SAFE, public Continuity Card content (Product.md §4.6), the exact body GET /api/v3/cards/{token}
  * returns to a helper with NO account. Mirrors the api's CardContent field-for-field. It deliberately
  * carries NO PII beyond the care recipient's FIRST name and NO clinical data, and never a user_id /
- * child_id / activity_id / timestamp. Every string is the api's governed, non-clinical copy: the app
- * renders it verbatim and authors no card wording.
+ * child_id / activity_id. Every string is the api's governed, non-clinical copy: the app renders it
+ * verbatim and authors no card wording.
  *   child_first_name  the care recipient's first name only (never the full name).
  *   activity_name     the activity the helper is supporting.
  *   chapter           the Life Chapter code (context; the app may label it, it is not shown raw).
@@ -326,6 +326,17 @@ export interface CardStrategy {
  *   if_difficult      a calm, non-clinical "if things get difficult" line.
  *   safety_note       a standing health-and-safety boundary (defer anything medical to the
  *                     family's plan, 999 in an emergency); shown on every card.
+ *   freshness_note    the api's governed, non-clinical staleness line (the clinical board's mandatory
+ *                     finding: a card is a point-in-time snapshot). It names the date the plan was
+ *                     prepared and asks a helper to request an up-to-date version if the card is old.
+ *                     Optional: a card stored before this field existed has none, and the api backfills
+ *                     it from generated_at on the token read. Shown on the public card only when is_stale.
+ *   generated_at     when the card was prepared (an ISO timestamp, not PII). The staleness anchor the
+ *                     api surfaces so the app can reason about the card's age. Optional (the token read
+ *                     merges it in at read time; older rows may lack it).
+ *   is_stale          computed by the api at READ time: true when the card is older than the freshness
+ *                     window. The helper-safety cue that the strategies may be out of date; the public
+ *                     card shows the freshness_note when this is true. Defaults to false.
  */
 export interface CardContent {
   child_first_name: string;
@@ -337,6 +348,9 @@ export interface CardContent {
   strategies: CardStrategy[];
   if_difficult: string;
   safety_note: string;
+  freshness_note?: string;
+  generated_at?: string;
+  is_stale: boolean;
 }
 
 /**
