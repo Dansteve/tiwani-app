@@ -15,6 +15,7 @@ import {
   Settings,
   History,
   FileText,
+  Share2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { Wordmark } from "@/components/Wordmark";
 import { LogoutButton } from "@/components/LogoutButton";
 import { RecipientSwitcher } from "@/components/RecipientSwitcher";
+import { PendingInviteBanner } from "@/features/sharing/PendingInviteBanner";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 
 interface NavItem {
@@ -37,6 +39,15 @@ const NAV: NavItem[] = [
   { href: "/pulse", label: "Pulse", icon: Activity },
   { href: "/continuity", label: "Continuity", icon: HeartPulse },
   { href: "/settings", label: "Settings", icon: Settings },
+];
+
+// Sharing is a primary destination on the DESKTOP sidebar (where a 7th vertical item fits comfortably),
+// but it is kept OFF the mobile bottom bar: that bar holds the six core tabs, and a 7th would crowd them
+// below the comfortable tap width at 375px (the responsive hard rule). On mobile Sharing is reached from
+// the desktop-style secondary section and from the in-app banner / Card flow, the same way Card history
+// and Your plans are secondary on mobile.
+const DESKTOP_PRIMARY_EXTRA: NavItem[] = [
+  { href: "/sharing", label: "Sharing", icon: Share2 },
 ];
 
 // Secondary destinations: surfaces that are not top-level tabs, so they stay off the mobile bottom bar
@@ -72,7 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <RecipientSwitcher surface="sidebar" className="mt-6" />
 
         <nav className="mt-8 flex flex-col gap-1" aria-label="Primary">
-          {NAV.map((item) => {
+          {[...NAV, ...DESKTOP_PRIMARY_EXTRA].map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
             return (
@@ -138,6 +149,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               content (still only when there is more than one recipient). On desktop it lives in the
               sidebar above, so this copy is hidden there. */}
           <RecipientSwitcher surface="content" className="mb-6 max-w-xs lg:hidden" />
+          {/* A pending-invite reminder: shown only when someone arrived via an invite link, signed in,
+              and has not finished opening it yet (the token survived the sign-in bounce in sessionStorage).
+              It is invisible to everyone else and links back to the redeem page. */}
+          <PendingInviteBanner />
           {children}
         </main>
       </div>

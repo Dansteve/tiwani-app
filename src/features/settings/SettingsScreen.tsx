@@ -21,6 +21,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
+import { Share2 } from "lucide-react";
+
 import { api, ApiError } from "@/lib/api/client";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -149,6 +151,31 @@ export function SettingsScreen() {
         <TabPanel value="recipients" idBase={TABS_ID} className="space-y-6">
           {/* The multi-recipient surface. It drives off the provider's shared ["children"] read. */}
           <RecipientsSection />
+
+          {/* Sharing entry: the mobile path to the Sharing screen (on desktop it is also in the sidebar).
+              Invite someone to see a recipient's Continuity Card, manage who can see it, and open cards
+              shared with you. Kept as a quiet link card so it sits with the recipient surfaces. */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Share2 className="size-5 shrink-0 text-primary" aria-hidden="true" />
+                Sharing
+              </CardTitle>
+              <CardDescription>
+                Invite someone you trust to see a Continuity Card, see who can see it, and open cards
+                shared with you.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/sharing"
+                className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
+              >
+                <Share2 className="size-4 shrink-0" aria-hidden="true" />
+                Go to sharing
+              </Link>
+            </CardContent>
+          </Card>
 
           {/* Care recipient editor: edits the recipient currently in view (the active one when there are
               several, else the single ["child"] read). With several recipients there is always one active,
