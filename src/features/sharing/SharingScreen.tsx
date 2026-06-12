@@ -33,17 +33,21 @@ import { sharingCopy } from "@/features/sharing/copy";
 import { ShareInvitePanel } from "@/features/sharing/ShareInvitePanel";
 import { ShareRoster } from "@/features/sharing/ShareRoster";
 import { SharedWithMeView } from "@/features/sharing/SharedWithMeView";
+import { PageTour } from "@/features/tour/PageTour";
 
 const SHARING_TABS = [
-  { value: "manage", label: "Who you share with" },
-  { value: "received", label: "Shared with you" },
+  // The tour anchors: "manage" is owner-only (its step is optional and drops for a viewer, since this tab
+  // is absent from the viewer set below); "received" is reachable by everyone.
+  { value: "manage", label: "Who you share with", tour: "sharing-manage-tab" },
+  { value: "received", label: "Shared with you", tour: "sharing-received-tab" },
 ] as const satisfies readonly TabItem[];
 
 // A viewer (a recipient SHARED with the caller) cannot manage sharing for a recipient they do not own, so
 // under the ceiling only the "Shared with you" tab is offered (Docs/FeatureDecisions.md "Helper Village
-// ACCESS", refinement 1). The owner sees both tabs.
+// ACCESS", refinement 1). The owner sees both tabs. "received" keeps its tour anchor so a viewer's tour
+// still points at a real tab.
 const RECEIVED_ONLY_TABS = [
-  { value: "received", label: "Shared with you" },
+  { value: "received", label: "Shared with you", tour: "sharing-received-tab" },
 ] as const satisfies readonly TabItem[];
 
 type SharingTab = (typeof SHARING_TABS)[number]["value"];
@@ -60,13 +64,18 @@ export function SharingScreen() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold md:text-3xl">Sharing</h1>
-        <p className="mt-1 text-base text-muted-foreground">
-          {restricted
-            ? "The Continuity Cards families have shared with you."
-            : "Invite people you trust to see a Continuity Card, and see the cards shared with you."}
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold md:text-3xl">Sharing</h1>
+          <p className="mt-1 text-base text-muted-foreground">
+            {restricted
+              ? "The Continuity Cards families have shared with you."
+              : "Invite people you trust to see a Continuity Card, and see the cards shared with you."}
+          </p>
+        </div>
+        {/* On-demand "Show me around" for Sharing. Works for a viewer too: the owner-only "who you share
+            with" step auto-drops (its tab is absent under the ceiling). */}
+        <PageTour page="sharing" buttonClassName="mt-1" />
       </header>
 
       <TabsList

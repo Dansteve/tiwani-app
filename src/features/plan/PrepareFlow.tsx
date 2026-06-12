@@ -52,7 +52,12 @@ export function PrepareFlow({
         </p>
       </header>
 
-      <section aria-labelledby="activity-picker-label" className="space-y-3">
+      <section
+        aria-labelledby="activity-picker-label"
+        className="space-y-3"
+        // The dashboard-style coach-marks anchor: the tour points at the activity picker (the first step).
+        data-tour="plan-activity-picker"
+      >
         <h3 id="activity-picker-label" className="text-base font-semibold">
           Choose an activity
         </h3>
@@ -99,7 +104,12 @@ export function PrepareFlow({
         ) : null}
       </section>
 
-      <section aria-labelledby="today-flags-label" className="space-y-3">
+      <section
+        aria-labelledby="today-flags-label"
+        className="space-y-3"
+        // The coach-marks anchor for the optional today-flags step.
+        data-tour="plan-today-flags"
+      >
         <div>
           <h3 id="today-flags-label" className="text-base font-semibold">
             How is today going? <span className="font-normal text-muted-foreground">(optional)</span>
@@ -125,7 +135,9 @@ export function PrepareFlow({
         </fieldset>
       </section>
 
-      <div className="space-y-2">
+      {/* The coach-marks anchor for the "build the plan" step (on the wrapper, which is always laid out
+          even while the button is disabled until an activity is chosen). */}
+      <div className="space-y-2" data-tour="plan-generate">
         <Button
           type="button"
           size="lg"

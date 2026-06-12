@@ -252,6 +252,15 @@ describe("SettingsScreen tabs", () => {
     expect(screen.getByRole("button", { name: /replay the tour/i })).toBeInTheDocument();
   });
 
+  it("offers the page's own 'Show me around' tour, anchored on the tabs", async () => {
+    const { container } = renderScreen();
+    await screen.findByDisplayValue("Sam");
+    // The Settings-page tour button (distinct from the dashboard "Replay the tour" card) sits in the
+    // header, and its step points at the tabs anchor (present for everyone, so it works under the ceiling).
+    expect(screen.getByRole("button", { name: /show me around/i })).toBeInTheDocument();
+    expect(container.querySelector('[data-tour="settings-tabs"]')).not.toBeNull();
+  });
+
   it("shows the recipient list + the 'removing someone' copy under Care recipients", async () => {
     const user = userEvent.setup();
     renderScreen();

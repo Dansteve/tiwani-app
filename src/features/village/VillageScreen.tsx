@@ -35,18 +35,22 @@ import { PostNeedForm } from "@/features/village/PostNeedForm";
 import { OwnerNeedsList } from "@/features/village/OwnerNeedsList";
 import { OpenNeedsList } from "@/features/village/OpenNeedsList";
 import { RosterPanel } from "@/features/village/RosterPanel";
+import { PageTour } from "@/features/tour/PageTour";
 
 const VILLAGE_TABS = [
-  { value: "post", label: "Post & track" },
-  { value: "help", label: "Ways to help" },
+  // The tour anchors: "post" is owner-only (its step is optional and drops for a viewer, since this tab
+  // is absent from the viewer set below); "help" is reachable by everyone.
+  { value: "post", label: "Post & track", tour: "village-post-tab" },
+  { value: "help", label: "Ways to help", tour: "village-help-tab" },
   { value: "village", label: "Village" },
 ] as const satisfies readonly TabItem[];
 
 // The VIEWER tab set (Docs/FeatureDecisions.md "Helper Village ACCESS", refinement 1): a viewer reaches
 // the Village NEEDS (claim) + the roster ONLY. "Post & track" is the OWNER posting surface, so it is
-// dropped under the ceiling, never shown-then-403.
+// dropped under the ceiling, never shown-then-403. "help" keeps its tour anchor so the viewer's tour still
+// points at a real tab.
 const VIEWER_VILLAGE_TABS = [
-  { value: "help", label: "Ways to help" },
+  { value: "help", label: "Ways to help", tour: "village-help-tab" },
   { value: "village", label: "Village" },
 ] as const satisfies readonly TabItem[];
 
@@ -66,13 +70,18 @@ export function VillageScreen() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold md:text-3xl">Village</h1>
-        <p className="mt-1 text-base text-muted-foreground">
-          {restricted
-            ? "Pick up a specific way to help, when you can."
-            : "Share a specific need with the people around you, and let someone pick it up."}
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold md:text-3xl">Village</h1>
+          <p className="mt-1 text-base text-muted-foreground">
+            {restricted
+              ? "Pick up a specific way to help, when you can."
+              : "Share a specific need with the people around you, and let someone pick it up."}
+          </p>
+        </div>
+        {/* On-demand "Show me around" for the Village. Works for a viewer too: the owner-only "post a
+            need" step auto-drops (its tab is absent under the ceiling). */}
+        <PageTour page="village" buttonClassName="mt-1" />
       </header>
 
       {isLoading ? (
@@ -177,6 +186,9 @@ function VillageCountChip({
     <button
       type="button"
       onClick={onOpenRoster}
+      // The coach-marks anchor for the "who can see this" step (optional; this chip renders only with a
+      // loaded roster).
+      data-tour="village-count"
       className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <Users className="size-4 shrink-0" aria-hidden="true" />

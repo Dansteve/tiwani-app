@@ -23,6 +23,7 @@ import { CHAPTERS } from "@/lib/format";
 import { useRecipient } from "@/state/RecipientProvider";
 import { PrepareFlow } from "@/features/plan/PrepareFlow";
 import { PreparationPlanView } from "@/features/plan/PreparationPlanView";
+import { PageTour } from "@/features/tour/PageTour";
 
 interface PlanScreenProps {
   /** The chapter from the URL query (?chapter=). Validated against the six Life Chapters. */
@@ -113,6 +114,12 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   // Phase 1: the prepare inputs.
   return (
     <div className="mx-auto w-full max-w-2xl space-y-4">
+      {/* The "Show me around" tour for the Plan screen (on-demand, calm). It points at the activity
+          picker, the today-flags, and the build button via their data-tour anchors below. */}
+      <div className="flex justify-end">
+        <PageTour page="plan" />
+      </div>
+
       <PrepareFlow
         chapter={chapter}
         activities={activitiesQuery.data}

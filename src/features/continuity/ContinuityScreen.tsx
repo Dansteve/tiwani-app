@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
 import { LciPanel } from "@/features/continuity/LciPanel";
+import { PageTour } from "@/features/tour/PageTour";
 import { useRecipient } from "@/state/RecipientProvider";
 import { recipientKey } from "@/state/selectedRecipient";
 import { Alert } from "@/components/ui/alert";
@@ -36,14 +37,22 @@ export function ContinuityScreen() {
   // TanStack sense), so treat "not ready" as loading to keep the skeleton up rather than flashing empty.
   const isError = overallQuery.isError || chaptersQuery.isError;
   const isLoading = !ready || overallQuery.isLoading || chaptersQuery.isLoading;
+  // The LCI panel (and so the tour's anchors) renders only once the overall snapshot is loaded. Show the
+  // "Show me around" button only then, so the on-demand tour always has something to point at.
+  const showPanel = !isLoading && !isError && overallQuery.data != null;
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold md:text-3xl">Life Continuity</h1>
-        <p className="mt-1 text-base text-muted-foreground">
-          Whether life is holding steady or quietly narrowing, built from your check-ins.
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold md:text-3xl">Life Continuity</h1>
+          <p className="mt-1 text-base text-muted-foreground">
+            Whether life is holding steady or quietly narrowing, built from your check-ins.
+          </p>
+        </div>
+        {/* On-demand "Show me around" for the Continuity screen, shown once there is a picture to tour
+            (the overall + per-chapter reads have landed). */}
+        {showPanel ? <PageTour page="continuity" buttonClassName="mt-1" /> : null}
       </header>
 
       {isError ? (
@@ -65,8 +74,8 @@ export function ContinuityScreen() {
         </div>
       ) : null}
 
-      {!isLoading && !isError && overallQuery.data ? (
-        <LciPanel overall={overallQuery.data} chapters={chaptersQuery.data ?? []} />
+      {showPanel ? (
+        <LciPanel overall={overallQuery.data!} chapters={chaptersQuery.data ?? []} />
       ) : null}
     </div>
   );
