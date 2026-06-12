@@ -11,6 +11,7 @@
 export interface SeenStore {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  removeItem(key: string): void;
 }
 
 // Versioned key: if the tour's steps change materially we can bump the version to re-show it once.
@@ -28,6 +29,17 @@ export function markTourSeen(store: SeenStore): void {
 }
 
 /**
+ * Clear the seen flag so the tour auto-opens again on the next dashboard visit; idempotent. This is how
+ * "Replay the tour" in Settings works: it unsets the flag and sends the Coordinator to the dashboard,
+ * where useCoachMarks reads "not seen" and auto-opens over the real controls (the tour can only point at
+ * the dashboard anchors, which do not exist on the Settings route). Reuses the auto-open mechanism rather
+ * than carrying an open-state across routes.
+ */
+export function clearTourSeen(store: SeenStore): void {
+  store.removeItem(SEEN_KEY);
+}
+
+/**
  * The durable localStorage, or a no-op store when there is no window (SSR / tests without jsdom) or
  * storage is unavailable (private mode, quota, a SecurityError). Keeps the seen logic working without
  * guarding `typeof window` at every call site; a failed read simply reports "not seen" (the tour may
@@ -35,7 +47,7 @@ export function markTourSeen(store: SeenStore): void {
  */
 export function localSeenStore(): SeenStore {
   if (typeof window === "undefined") {
-    return { getItem: () => null, setItem: () => {} };
+    return { getItem: () => null, setItem: () => {}, removeItem: () => {} };
   }
   try {
     // Touch the API so a SecurityError (storage disabled) is caught here, not at the call site.
@@ -55,8 +67,15 @@ export function localSeenStore(): SeenStore {
           // Best-effort: if we cannot persist, the tour may re-open next time, which is harmless.
         }
       },
+      removeItem: (key) => {
+        try {
+          ls.removeItem(key);
+        } catch {
+          // Best-effort: if we cannot clear, "Replay the tour" simply has no effect, which is harmless.
+        }
+      },
     };
   } catch {
-    return { getItem: () => null, setItem: () => {} };
+    return { getItem: () => null, setItem: () => {}, removeItem: () => {} };
   }
 }
