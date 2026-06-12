@@ -96,14 +96,14 @@ export function DashboardScreen() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-start justify-between gap-3">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold md:text-3xl">{greeting(firstName)}</h1>
           <p className="mt-1 text-base text-muted-foreground">
             Your six Life Chapters. Pick one to prepare for something.
           </p>
         </div>
-        <div className="mt-1 flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1 self-start sm:mt-1">
           {/* Re-open the coach-marks any time (the auto-open is once-per-first-visit). */}
           <HelpButton onClick={tour.start} />
           <a
