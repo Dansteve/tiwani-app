@@ -14,21 +14,33 @@
 //   - GENERATE CONTINUITY CARD: routes to the card route (Task 8 stub; the card itself is not built).
 //
 // Expand/collapse use native <details>/<summary> so they are keyboard-usable with no extra dependency.
+//
+// The STRATEGY LIST carries the Task 9 (Strategy Library) interactions: a strategy with a
+// library_item_id can be REMOVED (swipe-to-remove on touch + an accessible remove button everywhere),
+// which suppresses it api-side and records it so the "Removed strategies" section can re-allow it; a
+// strategy that also worked in another chapter shows the dismissible "Also worked in [chapter]" label.
+// A legacy strategy with no library_item_id (a stored re-read) still hides locally from the view but is
+// not suppressed api-side. The api owns the suppression rule (suppress-after-3, reversible); the app
+// renders the affordances and never decides suppression itself.
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { chapterLabel, formatScore, tierLabel } from "@/lib/format";
-import type { PreparationPlan, PressureDimension } from "@/lib/api/types";
+import type { ChapterCode, PlanStrategy, PreparationPlan, PressureDimension } from "@/lib/api/types";
 import {
   pressureBand,
   pressureCopy,
   tierExplanation,
 } from "@/features/plan/bands";
 import { PRESSURE_PRESENTATION } from "@/features/plan/pressurePresentation";
+import { useStrategyActions } from "@/features/plan/useStrategyActions";
+import { SwipeToRemove } from "@/features/plan/SwipeToRemove";
+import { AlsoWorkedInLabel } from "@/features/plan/AlsoWorkedInLabel";
+import { RemovedStrategies } from "@/features/plan/RemovedStrategies";
 
 interface PreparationPlanViewProps {
   plan: PreparationPlan;
@@ -49,12 +61,46 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
   const presentation = PRESSURE_PRESENTATION[band];
   const BandIcon = presentation.icon;
 
-  // Local-only removal: hide a strategy from this view. The api owns the real suppress-after-3 rule
-  // (Task 9); this is the UI affordance, keyed by index since plan strategies carry no id yet.
-  const [removed, setRemoved] = useState<Set<number>>(() => new Set());
+  // The Strategy Library actions (Task 9): suppress (remove) + allow (re-allow), the optimistic
+  // hidden-set keyed by library_item_id, and the session record that feeds the re-allow section. The api
+  // owns the persistent suppression; this hook is the in-view layer (suppress fires the api + invalidates
+  // the plan reads). A strategy with no library_item_id is hidden locally only (locallyHidden below).
+  const { suppressedIds, removed, suppress, allow, allowingId, isError } = useStrategyActions();
+
+  // Strategies with no library_item_id (a legacy stored plan) carry no api key, so they are hidden from
+  // the view locally, keyed by index. Strategies WITH an id are hidden via suppressedIds (api-backed).
+  const [locallyHidden, setLocallyHidden] = useState<Set<number>>(() => new Set());
+
+  // The "Also worked in [chapter]" labels dismissed in this view, keyed `index::chapter` (local dismiss
+  // is fine for the MVP, the App spec). Dismissing one chapter's label leaves the others on a strategy.
+  const [dismissedLabels, setDismissedLabels] = useState<Set<string>>(() => new Set());
+
   const visibleStrategies = plan.strategies
     .map((strategy, index) => ({ strategy, index }))
-    .filter(({ index }) => !removed.has(index));
+    .filter(({ strategy, index }) =>
+      strategy.library_item_id
+        ? !suppressedIds.has(strategy.library_item_id)
+        : !locallyHidden.has(index)
+    );
+
+  // Remove a strategy: suppress it api-side when it has a library_item_id (and record it for re-allow),
+  // else hide it locally (a legacy line the api cannot suppress). The api decides the suppress-after-3
+  // outcome; the app only sends the removal.
+  function removeStrategy(strategy: PlanStrategy, index: number) {
+    if (strategy.library_item_id) {
+      suppress({
+        libraryItemId: strategy.library_item_id,
+        title: strategy.title,
+        chapter: plan.chapter,
+      });
+    } else {
+      setLocallyHidden((prev) => new Set(prev).add(index));
+    }
+  }
+
+  function dismissLabel(index: number, chapter: ChapterCode) {
+    setDismissedLabels((prev) => new Set(prev).add(`${index}::${chapter}`));
+  }
 
   // The per-dimension sentences are null on a stored re-read (an engine derivation, not stored), so the
   // breakdown section renders only when the api supplied them. Bound here so TypeScript narrows it.
@@ -122,38 +168,60 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
           </p>
         ) : (
           <ul className="space-y-2">
-            {visibleStrategies.map(({ strategy, index }) => (
-              <li
-                key={index}
-                className="rounded-lg border border-border bg-card"
-              >
-                <div className="flex items-start gap-2 p-1.5">
-                  <details className="group min-w-0 flex-1">
-                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-md px-2.5 py-2 text-sm font-medium text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&::-webkit-details-marker]:hidden">
-                      <span className="min-w-0">{strategy.title}</span>
-                      <ChevronDown
-                        className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
-                        aria-hidden="true"
-                      />
-                    </summary>
-                    <p className="px-2.5 pb-2 pt-1 text-sm text-muted-foreground">
-                      {strategy.detail}
-                    </p>
-                  </details>
-                  <button
-                    type="button"
-                    onClick={() => setRemoved((prev) => new Set(prev).add(index))}
-                    className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            {visibleStrategies.map(({ strategy, index }) => {
+              // The cross-context chapters still showing (not locally dismissed), one label each.
+              const alsoWorkedIn = (strategy.also_worked_in ?? []).filter(
+                (chapter) => !dismissedLabels.has(`${index}::${chapter}`)
+              );
+              return (
+                <li key={index}>
+                  <SwipeToRemove
+                    removeLabel={strategy.title}
+                    onRemove={() => removeStrategy(strategy, index)}
                   >
-                    <X className="size-4" aria-hidden="true" />
-                    <span className="sr-only">Remove {strategy.title}</span>
-                  </button>
-                </div>
-              </li>
-            ))}
+                    <details className="group">
+                      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-md px-2.5 py-2 text-sm font-medium text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&::-webkit-details-marker]:hidden">
+                        <span className="min-w-0">{strategy.title}</span>
+                        <ChevronDown
+                          className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                          aria-hidden="true"
+                        />
+                      </summary>
+                      <p className="px-2.5 pb-2 pt-1 text-sm text-muted-foreground">
+                        {strategy.detail}
+                      </p>
+                    </details>
+                    {alsoWorkedIn.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 px-2.5 pb-1.5">
+                        {alsoWorkedIn.map((chapter) => (
+                          <AlsoWorkedInLabel
+                            key={chapter}
+                            chapter={chapter}
+                            strategyTitle={strategy.title}
+                            onDismiss={() => dismissLabel(index, chapter)}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </SwipeToRemove>
+                </li>
+              );
+            })}
           </ul>
         )}
+
+        {isError ? (
+          <p
+            role="alert"
+            className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          >
+            We could not update that strategy just now. Please try again.
+          </p>
+        ) : null}
       </section>
+
+      {/* REMOVED STRATEGIES (re-allow): renders only once something has been removed this session. */}
+      <RemovedStrategies removed={removed} onAllow={allow} allowingId={allowingId} />
 
       {/* DIMENSION BREAKDOWN (omitted on a stored re-read, where dimension_explanations is null). */}
       {explanations ? (
