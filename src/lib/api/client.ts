@@ -401,6 +401,36 @@ export const api = {
     );
   },
 
+  /**
+   * Remove (suppress) a strategy for its scenario (Task 9, Sprints/3.sprint/9.StrategyLibrary.md):
+   * POST /api/v3/strategies/{library_item_id}/suppress. The api records the removal (it counts toward
+   * the suppress-after-3 rule, scenario-specific) and excludes the strategy next time; the app fires
+   * this when the Coordinator removes a strategy from a plan and invalidates the plan reads so the list
+   * refetches without it. Reversible via allowStrategy. AUTH REQUIRED (the bearer is attached by http()).
+   * Returns 204; the app surfaces a failure inline, never swallowed. PROVISIONAL CONTRACT: reconcile the
+   * path + shape with the api half when feat/api-strategy-library lands.
+   */
+  suppressStrategy(libraryItemId: string): Promise<void> {
+    return http<void>(
+      `/api/v3/strategies/${encodeURIComponent(libraryItemId)}/suppress`,
+      { method: "POST" }
+    );
+  },
+
+  /**
+   * Re-allow a previously suppressed strategy for its scenario (Task 9): POST
+   * /api/v3/strategies/{library_item_id}/allow. The mirror of suppressStrategy, so suppression is
+   * reversible (the Coordinator can bring a removed strategy back). The app fires this from the
+   * "removed strategies" affordance and invalidates the plan reads. AUTH REQUIRED. Returns 204; a
+   * failure surfaces inline. PROVISIONAL CONTRACT: reconcile with the api half on integration.
+   */
+  allowStrategy(libraryItemId: string): Promise<void> {
+    return http<void>(
+      `/api/v3/strategies/${encodeURIComponent(libraryItemId)}/allow`,
+      { method: "POST" }
+    );
+  },
+
   /** The activities awaiting a Pulse, for the in-app prompt (Product.md §4.7). */
   getPendingPulses(signal?: AbortSignal): Promise<PendingPulse[]> {
     return http<PendingPulse[]>("/api/v3/pulses/pending", { signal });

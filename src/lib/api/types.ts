@@ -124,10 +124,24 @@ export interface ChapterActivity {
  * Strategy Library object (StrategyItem, with dimension tags and cross-context) is a Task 9 surface;
  * the plan carries this lighter shape that the api has already ranked (promoted first, suppressed
  * excluded, cross-context appended) per Product.md §4.4 step 7.
+ *
+ * The two Strategy Library fields (Task 9, Sprints/3.sprint/9.StrategyLibrary.md) arrive on this shape:
+ *   library_item_id  the strategy_library_item this line came from. Present once the strategy is saved
+ *                    to the library; it is the key the suppress / allow endpoints act on
+ *                    (POST /api/v3/strategies/{library_item_id}/suppress | /allow). OPTIONAL: a line
+ *                    with no id (a freshly seeded strategy not yet a library item, or a legacy stored
+ *                    plan) can still be hidden from the view locally, but cannot be suppressed api-side.
+ *   also_worked_in   the chapter codes where this strategy had positive outcomes in OTHER chapters
+ *                    (the "Also worked in [chapter]" cross-context label, dismissible per chapter,
+ *                    Product.md §4.10). Typed as ChapterCode[] (the app's chapter vocabulary): the label
+ *                    renders chapterLabel(code), so a non-chapter string would have no human label.
+ *                    OPTIONAL/absent when the strategy has no cross-context history.
  */
 export interface PlanStrategy {
   title: string;
   detail: string;
+  library_item_id?: string;
+  also_worked_in?: ChapterCode[];
 }
 
 /**
