@@ -6,20 +6,27 @@
 // scoped by the active recipient (the same child_id the dashboard/LCI/alerts use, from RecipientProvider),
 // because a need belongs to exactly one recipient (the multi-recipient isolation rule).
 //
-// Two tabs, the app's accessible tabs primitive (components/ui/tabs):
+// THREE tabs, the app's accessible tabs primitive (components/ui/tabs):
 //   - "Post & track" (the OWNER side): the post-a-need form + the owner's list (covered + who + confirm/cancel).
 //   - "Ways to help" (the MEMBER/board side): the open needs to claim + the claimer's done/drop.
-// Both sides see the roster (the visible "who is in the village" transparency surface) under the tabs.
+//   - "Village" (the ROSTER): the visible "who is in the village" list. It lives in its own tab now, BUT an
+//     always-on count chip ABOVE the tabs keeps the board's mandatory transparency (refinement 5: who can
+//     see [name]) at a glance, one tap from the full list, so promoting the roster to a tab never hides the
+//     fact that people have access. (Board decision 2026-06-12: the count is always visible; the detail is
+//     a tap away. See Modules/Village.md.)
 //
 // The app does not know server-side whether the viewer is owner or member on this recipient (RLS decides
-// per request); it offers both tabs and lets the api gate the actions (403 -> a calm "only the Coordinator
+// per request); it offers the tabs and lets the api gate the actions (403 -> a calm "only the Coordinator
 // can..." / "you are not part of this village"). This keeps the client free of an auth assumption (App
 // SETUP: render the engine, never re-implement the rule). The active recipient drives everything; with no
 // recipient yet (a fresh user), a calm empty state points at onboarding.
 
 import { useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { Users } from "lucide-react";
 
+import { api } from "@/lib/api/client";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TabsList, TabPanel, type TabItem } from "@/components/ui/tabs";
@@ -32,6 +39,7 @@ import { RosterPanel } from "@/features/village/RosterPanel";
 const VILLAGE_TABS = [
   { value: "post", label: "Post & track" },
   { value: "help", label: "Ways to help" },
+  { value: "village", label: "Village" },
 ] as const satisfies readonly TabItem[];
 
 type VillageTab = (typeof VILLAGE_TABS)[number]["value"];
@@ -80,6 +88,11 @@ function VillageForRecipient({
 }) {
   return (
     <div className="space-y-6">
+      {/* The always-on transparency cue: how many people can see this village, one tap from the full
+          roster (the "Village" tab). Keeps the board's mandatory "who can see [name]" visibility
+          (refinement 5) at a glance now that the roster itself is a tab rather than pinned under every tab. */}
+      <VillageCountChip recipientId={recipientId} onOpenRoster={() => onTabChange("village")} />
+
       <TabsList
         tabs={VILLAGE_TABS}
         value={tab}
@@ -109,12 +122,46 @@ function VillageForRecipient({
         </TabPanel>
       ) : null}
 
-      {/* The roster (the visible "who is in the village" list) sits under both tabs: the transparency
-          surface the board decision made mandatory. */}
-      <div className="border-t border-border pt-6">
-        <RosterPanel recipientId={recipientId} />
-      </div>
+      {/* Village (the roster): the visible "who is in the village" list, now its own tab. */}
+      {tab === "village" ? (
+        <TabPanel value="village" idBase={TABS_ID}>
+          <RosterPanel recipientId={recipientId} />
+        </TabPanel>
+      ) : null}
     </div>
+  );
+}
+
+// The always-on member-count chip: reads the SAME ["village-roster", recipientId] query RosterPanel uses
+// (TanStack dedups, so no extra request) and shows how many people can see this village, as a button that
+// jumps to the roster tab. While loading or on error it renders nothing (the chip is a calm at-a-glance
+// cue; the Village tab is where the real roster state, including errors, lives).
+function VillageCountChip({
+  recipientId,
+  onOpenRoster,
+}: {
+  recipientId: string;
+  onOpenRoster: () => void;
+}) {
+  const query = useQuery({
+    queryKey: ["village-roster", recipientId],
+    queryFn: ({ signal }) => api.getRoster(recipientId, signal),
+  });
+
+  if (query.isLoading || query.isError || !query.data) return null;
+
+  const count = query.data.members.length;
+  const label = count <= 1 ? "Just you in this village so far" : `${count} people can see this village`;
+
+  return (
+    <button
+      type="button"
+      onClick={onOpenRoster}
+      className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <Users className="size-4 shrink-0" aria-hidden="true" />
+      {label}
+    </button>
   );
 }
 
