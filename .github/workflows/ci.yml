@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
 
 jobs:
@@ -19,11 +19,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # tsc --noEmit: a type error anywhere in src fails the job (Expert Review M2,
+      # the "prove it bites" gate). The app never recomputes an engine number, so a
+      # wrong-shaped read of the api response is caught here, not at runtime.
       - name: Typecheck
         run: npm run typecheck
 
       - name: Lint
         run: npm run lint
+
+      # vitest run (NOT watch): the pure-logic + render suites (the onboarding state
+      # machine, lib/format, the recipient selection, the screens that must display
+      # the api number and never recompute it). Runs before the build so a broken
+      # unit fails fast.
+      - name: Test
+        run: npm run test
 
       - name: Build
         run: npm run build
