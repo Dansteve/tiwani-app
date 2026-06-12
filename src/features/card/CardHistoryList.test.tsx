@@ -43,6 +43,7 @@ const cardContent: CardContent = {
 const listCards = vi.fn();
 const revokeCard = vi.fn();
 const viewCard = vi.fn();
+const downloadCardPdf = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   ApiError: class ApiError extends Error {
@@ -56,7 +57,15 @@ vi.mock("@/lib/api/client", () => ({
     listCards: (...args: unknown[]) => listCards(...args),
     revokeCard: (...args: unknown[]) => revokeCard(...args),
     viewCard: (...args: unknown[]) => viewCard(...args),
+    downloadCardPdf: (...args: unknown[]) => downloadCardPdf(...args),
   },
+}));
+
+// The save step is the lib/download anchor mechanism, exercised in its own test (and a no-op without a
+// real file system); here we mock it to assert the row hands it the blob + filename the api returned.
+const downloadBlob = vi.fn();
+vi.mock("@/lib/download", () => ({
+  downloadBlob: (...args: unknown[]) => downloadBlob(...args),
 }));
 
 import { ApiError } from "@/lib/api/client";
@@ -75,6 +84,8 @@ beforeEach(() => {
   listCards.mockReset();
   revokeCard.mockReset();
   viewCard.mockReset();
+  downloadCardPdf.mockReset();
+  downloadBlob.mockReset();
 });
 
 describe("CardHistoryList", () => {
@@ -181,6 +192,53 @@ describe("CardHistoryList", () => {
     expect(alert).toHaveTextContent(/no longer available to revoke/i);
     // Still active (the failed revoke did not change the row).
     expect(screen.getByText("Active")).toBeInTheDocument();
+  });
+
+  it("offers Download PDF on every card (any status), by card_id", async () => {
+    listCards.mockResolvedValue([
+      card({ id: "a", activity_name: "Active one", status: "active" }),
+      card({ id: "e", activity_name: "Expired one", status: "expired" }),
+      card({ id: "r", activity_name: "Revoked one", status: "revoked" }),
+    ]);
+
+    renderList();
+
+    await screen.findByText("Active one");
+    // One Download PDF control per row, including the terminal (expired / revoked) cards.
+    expect(screen.getAllByRole("button", { name: /download pdf/i })).toHaveLength(3);
+  });
+
+  it("downloads the PDF: fetches the bytes by card_id and saves them with the api's filename", async () => {
+    listCards.mockResolvedValue([card({ id: "card_1", activity_name: "Swimming lesson" })]);
+    const blob = new Blob(["%PDF"], { type: "application/pdf" });
+    downloadCardPdf.mockResolvedValue({ blob, filename: "continuity-card-card_1.pdf" });
+
+    renderList();
+    await screen.findByText("Swimming lesson");
+
+    fireEvent.click(screen.getByRole("button", { name: /download pdf/i }));
+
+    // Fetched by card_id (the owner export, never the share token).
+    await waitFor(() => expect(downloadCardPdf).toHaveBeenCalledWith("card_1"));
+    // Saved with the exact blob + filename the api returned (the app recomputes neither).
+    await waitFor(() =>
+      expect(downloadBlob).toHaveBeenCalledWith(blob, "continuity-card-card_1.pdf")
+    );
+  });
+
+  it("surfaces an inline error when the PDF download fails, and does not save anything", async () => {
+    listCards.mockResolvedValue([card({ id: "card_1", activity_name: "Swimming lesson" })]);
+    downloadCardPdf.mockRejectedValue(new ApiError(404, "Card not found"));
+
+    renderList();
+    await screen.findByText("Swimming lesson");
+
+    fireEvent.click(screen.getByRole("button", { name: /download pdf/i }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/no longer available to download/i);
+    // No save was attempted on the failed fetch.
+    expect(downloadBlob).not.toHaveBeenCalled();
   });
 
   it("shows a calm empty state pointing at preparing a plan when there are no cards", async () => {

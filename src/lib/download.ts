@@ -1,21 +1,20 @@
-// Trigger a client-side file download from in-memory data, with no extra network request. Used by the
-// Settings data export (the GET /api/v3/me/export document already in memory is written to a file). Kept
-// in lib/ as a small, framework-agnostic browser helper; it is a no-op outside the browser (SSR / tests
-// with no document) so a caller never has to guard the environment.
+// Trigger a client-side file download to the user's device. Kept in lib/ as a small, framework-agnostic
+// browser helper; it is a no-op outside the browser (SSR / tests with no document) so a caller never has
+// to guard the environment. Two entry points over one DOM mechanism: downloadBlob saves any Blob already
+// in memory (e.g. the application/pdf the api returned for a Continuity Card), and downloadJson is the
+// JSON convenience over it (the Settings data export of the GET /api/v3/me/export document).
 
 /**
- * Save `data` as a pretty-printed JSON file named `filename` to the user's device. Mechanism: serialize
- * to a Blob, mint a temporary object URL, click a hidden anchor carrying `download`, then revoke the URL
- * (so the blob is released). Returns true when the download was triggered, false when there is no DOM to
- * trigger it (SSR / a non-browser test environment), so the caller can treat "no browser" as a no-op
- * rather than a thrown error.
+ * Save an already-in-memory `blob` as `filename` to the user's device. Mechanism: mint a temporary
+ * object URL for the blob, click a hidden anchor carrying `download`, then revoke the URL (so the blob
+ * is released). Returns true when the download was triggered, false when there is no DOM to trigger it
+ * (SSR / a non-browser test environment), so the caller can treat "no browser" as a no-op rather than a
+ * thrown error. The blob's own MIME type (set when it was created) drives how the browser handles it.
  */
-export function downloadJson(data: unknown, filename: string): boolean {
+export function downloadBlob(blob: Blob, filename: string): boolean {
   if (typeof document === "undefined" || typeof URL === "undefined" || !URL.createObjectURL) {
     return false;
   }
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   try {
     const anchor = document.createElement("a");
@@ -30,4 +29,15 @@ export function downloadJson(data: unknown, filename: string): boolean {
     URL.revokeObjectURL(url);
   }
   return true;
+}
+
+/**
+ * Save `data` as a pretty-printed JSON file named `filename` to the user's device. Serializes to a
+ * JSON-typed Blob and hands it to downloadBlob (the one anchor mechanism). Returns true when the
+ * download was triggered, false when there is no DOM (SSR / a non-browser test environment).
+ */
+export function downloadJson(data: unknown, filename: string): boolean {
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  return downloadBlob(blob, filename);
 }
