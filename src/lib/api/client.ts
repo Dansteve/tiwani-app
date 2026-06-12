@@ -14,6 +14,7 @@ import type {
   CardCreated,
   CardRevoked,
   CardSummary,
+  CareRecipientCreate,
   CareRecipientProfile,
   CareRecipientUpdate,
   ChapterActivity,
@@ -141,6 +142,16 @@ function safeParse(text: string): unknown {
   }
 }
 
+/**
+ * Build a `?child_id=<id>` query string for the per-recipient reads, or "" when no recipient is
+ * selected. The api accepts child_id only on the dashboard / LCI / alerts reads and DEFAULTS to the
+ * caller's sole recipient when it is omitted, so a single-recipient app (which never sets one) sends no
+ * param and behaves exactly as before (App SETUP: build to the real contract, never a hand-built URL).
+ */
+function childQuery(childId?: string | null): string {
+  return childId ? `?child_id=${encodeURIComponent(childId)}` : "";
+}
+
 // --- Typed endpoint functions (mirror the api contract under /api/v3) ---
 // The built Task 3 endpoints (profile, onboarding, child) match the api exactly. The rest carry the
 // /api/v3 prefix as placeholders; their final paths are set when Tasks 5-9 build those routes.
@@ -171,6 +182,32 @@ export const api = {
   },
 
   /**
+   * List the caller's care recipients (GET /api/v3/children), newest first, for the recipient switcher.
+   * AUTH REQUIRED. RLS-scoped, so it only ever returns the caller's own recipients. Unlike GET /child,
+   * an EMPTY list is a 200 (a fresh user with no recipient yet), NOT a 404: "you have no recipients" is a
+   * valid switcher state. Today the interim one-recipient guard means it is a single element; it is
+   * already correct for several recipients once that guard is lifted. The switcher picks the active
+   * child_id from this list; the app renders the rows and computes nothing.
+   */
+  getChildren(signal?: AbortSignal): Promise<CareRecipientProfile[]> {
+    return http<CareRecipientProfile[]>("/api/v3/children", { signal });
+  },
+
+  /**
+   * Create a care recipient (POST /api/v3/child). AUTH REQUIRED: user_id is taken from the session, never
+   * the client. The Settings "add a care recipient" entry adds a SECOND recipient with this. INTERIM
+   * GUARD: while the api's one-recipient guard is on, a second create is rejected with 409 (ApiError.status
+   * === 409); the caller catches that and shows a calm "one recipient for now / coming soon" message
+   * instead of crashing. Returns the created recipient so the caller can invalidate the ["children"] read.
+   */
+  createChild(payload: CareRecipientCreate): Promise<CareRecipientProfile> {
+    return http<CareRecipientProfile>("/api/v3/child", {
+      method: "POST",
+      body: payload,
+    });
+  },
+
+  /**
    * Update the care recipient (PUT /api/v3/child/{child_id}, partial). The Settings screen sends only
    * the changed fields (name, age_band, support_level_code, tags). The id comes from the GET /child
    * read, never the client's guess; RLS scopes the update to the caller (a forged id matches nothing,
@@ -187,9 +224,13 @@ export const api = {
     );
   },
 
-  /** The dashboard chapter feed: one status row per Life Chapter for the current user (Product.md §4.3). */
-  getChapters(signal?: AbortSignal): Promise<ChapterStatus[]> {
-    return http<ChapterStatus[]>("/api/v3/chapters", { signal });
+  /**
+   * The dashboard chapter feed: one status row per Life Chapter (Product.md §4.3) for ONE care recipient.
+   * `childId` selects which recipient (threaded as ?child_id=); omitted, the api defaults to the caller's
+   * sole recipient (single-recipient behaviour unchanged). A child_id the caller does not own is a 404.
+   */
+  getChapters(childId?: string | null, signal?: AbortSignal): Promise<ChapterStatus[]> {
+    return http<ChapterStatus[]>(`/api/v3/chapters${childQuery(childId)}`, { signal });
   },
 
   /** The activity picker list for a chapter (Product.md §4.5): each pickable activity + its tier. */
@@ -272,32 +313,46 @@ export const api = {
     });
   },
 
-  getOverallLci(signal?: AbortSignal): Promise<OverallLciSnapshot> {
-    return http<OverallLciSnapshot>("/api/v3/lci/overall", { signal });
-  },
-
-  getChapterLci(signal?: AbortSignal): Promise<ChapterLci[]> {
-    return http<ChapterLci[]>("/api/v3/lci/chapters", { signal });
+  /**
+   * ONE care recipient's overall resilience snapshot (GET /api/v3/lci/overall, Product.md §4.8). `childId`
+   * selects the recipient (?child_id=); omitted, the api defaults to the caller's sole recipient. The
+   * overall is a single recipient's resilience, never a household aggregate. A non-owned id is a 404.
+   */
+  getOverallLci(childId?: string | null, signal?: AbortSignal): Promise<OverallLciSnapshot> {
+    return http<OverallLciSnapshot>(`/api/v3/lci/overall${childQuery(childId)}`, { signal });
   },
 
   /**
-   * The active Erosion Alerts for the current user, one per chapter at most (Product.md §4.9). Each
-   * carries its level (1 to 3), the governed verbatim copy, the action label, and the support
-   * signposts; the app renders them and authors no alert wording.
+   * ONE care recipient's per-chapter LCI list (GET /api/v3/lci/chapters, Product.md §4.8). `childId`
+   * selects the recipient (?child_id=); omitted, the api defaults to the caller's sole recipient. Every
+   * value is for the selected recipient only. A non-owned id is a 404.
    */
-  getAlerts(signal?: AbortSignal): Promise<AlertRecord[]> {
-    return http<AlertRecord[]>("/api/v3/alerts", { signal });
+  getChapterLci(childId?: string | null, signal?: AbortSignal): Promise<ChapterLci[]> {
+    return http<ChapterLci[]>(`/api/v3/lci/chapters${childQuery(childId)}`, { signal });
   },
 
   /**
-   * Dismiss the active alert for a chapter (Product.md §4.9): POST /api/v3/alerts/{chapter}/dismiss.
-   * The api records the dismissal; a dismissed alert returns only if conditions worsen past the next
-   * threshold (the api decides, the app never re-raises a dismissed alert on its own). Returns 204.
+   * ONE care recipient's active Erosion Alerts, one per chapter at most (Product.md §4.9). Each carries
+   * its level (1 to 3), the governed verbatim copy, the action label, and the support signposts; the app
+   * renders them and authors no alert wording. `childId` selects the recipient (?child_id=); omitted, the
+   * api defaults to the caller's sole recipient. The list is one recipient's alerts, never two pooled.
    */
-  dismissAlert(chapter: ChapterCode): Promise<void> {
-    return http<void>(`/api/v3/alerts/${encodeURIComponent(chapter)}/dismiss`, {
-      method: "POST",
-    });
+  getAlerts(childId?: string | null, signal?: AbortSignal): Promise<AlertRecord[]> {
+    return http<AlertRecord[]>(`/api/v3/alerts${childQuery(childId)}`, { signal });
+  },
+
+  /**
+   * Dismiss ONE care recipient's active alert for a chapter (Product.md §4.9):
+   * POST /api/v3/alerts/{chapter}/dismiss. The api records the dismissal; a dismissed alert returns only
+   * if conditions worsen past the next threshold (the api decides, the app never re-raises a dismissed
+   * alert on its own). `childId` selects the recipient (?child_id=); omitted, the api defaults to the
+   * caller's sole recipient, and dismissing one recipient's alert never touches another's. Returns 204.
+   */
+  dismissAlert(chapter: ChapterCode, childId?: string | null): Promise<void> {
+    return http<void>(
+      `/api/v3/alerts/${encodeURIComponent(chapter)}/dismiss${childQuery(childId)}`,
+      { method: "POST" }
+    );
   },
 
   /**
