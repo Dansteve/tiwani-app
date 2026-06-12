@@ -55,7 +55,13 @@ const preparePlan = vi.fn();
 const getChildren = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
-  ApiError: class ApiError extends Error {},
+  ApiError: class ApiError extends Error {
+    status?: number;
+    constructor(status?: number) {
+      super();
+      this.status = status;
+    }
+  },
   api: {
     getChapterActivities: (...args: unknown[]) => getChapterActivities(...args),
     preparePlan: (...args: unknown[]) => preparePlan(...args),
@@ -63,6 +69,7 @@ vi.mock("@/lib/api/client", () => ({
   },
 }));
 
+import { ApiError } from "@/lib/api/client";
 import { PlanScreen } from "@/features/plan/PlanScreen";
 import { RecipientProvider } from "@/state/RecipientProvider";
 
@@ -148,6 +155,23 @@ describe("PlanScreen prepare flow", () => {
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(/could not build|something went wrong/i)
     );
+  });
+
+  it("nudges to onboarding (not the generic error) when preparing 409s with no care recipient", async () => {
+    preparePlan.mockRejectedValue(new ApiError(409, "no care recipient"));
+    renderScreen("social");
+    await screen.findByText("A birthday party");
+
+    fireEvent.click(screen.getByRole("button", { name: /a playdate/i }));
+    fireEvent.click(screen.getByRole("button", { name: /generate plan/i }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/finish setting up your care recipient/i);
+    expect(screen.getByRole("link", { name: /finish setup/i })).toHaveAttribute(
+      "href",
+      "/onboarding"
+    );
+    expect(alert).not.toHaveTextContent(/could not build/i);
   });
 
   it("sends a plain request (no today_flags key) when no flag is set", async () => {
