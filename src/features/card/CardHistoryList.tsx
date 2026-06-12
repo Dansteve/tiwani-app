@@ -24,6 +24,7 @@ import { Eye, FileDown, FilePlus2, Loader2, ShieldX } from "lucide-react";
 import { api, ApiError } from "@/lib/api/client";
 import type { CardSummary } from "@/lib/api/types";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { downloadBlob } from "@/lib/download";
 import { chapterLabel, formatCardDate } from "@/lib/format";
@@ -46,12 +47,9 @@ export function CardHistoryList() {
       </header>
 
       {query.isError ? (
-        <p
-          role="alert"
-          className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
+        <Alert variant="destructive">
           We could not load your cards just now. Please try again shortly.
-        </p>
+        </Alert>
       ) : null}
 
       {query.isLoading && !query.isError ? (
@@ -190,12 +188,9 @@ function ViewControl({ card }: { card: CardSummary }) {
               className="h-72 animate-pulse rounded-3xl bg-secondary"
             />
           ) : query.isError ? (
-            <p
-              role="alert"
-              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            >
+            <Alert variant="destructive">
               We could not load that card just now. Please try again.
-            </p>
+            </Alert>
           ) : query.data ? (
             <CardContentView content={query.data} />
           ) : null}
@@ -251,11 +246,8 @@ function DownloadPdfControl({ card }: { card: CardSummary }) {
         </Button>
         <div className="order-last basis-full">
           {isPaywall ? (
-            <div
-              role="alert"
-              className="space-y-2 rounded-md border border-border bg-secondary/50 px-3 py-2.5 text-sm"
-            >
-              <p className="font-medium text-foreground">
+            <Alert variant="default" className="space-y-2">
+              <p className="font-medium">
                 {error.message || "Saving a card as a PDF is part of a paid plan."}
               </p>
               <Link
@@ -264,16 +256,13 @@ function DownloadPdfControl({ card }: { card: CardSummary }) {
               >
                 See plans
               </Link>
-            </div>
+            </Alert>
           ) : (
-            <p
-              role="alert"
-              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            >
+            <Alert variant="destructive">
               {error instanceof ApiError && error.status === 404
                 ? "That card is no longer available to download. Refresh to see its current status."
                 : "We could not prepare the PDF just now. Please try again."}
-            </p>
+            </Alert>
           )}
         </div>
       </>
@@ -320,14 +309,11 @@ function RevokeControl({ card }: { card: CardSummary }) {
   if (mutation.isError) {
     return (
       <div className="order-last basis-full space-y-2">
-        <p
-          role="alert"
-          className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-        >
+        <Alert variant="destructive">
           {mutation.error instanceof ApiError && mutation.error.status === 404
             ? "That card is no longer available to revoke. Refresh to see its current status."
             : "We could not revoke that card just now. Please try again."}
-        </p>
+        </Alert>
         <Button
           type="button"
           variant="outline"
