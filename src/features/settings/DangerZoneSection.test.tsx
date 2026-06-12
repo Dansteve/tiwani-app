@@ -58,7 +58,7 @@ describe("DangerZoneSection (account deletion)", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("reveals an honest confirmation that states retention and avoids dark-pattern claims", async () => {
+  it("reveals an honest confirmation that states the 90-day recovery and avoids dark-pattern claims", async () => {
     const user = userEvent.setup();
     renderSection();
 
@@ -67,8 +67,10 @@ describe("DangerZoneSection (account deletion)", () => {
     // The confirmation explains the account is closed AND that data is retained, not erased on the spot.
     const body = await screen.findByText(/we do not delete everything on the spot/i);
     expect(body).toBeInTheDocument();
-    expect(body).toHaveTextContent(/kept for up to 5 years/i);
-    // It must NOT claim an immediate permanent deletion (the action is a soft delete + retention).
+    // The honest 90-day recovery wording: kept 90 days so you can reactivate by signing back in.
+    expect(body).toHaveTextContent(/kept for 90 days/i);
+    expect(body).toHaveTextContent(/reactivate your account simply by signing back in/i);
+    // It must NOT claim an immediate permanent deletion (the action is a soft delete + 90-day recovery).
     expect(screen.queryByText(/permanently deleted immediately/i)).not.toBeInTheDocument();
     // No call has been made just by opening the panel.
     expect(deleteMyAccount).not.toHaveBeenCalled();

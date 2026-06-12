@@ -475,12 +475,41 @@ export interface AccountExport {
 }
 
 /**
- * The account-closure confirmation (POST /api/v3/me/delete). Deletion is a SOFT delete: the api sets
- * user_profile.deleted_at and RETAINS the data per the retention policy (it is not erased immediately).
- * `deleted` is true on success; `deleted_at` is the ISO timestamp the account was closed at. After this
- * returns, the app signs the user out and every other api route treats the account as gone (410).
+ * The account-closure confirmation (POST /api/v3/me/delete). Deletion is a SOFT delete with a 90-day
+ * recovery window: the api sets user_profile.deleted_at and RETAINS the data for 90 days (it is not
+ * erased immediately; the user can reactivate by signing back in within the window). `deleted` is true
+ * on success; `deleted_at` is the ISO timestamp the account was closed at. After this returns, the app
+ * signs the user out and every other api route treats the account as gone (410) until it reactivates.
  */
 export interface AccountDeletionResult {
   deleted: boolean;
   deleted_at: string;
+}
+
+/**
+ * The account closure state + the computed 90-day recovery window (GET /api/v3/me/account-status).
+ * Mirrors the api's AccountStatus field-for-field. The app calls this after login (it works for a
+ * soft-deleted caller, the api's allow-deleted dependency): when `deleted` is true the app renders the
+ * reactivation interstitial instead of the dashboard. `deleted_at` is when the account was closed
+ * (null if active); `hard_delete_due_at` is the api-COMPUTED moment the data becomes due for the manual
+ * purge (deleted_at + 90 days; null if active), the app never computes it; `reactivatable` is true only
+ * while the account is deleted AND still inside the window, so the app offers reactivation exactly when
+ * it will succeed. The app renders these and computes neither the window nor the due date.
+ */
+export interface AccountStatus {
+  deleted: boolean;
+  deleted_at: string | null;
+  hard_delete_due_at: string | null;
+  reactivatable: boolean;
+}
+
+/**
+ * The reactivation confirmation (POST /api/v3/me/reactivate). Mirrors the api's ReactivateResult.
+ * `reactivated` is true on success (the soft-deleted account is live again, or was never closed). A
+ * reactivation attempted past the 90-day window is a 410 (ApiError.status === 410), not this body; the
+ * interstitial surfaces that as "this account can no longer be reactivated". On success the app proceeds
+ * into the app (re-reads account-status / routes to the dashboard).
+ */
+export interface ReactivateResult {
+  reactivated: boolean;
 }

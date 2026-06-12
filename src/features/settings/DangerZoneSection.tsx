@@ -3,14 +3,15 @@
 // The "Close account" Settings section: the account-deletion flow. It is a CALM, two-step confirm (no
 // guilt, no dark patterns): a single "Close my account" button reveals an honest explanation panel, and
 // only the explicit confirm inside it closes the account. On confirm it calls POST /api/v3/me/delete
-// (a SOFT delete: the api marks the account closed and RETAINS the data per the retention policy, it is
-// NOT erased on the spot) through the typed client, then signs the user out and routes to sign-in.
+// (a SOFT delete with a 90-day recovery window: the api marks the account closed and RETAINS the data,
+// it is NOT erased on the spot; the user can reactivate by signing back in within 90 days) through the
+// typed client, then signs the user out and routes to sign-in.
 //
-// The copy is deliberately FACTUAL and held in named constants below so the wording (and the retention
-// period) can be adjusted in one place: the board is reviewing the exact phrasing and the
-// retention-policy text in parallel. It must never claim the data is "permanently deleted immediately"
-// (it is soft-deleted and retained). Errors surface inline (the repo has no toast library; the pattern
-// is an inline role="alert" on the destructive token).
+// The copy is deliberately FACTUAL and held in named constants below so the wording (and the recovery
+// window) can be adjusted in one place. It must never claim the data is "permanently deleted
+// immediately" (it is soft-deleted and recoverable for 90 days, THEN permanently deleted). Errors
+// surface inline (the repo has no toast library; the pattern is an inline role="alert" on the
+// destructive token).
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -28,17 +29,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-// --- Copy (factual + calm; adjustable in one place while the board reviews the wording) -------------
-// The retention window the policy applies before the manual hard deletion. Surfaced honestly so the
-// confirmation never implies an immediate erase.
+// --- Copy (factual + calm; adjustable in one place) -------------------------------------------------
+// The recovery window the policy applies before the permanent deletion. Surfaced honestly so the
+// confirmation never implies an immediate erase, and so the reversibility (sign back in within 90 days)
+// is clear.
 const RETENTION_DESCRIPTION =
-  "your data is kept for up to 5 years to meet our legal and record-keeping obligations, then permanently deleted";
+  "your data is kept for 90 days so you can reactivate your account simply by signing back in, and after that it is permanently deleted";
 
 const COPY = {
   title: "Close account",
   /** The resting-state description, before the confirm step is opened. */
   description:
-    "Close your TIWANI account. You will be signed out, and you will not be able to sign back in to this account.",
+    "Close your TIWANI account. You will be signed out. You can reactivate within 90 days by signing back in; after that it is permanently deleted.",
   openButton: "Close my account",
   /** The confirmation-panel heading + body shown after the first click (step two). */
   confirmHeading: "Close your account?",

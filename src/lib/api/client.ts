@@ -11,6 +11,7 @@ import { env } from "@/lib/env";
 import type {
   AccountDeletionResult,
   AccountExport,
+  AccountStatus,
   AlertRecord,
   CardContent,
   CardCreated,
@@ -33,6 +34,7 @@ import type {
   ProfileUpdate,
   PulseOutcome,
   PulseRecord,
+  ReactivateResult,
   StrategyItem,
   UserProfile,
 } from "@/lib/api/types";
@@ -447,12 +449,37 @@ export const api = {
 
   /**
    * Close (delete) the caller's account (POST /api/v3/me/delete). AUTH REQUIRED. Deletion is a SOFT
-   * delete: the api sets user_profile.deleted_at and RETAINS the data per the retention policy (it is
-   * not erased immediately; the hard delete is done manually later). Idempotent. Returns the
-   * confirmation { deleted, deleted_at }. On success the Settings delete flow signs the user out; every
-   * other api route then treats the closed account as gone (410).
+   * delete with a 90-day recovery window: the api sets user_profile.deleted_at and RETAINS the data for
+   * 90 days (it is not erased immediately; the user can reactivate by signing back in within the
+   * window, then it is permanently deleted by a manual purge). Idempotent. Returns the confirmation
+   * { deleted, deleted_at }. On success the Settings delete flow signs the user out; every other api
+   * route then treats the closed account as gone (410) until it reactivates.
    */
   deleteMyAccount(): Promise<AccountDeletionResult> {
     return http<AccountDeletionResult>("/api/v3/me/delete", { method: "POST" });
+  },
+
+  /**
+   * The caller's account closure state + the computed 90-day recovery window (GET
+   * /api/v3/me/account-status). AUTH REQUIRED, and it works for a SOFT-DELETED caller (the api's
+   * allow-deleted dependency), which is the point: the app calls this after login to learn the account
+   * is closed so it can render the reactivation interstitial. Returns { deleted, deleted_at,
+   * hard_delete_due_at, reactivatable }; the app renders these and computes neither the window nor the
+   * due date.
+   */
+  getAccountStatus(signal?: AbortSignal): Promise<AccountStatus> {
+    return http<AccountStatus>("/api/v3/me/account-status", { signal });
+  },
+
+  /**
+   * Reactivate the caller's soft-deleted account within the 90-day window (POST /api/v3/me/reactivate).
+   * AUTH REQUIRED, and it works for a SOFT-DELETED caller (the allow-deleted dependency). Within the
+   * window the api clears user_profile.deleted_at and the account is live again; past the window it is a
+   * 410 (ApiError.status === 410) because the data is due for the manual purge. Returns { reactivated:
+   * true } on success. The interstitial calls this, then on success re-reads account-status and proceeds
+   * into the app.
+   */
+  reactivateAccount(): Promise<ReactivateResult> {
+    return http<ReactivateResult>("/api/v3/me/reactivate", { method: "POST" });
   },
 };
