@@ -417,6 +417,20 @@ export interface CareRecipientUpdate {
   tags?: TagCode[];
 }
 
+/**
+ * Create a care recipient (POST /api/v3/child). Mirrors the api's ChildProfileCreate (which extends
+ * ChildProfileBase): name is required (min length 1), the rest optional. user_id is never sent (the api
+ * takes it from the session). Used by the Settings "add a care recipient" entry to add a SECOND
+ * recipient. While the interim one-recipient guard is on, a second create is rejected with 409
+ * (ApiError.status === 409); the caller surfaces that as a calm "one recipient for now" message.
+ */
+export interface CareRecipientCreate {
+  name: string;
+  age_band?: string | null;
+  support_level_code?: SupportLevelCode;
+  tags?: TagCode[];
+}
+
 /** The onboarding payload, posted once at the end of the three-screen flow (Product.md §4.2). */
 export interface OnboardingPayload {
   name: string;

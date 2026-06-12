@@ -20,6 +20,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/LogoutButton";
+import { RecipientSwitcher } from "@/components/RecipientSwitcher";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 
 interface NavItem {
@@ -64,6 +65,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Quick theme toggle in the shell header; the full selector lives in Settings. */}
           <ThemeToggle variant="icon" />
         </div>
+
+        {/* The care-recipient switcher: renders only when the Coordinator has more than one recipient
+            (a single-recipient user sees nothing here). Switching re-scopes every per-recipient read. */}
+        <RecipientSwitcher surface="sidebar" className="mt-6" />
+
         <nav className="mt-8 flex flex-col gap-1" aria-label="Primary">
           {NAV.map((item) => {
             const active = isActive(pathname, item.href);
@@ -127,6 +133,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Content: room for the sidebar on desktop, room for the bottom tabs on mobile. */}
       <div className="lg:pl-60">
         <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 lg:pb-10 lg:pt-10">
+          {/* On mobile / tablet the sidebar is hidden, so the recipient switcher rides at the top of the
+              content (still only when there is more than one recipient). On desktop it lives in the
+              sidebar above, so this copy is hidden there. */}
+          <RecipientSwitcher surface="content" className="mb-6 max-w-xs lg:hidden" />
           {children}
         </main>
       </div>

@@ -16,6 +16,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { CHAPTERS, chapterLabel, greeting } from "@/lib/format";
 import type { ChapterStatus } from "@/lib/api/types";
+import { useRecipient } from "@/state/RecipientProvider";
+import { recipientKey } from "@/state/selectedRecipient";
 import { chapterStatus } from "@/features/dashboard/status";
 import { ChapterCard } from "@/features/dashboard/ChapterCard";
 import { OverallLciIndicator } from "@/features/continuity/OverallLciIndicator";
@@ -44,22 +46,31 @@ function orderChapters(rows: ChapterStatus[]): ChapterStatus[] {
 }
 
 export function DashboardScreen() {
+  // The active care recipient: every per-recipient read below is scoped to it (in the query key, so a
+  // switch refetches, and in the api call). Single-recipient resolves to that one and the key is stable.
+  // The reads gate on `ready` (the recipients list has settled) so they fire ONCE under the resolved
+  // child_id, never first under the default and then again after the list loads.
+  const { activeChildId, ready } = useRecipient();
+  const childKey = recipientKey(activeChildId);
+
   const profileQuery = useQuery({
     queryKey: ["profile"],
     queryFn: ({ signal }) => api.me(signal),
   });
 
   const chaptersQuery = useQuery({
-    queryKey: ["chapters"],
-    queryFn: ({ signal }) => api.getChapters(signal),
+    queryKey: ["chapters", childKey],
+    queryFn: ({ signal }) => api.getChapters(activeChildId, signal),
+    enabled: ready,
   });
 
   // The overall LCI for the header indicator (Product.md §4.8). Independent of the chapter feed: if it
   // is unavailable the indicator simply does not render (the dashboard still works); the screen never
   // computes the index, it renders what the api returns.
   const overallLciQuery = useQuery({
-    queryKey: ["lci", "overall"],
-    queryFn: ({ signal }) => api.getOverallLci(signal),
+    queryKey: ["lci", "overall", childKey],
+    queryFn: ({ signal }) => api.getOverallLci(activeChildId, signal),
+    enabled: ready,
   });
 
   // The active Erosion Alerts (Product.md §4.9). One read for all three placements: the L2 cards and

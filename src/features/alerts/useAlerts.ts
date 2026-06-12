@@ -15,6 +15,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
 import type { AlertRecord, ChapterCode } from "@/lib/api/types";
+import { useRecipient } from "@/state/RecipientProvider";
+import { recipientKey } from "@/state/selectedRecipient";
 
 export interface UseAlertsResult {
   /** Level 1 alerts keyed by chapter, for the per-chapter card banner + dot. */
@@ -33,24 +35,32 @@ export interface UseAlertsResult {
 
 export function useAlerts(): UseAlertsResult {
   const queryClient = useQueryClient();
+  // The active care recipient: alerts are per recipient, so the read and the dismissal are scoped to it
+  // (the key namespaces the cache so a switch refetches that recipient's alerts). The read gates on
+  // `ready` (the recipients list has settled) so it fires once under the resolved child_id.
+  const { activeChildId, ready } = useRecipient();
+  const childKey = recipientKey(activeChildId);
 
-  // Chapters dismissed in THIS view: hidden immediately so the tap is responsive. The persistent
-  // truth is the api (a dismissed alert returns only on escalation); this set just bridges the gap
-  // until the invalidated query comes back without it.
-  const [dismissedThisView, setDismissedThisView] = useState<Set<ChapterCode>>(
-    () => new Set()
-  );
+  // Alerts dismissed in THIS view, hidden immediately so the tap is responsive. The persistent truth is
+  // the api (a dismissed alert returns only on escalation); this set just bridges the gap until the
+  // invalidated query comes back without it. Each entry is keyed by recipient AND chapter
+  // (`${childKey}::${chapter}`), so a chapter dismissed for one recipient never looks dismissed for
+  // another (and switching back to a recipient keeps its own view-local dismissals). Keying it avoids
+  // resetting state on a recipient change, which the React Compiler lint forbids in an effect.
+  const [dismissedThisView, setDismissedThisView] = useState<Set<string>>(() => new Set());
 
   const alertsQuery = useQuery({
-    queryKey: ["alerts"],
-    queryFn: ({ signal }) => api.getAlerts(signal),
+    queryKey: ["alerts", childKey],
+    queryFn: ({ signal }) => api.getAlerts(activeChildId, signal),
+    enabled: ready,
   });
 
   const dismissMutation = useMutation({
-    mutationFn: (chapter: ChapterCode) => api.dismissAlert(chapter),
+    mutationFn: (chapter: ChapterCode) => api.dismissAlert(chapter, activeChildId),
     onSettled: () => {
       // The alert is gone server-side; refresh the alerts and the chapter feed (the card dot/colour
-      // is fed by the alert, so it clears with the same read).
+      // is fed by the alert, so it clears with the same read). Invalidating the ["alerts"] / ["chapters"]
+      // prefixes matches the recipient-namespaced keys, so the active recipient's reads refetch.
       queryClient.invalidateQueries({ queryKey: ["alerts"] });
       queryClient.invalidateQueries({ queryKey: ["chapters"] });
     },
@@ -58,16 +68,18 @@ export function useAlerts(): UseAlertsResult {
 
   const dismiss = useCallback(
     (chapter: ChapterCode) => {
-      setDismissedThisView((prev) => new Set(prev).add(chapter));
+      setDismissedThisView((prev) => new Set(prev).add(`${childKey}::${chapter}`));
       dismissMutation.mutate(chapter);
     },
-    [dismissMutation]
+    [dismissMutation, childKey]
   );
 
   const active = useMemo(
     () =>
-      (alertsQuery.data ?? []).filter((alert) => !dismissedThisView.has(alert.chapter)),
-    [alertsQuery.data, dismissedThisView]
+      (alertsQuery.data ?? []).filter(
+        (alert) => !dismissedThisView.has(`${childKey}::${alert.chapter}`)
+      ),
+    [alertsQuery.data, dismissedThisView, childKey]
   );
 
   const cardAlertByChapter = useMemo(() => {
