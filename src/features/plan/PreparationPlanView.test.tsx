@@ -144,7 +144,11 @@ function makeLibraryPlan(overrides: Partial<PreparationPlan> = {}): PreparationP
         title: "Arrive early",
         detail: "Get there before the crowd so the room fills up gradually.",
         library_item_id: "lib_arrive",
-        also_worked_in: ["travel", "family"],
+        // The api returns { chapter, label } per source chapter (the app renders via chapterLabel(chapter)).
+        also_worked_in: [
+          { chapter: "travel", label: "Also worked in travel" },
+          { chapter: "family", label: "Also worked in family" },
+        ],
       },
       {
         title: "Plan an exit",

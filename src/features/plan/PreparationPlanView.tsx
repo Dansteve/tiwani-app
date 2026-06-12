@@ -171,7 +171,7 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
             {visibleStrategies.map(({ strategy, index }) => {
               // The cross-context chapters still showing (not locally dismissed), one label each.
               const alsoWorkedIn = (strategy.also_worked_in ?? []).filter(
-                (chapter) => !dismissedLabels.has(`${index}::${chapter}`)
+                (entry) => !dismissedLabels.has(`${index}::${entry.chapter}`)
               );
               return (
                 <li key={index}>
@@ -193,12 +193,12 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
                     </details>
                     {alsoWorkedIn.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5 px-2.5 pb-1.5">
-                        {alsoWorkedIn.map((chapter) => (
+                        {alsoWorkedIn.map((entry) => (
                           <AlsoWorkedInLabel
-                            key={chapter}
-                            chapter={chapter}
+                            key={entry.chapter}
+                            chapter={entry.chapter}
                             strategyTitle={strategy.title}
-                            onDismiss={() => dismissLabel(index, chapter)}
+                            onDismiss={() => dismissLabel(index, entry.chapter)}
                           />
                         ))}
                       </div>

@@ -131,17 +131,28 @@ export interface ChapterActivity {
  *                    (POST /api/v3/strategies/{library_item_id}/suppress | /allow). OPTIONAL: a line
  *                    with no id (a freshly seeded strategy not yet a library item, or a legacy stored
  *                    plan) can still be hidden from the view locally, but cannot be suppressed api-side.
- *   also_worked_in   the chapter codes where this strategy had positive outcomes in OTHER chapters
- *                    (the "Also worked in [chapter]" cross-context label, dismissible per chapter,
- *                    Product.md §4.10). Typed as ChapterCode[] (the app's chapter vocabulary): the label
- *                    renders chapterLabel(code), so a non-chapter string would have no human label.
- *                    OPTIONAL/absent when the strategy has no cross-context history.
+ *   also_worked_in   the cross-context "Also worked in [chapter]" tags: the api returns one
+ *                    { chapter, label } object per source chapter the strategy succeeded in
+ *                    (Product.md §4.10; the api's AlsoWorkedIn model). Dismissible per chapter (local
+ *                    for the MVP). The app renders the chapter's own name via chapterLabel(entry.chapter)
+ *                    for parity with how it labels chapters everywhere. OPTIONAL/absent (or []) with no
+ *                    cross-context history.
+ *   also_worked_in_chapter  the scalar source-chapter code the api keeps for the lighter stored-plan
+ *                    mirror (the activity_record stores this scalar); null for a starter strategy.
  */
+export interface AlsoWorkedIn {
+  /** The source chapter the strategy succeeded in (the app reads its human name via chapterLabel). */
+  chapter: ChapterCode;
+  /** The api's ready "Also worked in [display name]" text; the app renders from `chapter` for parity. */
+  label: string;
+}
+
 export interface PlanStrategy {
   title: string;
   detail: string;
   library_item_id?: string;
-  also_worked_in?: ChapterCode[];
+  also_worked_in?: AlsoWorkedIn[];
+  also_worked_in_chapter?: ChapterCode | null;
 }
 
 /**
