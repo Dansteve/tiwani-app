@@ -12,6 +12,7 @@ import { CalendarClock, Info } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import { env } from "@/lib/env";
+import { Wordmark } from "@/components/Wordmark";
 import { CardContentView } from "@/features/card/CardContentView";
 
 export function PublicCardView({ token }: { token: string | null }) {
@@ -29,7 +30,7 @@ export function PublicCardView({ token }: { token: string | null }) {
 function PublicCardHeader() {
   return (
     <header className="flex items-center justify-between">
-      <span className="text-xl font-semibold text-primary">TIWANI</span>
+      <Wordmark className="text-xl" />
       <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Support summary
       </span>

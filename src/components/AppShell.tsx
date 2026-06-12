@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { Wordmark } from "@/components/Wordmark";
 import { LogoutButton } from "@/components/LogoutButton";
 import { RecipientSwitcher } from "@/components/RecipientSwitcher";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
@@ -59,8 +60,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar (lg and up). */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar px-4 py-6 lg:flex">
         <div className="flex items-center justify-between gap-2 pl-2">
-          <Link href="/dashboard" className="text-xl font-semibold text-sidebar-foreground">
-            TIWANI
+          <Link href="/dashboard" aria-label="TIWANI dashboard">
+            <Wordmark className="text-xl" />
           </Link>
           {/* Quick theme toggle in the shell header; the full selector lives in Settings. */}
           <ThemeToggle variant="icon" />

@@ -15,6 +15,7 @@ import { useMutation } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/Stepper";
+import { Wordmark } from "@/components/Wordmark";
 import { api, ApiError } from "@/lib/api/client";
 import {
   buildPayload,
@@ -103,7 +104,7 @@ export function OnboardingFlow() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 py-8">
       <div className="flex items-center justify-between">
-        <span className="text-xl font-semibold text-primary">TIWANI</span>
+        <Wordmark className="text-xl" />
         <button
           type="button"
           onClick={handleSkip}

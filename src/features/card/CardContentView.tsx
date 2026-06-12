@@ -21,6 +21,7 @@ import type { Ref } from "react";
 import { Check, Heart, LifeBuoy, ShieldCheck, Share2 } from "lucide-react";
 
 import type { CardContent } from "@/lib/api/types";
+import { Wordmark } from "@/components/Wordmark";
 import { cardTierLabel } from "@/features/card/shareUrl";
 
 /**
@@ -51,13 +52,7 @@ export function CardContentView({
       >
         {/* Header: the TIWANI wordmark + coral dot, and a "Continuity Card" pill. */}
         <header className="flex items-center justify-between gap-3 px-6 pt-6 sm:px-8 sm:pt-7">
-          <div className="flex items-center gap-1.5">
-            <span className="text-lg font-semibold tracking-tight">TIWANI</span>
-            <span
-              aria-hidden="true"
-              className="size-1.5 rounded-full bg-tiwani-coral"
-            />
-          </div>
+          <Wordmark className="text-lg" tone="light" />
           <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-tiwani-teal-near-white">
             Continuity Card
           </span>

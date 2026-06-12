@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
+import { Wordmark } from "@/components/Wordmark";
 
 // The app entry: a calm, on-brand welcome. Get started goes to sign-up (then onboarding after the
 // account is made, never straight to the dashboard, Product.md §4.1); returning Coordinators sign in.
@@ -10,7 +11,7 @@ import { buttonVariants } from "@/components/ui/button";
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-10">
-      <span className="text-xl font-semibold text-primary">TIWANI</span>
+      <Wordmark className="text-xl" />
       <h1 className="mt-6 text-3xl font-semibold md:text-4xl">
         Keep life holding.
       </h1>
