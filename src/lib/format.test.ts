@@ -7,6 +7,7 @@ import { describe, it, expect } from "vitest";
 
 import {
   formatLci,
+  formatPence,
   lciBand,
   sparseDataNote,
   trajectoryLabel,
@@ -71,5 +72,26 @@ describe("trajectoryLabel", () => {
     for (const [value, label] of Object.entries(cases)) {
       expect(trajectoryLabel(value as Trajectory)).toBe(label);
     }
+  });
+});
+
+describe("formatPence", () => {
+  it("shows -- when there is no price (null or undefined)", () => {
+    expect(formatPence(null)).toBe("--");
+    expect(formatPence(undefined)).toBe("--");
+  });
+
+  it("shows 'Free' for a zero price (the free tier)", () => {
+    expect(formatPence(0)).toBe("Free");
+  });
+
+  it("formats integer pence as a GBP pounds amount with two decimals", () => {
+    // 1999 pence -> £19.99, 2999 -> £29.99 (the seeded standard/premium monthly prices).
+    expect(formatPence(1999)).toBe("£19.99");
+    expect(formatPence(2999)).toBe("£29.99");
+    // A whole-pound amount still shows the .00 (consistent decimal places).
+    expect(formatPence(500)).toBe("£5.00");
+    // A single trailing penny is not dropped.
+    expect(formatPence(1)).toBe("£0.01");
   });
 });
