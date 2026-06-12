@@ -40,6 +40,16 @@ import type {
   PulseOutcome,
   PulseRecord,
   ReactivateResult,
+  ShareConsentCreate,
+  ShareConsentRecorded,
+  ShareInviteCreate,
+  ShareInviteCreated,
+  ShareRedeemRequest,
+  ShareRedeemResult,
+  ShareRevokeResult,
+  ShareRoster,
+  SharedCard,
+  SharedWithMe,
   StrategyItem,
   UserProfile,
 } from "@/lib/api/types";
@@ -635,5 +645,126 @@ export const api = {
       method: "POST",
       body: { tier_key: tierKey, cadence },
     });
+  },
+
+  // --- Shared-Child sharing (Docs/FeatureDecisions.md 2026-06-12 "Shared Child / Co-Coordinator
+  // access"). The Coordinator shares ONE care recipient; the recipient sees only that recipient's
+  // Continuity Card (the visibility ceiling). All routes are AUTH REQUIRED (the bearer is attached by
+  // http()); the api scopes everything by recipient_id + RLS, so a forged id matches nothing (404). ---
+
+  /**
+   * Mint an email-bound, single-use, expiring invite to share ONE care recipient (POST
+   * /api/v3/sharing/invites). Body is { recipient_id, email, role?, subject_kind? } (mirrors the api's
+   * invite create): recipient_id is the ACTIVE recipient from the switcher (the api verifies it is the
+   * caller's, 404 if not); email binds the invite; subject_kind selects the consent path. Returns 201
+   * ShareInviteCreated (the redeem token + the governed copy key + the recorded consent text). A 409
+   * (ApiError.status === 409) means an ADULT share with no recorded adult consent yet; the caller records
+   * consent first (recordShareConsent), then retries. The app builds the redeem link from the token and
+   * appends no PII (the link still needs an account to redeem).
+   */
+  createShareInvite(payload: ShareInviteCreate): Promise<ShareInviteCreated> {
+    return http<ShareInviteCreated>("/api/v3/sharing/invites", {
+      method: "POST",
+      body: payload,
+    });
+  },
+
+  /**
+   * Record an ADULT recipient's consent before an invite can mint (POST /api/v3/sharing/consent). Body is
+   * { recipient_id }; the api verifies the recipient is the caller's (404 if not), builds + stores the
+   * recorded-consent text, and returns 200 ShareConsentRecorded (the consent id + the governed copy key +
+   * the built consent_text). A child share does NOT call this (its consent is captured inline on the
+   * invite); this clears the adult-share 409 so the subsequent createShareInvite succeeds.
+   */
+  recordShareConsent(payload: ShareConsentCreate): Promise<ShareConsentRecorded> {
+    return http<ShareConsentRecorded>("/api/v3/sharing/consent", {
+      method: "POST",
+      body: payload,
+    });
+  },
+
+  /**
+   * Redeem an invite token to gain access to a shared recipient (POST /api/v3/sharing/redeem). AUTH
+   * REQUIRED: the recipient is signed in with THEIR own account; the invite is email-bound, so the
+   * session email must match the invited email. Body is { token }. Returns 200 ShareRedeemResult
+   * (the recipient_id + first name + the governed "you now have access" copy key). A 400 (ApiError.status
+   * === 400) covers every bad-token case at once (unknown / expired / used / revoked / wrong email); the
+   * caller shows one calm "this link can't be opened" state, never the raw reason.
+   */
+  redeemShare(payload: ShareRedeemRequest): Promise<ShareRedeemResult> {
+    return http<ShareRedeemResult>("/api/v3/sharing/redeem", {
+      method: "POST",
+      body: payload,
+    });
+  },
+
+  /**
+   * The "who can see [name]" roster for ONE recipient (GET
+   * /api/v3/sharing/recipients/{recipient_id}/roster). AUTH REQUIRED. Returns 200 ShareRoster (the
+   * recipient first name + the governed title/empty copy keys + the active + pending entries). A 404 means
+   * the recipient is not the caller's (RLS-scoped). The app renders the rows + the revoke actions and
+   * computes no state; an active entry revokes by membership_id, a pending one by invite_id.
+   */
+  getShareRoster(recipientId: string, signal?: AbortSignal): Promise<ShareRoster> {
+    return http<ShareRoster>(
+      `/api/v3/sharing/recipients/${encodeURIComponent(recipientId)}/roster`,
+      { signal }
+    );
+  },
+
+  /**
+   * Revoke an ACTIVE membership on a recipient (DELETE
+   * /api/v3/sharing/recipients/{recipient_id}/members/{membership_id}), which stops that person resolving
+   * the recipient on their next request (RLS; a retained soft-revoke audit row, the 0008 precedent). AUTH
+   * REQUIRED. Returns 200 ShareRevokeResult (revoked + the governed confirm copy key). A 404 means the
+   * membership is not the caller's; the caller surfaces it inline and refetches the roster to drop the row.
+   */
+  revokeShareMembership(
+    recipientId: string,
+    membershipId: string
+  ): Promise<ShareRevokeResult> {
+    return http<ShareRevokeResult>(
+      `/api/v3/sharing/recipients/${encodeURIComponent(recipientId)}/members/${encodeURIComponent(membershipId)}`,
+      { method: "DELETE" }
+    );
+  },
+
+  /**
+   * Revoke a PENDING invite on a recipient (DELETE
+   * /api/v3/sharing/recipients/{recipient_id}/invites/{invite_id}), so the unredeemed link can no longer
+   * be redeemed. AUTH REQUIRED. Returns 200 ShareRevokeResult. A 404 means the invite is not the caller's;
+   * the caller surfaces it inline and refetches the roster to drop the row. Same shape as the membership
+   * revoke, a different target (an unredeemed invite rather than a live membership).
+   */
+  revokeShareInvite(recipientId: string, inviteId: string): Promise<ShareRevokeResult> {
+    return http<ShareRevokeResult>(
+      `/api/v3/sharing/recipients/${encodeURIComponent(recipientId)}/invites/${encodeURIComponent(inviteId)}`,
+      { method: "DELETE" }
+    );
+  },
+
+  /**
+   * The recipients another Coordinator has shared WITH the caller (GET /api/v3/sharing/shared-with-me),
+   * for the "shared with you" linked-state. AUTH REQUIRED. Returns 200 SharedWithMe (a recipients list,
+   * empty when nothing is shared with the caller, which is a valid state, not a 404). The app lists them
+   * and reads one recipient's shared card on selection.
+   */
+  getSharedWithMe(signal?: AbortSignal): Promise<SharedWithMe> {
+    return http<SharedWithMe>("/api/v3/sharing/shared-with-me", { signal });
+  },
+
+  /**
+   * The Continuity Card a shared-with recipient is allowed to see (GET
+   * /api/v3/sharing/recipients/{recipient_id}/card), the VISIBILITY CEILING (a viewer sees ONLY the Card,
+   * never the profile / LCI / alerts). AUTH REQUIRED, membership-gated server-side. Returns 200 SharedCard
+   * (the same safe CardContent the public card uses, so the app renders it with CardContentView). A 404
+   * means the caller is NOT a member OR there is no live card for the recipient (NEVER the profile in
+   * either case); the app shows a calm "no card to show yet" state.
+   */
+  getSharedCard(recipientId: string, signal?: AbortSignal): Promise<SharedCard> {
+    return http<SharedCard>(
+      `/api/v3/sharing/recipients/${encodeURIComponent(recipientId)}/card`,
+      { signal }
+    );
   },
 };

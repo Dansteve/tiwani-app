@@ -601,3 +601,246 @@ export type BillingCadence = "monthly" | "yearly";
 export interface CheckoutSession {
   url: string;
 }
+
+// --- Shared-Child sharing (Docs/FeatureDecisions.md 2026-06-12 "Shared Child / Co-Coordinator access") ---
+//
+// A Coordinator shares ONE care recipient with another person: they mint an email-bound invite, the
+// other person redeems it with their own account, and from then on they see ONLY that recipient's
+// Continuity Card (GET /api/v3/sharing/recipients/{recipient_id}/card), never the raw profile / LCI /
+// alerts. The Card is the VISIBILITY CEILING (the decision's mandatory refinement A1). The Coordinator
+// sees a "who can see [name]" roster and revokes any link instantly; a revoked row stops resolving
+// server-side (a soft-revoke audit row is retained, the 0008 precedent). Consent is first-class
+// per-recipient: a child share carries the responsible-adult consent text, an adult share needs a
+// recorded recipient consent first or the invite is blocked (409). `recipient_id` here is a care
+// recipient (child) id; the api scopes everything by that id + RLS, never the client's word.
+//
+// GOVERNED COPY: the api returns a `copy_key`; the app renders the governed string for it (the keys map
+// to features/sharing/copy.ts). The user-facing surfaces NEVER show the role names ("viewer"/"owner");
+// the role is a wire value, the copy is what the user reads (the decision's refinement A7).
+
+/**
+ * The roles the api can carry on a share (the api's ShareRole). `owner` is the creating Coordinator (it
+ * is NEVER invited, only the creator holds it); the INVITABLE subset is `viewer` (the MVP-issued
+ * read-only role, sees the Card) and `editor` (reserved for a co-coordinator, not the MVP-issued role).
+ * The app treats this as a wire value only: it NEVER renders these words to the user (governed copy is
+ * shown instead), it only uses them to reason about what an entry can do.
+ */
+export type ShareRole = "owner" | "viewer" | "editor";
+
+/**
+ * What kind of person a share is about (the api's SubjectKind): `child` (the MVP case, the creating
+ * Coordinator consents as the responsible adult) or `adult` (a capacitous adult recipient, D8, who must
+ * have a recorded consent before any invite mints, else the api blocks it with a 409). The app sends
+ * this on the invite so the api selects the right consent path and the right governed copy key.
+ */
+export type ShareSubjectKind = "child" | "adult";
+
+/**
+ * The governed copy keys the api returns for the sharing surfaces. The api returns the KEY; the app
+ * renders the governed string (features/sharing/copy.ts) and never authors the wording, the same way it
+ * renders the api's verbatim alert/card copy. The keys (the decision's refinement A7):
+ *   sharing.invite.intro     a calm intro on the share-an-invite flow.
+ *   sharing.linked.intro     the warm "you now have access to [name]'s card" line for the recipient.
+ *   sharing.consent.child    the responsible-adult consent text for a CHILD share ("I confirm I have
+ *                            the authority to share [name]'s information"). The BUILT string is what the
+ *                            api stores verbatim in share_consent.consent_text, so it must match exactly.
+ *   sharing.consent.adult    the recorded-consent text for an ADULT recipient share.
+ *   sharing.roster.title     the "who can see [name]" roster heading.
+ *   sharing.roster.empty     the calm empty-roster line (no one has access yet).
+ *   sharing.revoked.confirm  the confirmation shown after a link is revoked.
+ *   sharing.adult_blocked    the calm capacity-framed copy for the 409 (adult share, no recorded consent).
+ */
+export type ShareCopyKey =
+  | "sharing.invite.intro"
+  | "sharing.linked.intro"
+  | "sharing.consent.child"
+  | "sharing.consent.adult"
+  | "sharing.roster.title"
+  | "sharing.roster.empty"
+  | "sharing.revoked.confirm"
+  | "sharing.adult_blocked";
+
+/**
+ * The POST /api/v3/sharing/invites response (201 InviteCreated). The Coordinator minted an email-bound,
+ * single-use, expiring invite for ONE recipient. Mirrors the api field-for-field:
+ *   invite_id     the invite row id (the key the roster revokes a PENDING invite by).
+ *   token         the opaque redeem secret; the app builds the redeem link from it (and appends no PII).
+ *                 Unlike a card token this link needs an ACCOUNT to redeem (the recipient signs in first).
+ *   role          the granted role (the invitable subset, viewer for the MVP); a wire value, never shown.
+ *   expires_at    when the invite link stops working (ISO).
+ *   copy_key      the governed copy key for the intro (sharing.invite.intro); the app renders its string.
+ *   consent_text  the BUILT consent string that was recorded for this share (verbatim, as stored in
+ *                 share_consent.consent_text). The app shows it back so the Coordinator sees exactly what
+ *                 they confirmed; it is the responsible-adult / recorded-recipient consent text.
+ */
+export interface ShareInviteCreated {
+  invite_id: string;
+  token: string;
+  role: ShareRole;
+  expires_at: string;
+  copy_key: ShareCopyKey;
+  consent_text: string;
+}
+
+/**
+ * The POST /api/v3/sharing/consent response (200 ConsentRecorded). For an ADULT recipient share the
+ * Coordinator records the recipient's consent BEFORE an invite can mint (the api's adult-consent gate;
+ * without it the invite is a 409). Mirrors the api: the new consent row id, the governed copy key
+ * (sharing.consent.adult), and the BUILT consent_text the api stored verbatim. A child share does not
+ * use this endpoint (its consent is captured inline on the invite).
+ */
+export interface ShareConsentRecorded {
+  consent_id: string;
+  copy_key: ShareCopyKey;
+  consent_text: string;
+}
+
+/**
+ * The POST /api/v3/sharing/redeem response (200 RedeemResult). The recipient (signed in with THEIR own
+ * account) redeemed the invite token and is now linked to the recipient. Mirrors the api:
+ *   recipient_id          the care recipient they now have access to (the id their shared-card read uses).
+ *   recipient_first_name  that recipient's first name (the only PII, the warm label the app shows).
+ *   role                  the role they were granted (a wire value, never shown to the user).
+ *   copy_key              the governed "you now have access" copy key (sharing.linked.intro).
+ * A 400 (ApiError.status === 400) covers every bad-token case at once (unknown / expired / already used /
+ * revoked / wrong signed-in email); the app shows one calm "this link can't be opened" state, never the
+ * raw reason (it would leak which links exist).
+ */
+export interface ShareRedeemResult {
+  recipient_id: string;
+  recipient_first_name: string;
+  role: ShareRole;
+  copy_key: ShareCopyKey;
+}
+
+/**
+ * One row on the "who can see [name]" roster (the api's RosterEntry). Two kinds:
+ *   kind === "active"   a redeemed membership (someone who has access now); revoke it by membership_id
+ *                       (DELETE .../members/{id}); `granted_at` is when they linked.
+ *   kind === "pending"  an invite that has not been redeemed yet; revoke it by invite_id
+ *                       (DELETE .../invites/{id}); `invited_at` is when it was sent, `expires_at` when it
+ *                       lapses on its own.
+ * `id` is the id the matching revoke call uses (a membership_id for active, an invite_id for pending).
+ * `email` is the invited / linked email (the human label); `role` is the wire role (never shown);
+ * `status` is the api's short status string (the app may show it as a quiet caption). The timestamps are
+ * nullable because they only apply to one kind. The app renders these rows and computes no state.
+ */
+export interface RosterEntry {
+  id: string;
+  kind: "active" | "pending";
+  email?: string;
+  role: ShareRole;
+  status: string;
+  granted_at?: string | null;
+  invited_at?: string | null;
+  expires_at?: string | null;
+}
+
+/**
+ * The GET /api/v3/sharing/recipients/{recipient_id}/roster response (200 Roster). The "who can see
+ * [name]" list for ONE recipient. Mirrors the api:
+ *   recipient_id          the recipient the roster is for.
+ *   recipient_first_name  that recipient's first name (the warm label in the heading).
+ *   title_copy_key        the governed roster-title copy key (sharing.roster.title).
+ *   empty_copy_key        the governed empty-state copy key (sharing.roster.empty).
+ *   entries               the active + pending rows (empty when no one has access). A 404 means the
+ *                         recipient is not the caller's (RLS-scoped, a foreign or unknown id matches none).
+ */
+export interface ShareRoster {
+  recipient_id: string;
+  recipient_first_name: string;
+  title_copy_key: ShareCopyKey;
+  empty_copy_key: ShareCopyKey;
+  entries: RosterEntry[];
+}
+
+/**
+ * The DELETE revoke response, shared by both revoke routes (members/{id} and invites/{id}), 200
+ * RevokeResult. The link stops resolving immediately server-side (RLS; a retained soft-revoke audit row
+ * is the 0008 precedent). Mirrors the api: `revoked` true on success, and the governed copy key for the
+ * confirmation (sharing.revoked.confirm). A 404 means the membership/invite is not the caller's; the app
+ * surfaces that inline and leaves the roster as-is (then refetches to drop the row).
+ */
+export interface ShareRevokeResult {
+  revoked: boolean;
+  copy_key: ShareCopyKey;
+}
+
+/**
+ * One recipient that has been shared WITH the caller (the api's SharedRecipient), on the "shared with
+ * you" list. Mirrors the api:
+ *   recipient_id          the recipient the caller can see (the id its shared-card read uses).
+ *   recipient_first_name  that recipient's first name (the only PII, the warm label the app shows).
+ *   role                  the caller's role on it (a wire value, never shown).
+ *   copy_key              the governed "you have access to [name]" copy key (sharing.linked.intro).
+ */
+export interface SharedRecipient {
+  recipient_id: string;
+  recipient_first_name: string;
+  role: ShareRole;
+  copy_key: ShareCopyKey;
+}
+
+/**
+ * The GET /api/v3/sharing/shared-with-me response (200 SharedWithMe). Every recipient another Coordinator
+ * has shared with the caller, for the recipient's "shared with you" linked-state. Mirrors the api: a
+ * `recipients` list (empty when nothing is shared with the caller). The caller picks one and reads its
+ * shared card.
+ */
+export interface SharedWithMe {
+  recipients: SharedRecipient[];
+}
+
+/**
+ * The GET /api/v3/sharing/recipients/{recipient_id}/card response (200 SharedCard). The Continuity Card a
+ * shared-with recipient is allowed to see, the VISIBILITY CEILING (the decision's refinement A1: a viewer
+ * sees ONLY the Card, never the profile / LCI / alerts). Mirrors the api:
+ *   recipient_id  the recipient the card is for.
+ *   copy_key      the governed linked-state copy key (sharing.linked.intro), shown above the card.
+ *   content       the SAME safe CardContent the public card uses, so the app renders it with the shared
+ *                 CardContentView (one card layout, never two). A 404 means the caller is NOT a member OR
+ *                 there is no live card for the recipient (the api never returns the profile in either
+ *                 case); the app shows a calm "no card to show yet" state.
+ */
+export interface SharedCard {
+  recipient_id: string;
+  copy_key: ShareCopyKey;
+  content: CardContent;
+}
+
+// --- Sharing request payloads ---
+
+/**
+ * The POST /api/v3/sharing/invites body. The Coordinator mints an invite for ONE recipient:
+ *   recipient_id  the care recipient to share (the active recipient from the switcher); the api verifies
+ *                 it is the caller's (404 if not, never the client's word).
+ *   email         the invitee's email; the invite is BOUND to it (redeem fails for a different account).
+ *   role          the invitable role; optional, defaults to "viewer" (the MVP read-only role). The app
+ *                 sends nothing here for the MVP (viewer is the default), the field is reserved.
+ *   subject_kind  child (default) or adult; the api picks the consent path + copy from it. The app sends
+ *                 it explicitly so an adult share is never silently treated as a child share.
+ */
+export interface ShareInviteCreate {
+  recipient_id: string;
+  email: string;
+  role?: ShareRole;
+  subject_kind?: ShareSubjectKind;
+}
+
+/**
+ * The POST /api/v3/sharing/consent body: record an ADULT recipient's consent for a recipient before an
+ * invite can mint. `recipient_id` is the adult recipient (the api verifies it is the caller's, 404 if
+ * not). The api builds + stores the consent text and returns it; the app then mints the invite.
+ */
+export interface ShareConsentCreate {
+  recipient_id: string;
+}
+
+/**
+ * The POST /api/v3/sharing/redeem body: the recipient redeems an invite with the opaque `token` from the
+ * link. AUTH REQUIRED, and the invite is email-bound, so the signed-in account's email must match the
+ * invited email (a mismatch is a 400, surfaced as the one calm "can't open this link" state).
+ */
+export interface ShareRedeemRequest {
+  token: string;
+}
