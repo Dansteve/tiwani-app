@@ -2,7 +2,7 @@
 
 // The "Close account" Settings section: the account-deletion flow. It is a CALM, two-step confirm (no
 // guilt, no dark patterns): a single "Close my account" button reveals an honest explanation panel, and
-// only the explicit confirm inside it closes the account. On confirm it calls POST /api/v3/me/delete
+// only the explicit confirm inside it closes the account. On confirm it calls POST /api/v1/me/delete
 // (a SOFT delete with a 90-day recovery window: the api marks the account closed and RETAINS the data,
 // it is NOT erased on the spot; the user can reactivate by signing back in within 90 days) through the
 // typed client, then signs the user out and routes to sign-in.

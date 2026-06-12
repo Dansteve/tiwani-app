@@ -5,8 +5,8 @@
 // recipients, and opening one shows that recipient's Continuity Card, the VISIBILITY CEILING (a viewer
 // sees ONLY the Card, never the profile / LCI / alerts; the decision's refinement A1).
 //
-// It reads GET /api/v3/sharing/shared-with-me (a list, empty is a valid state), and on selection reads
-// GET /api/v3/sharing/recipients/{id}/card and renders it with the SHARED CardContentView (one card
+// It reads GET /api/v1/sharing/shared-with-me (a list, empty is a valid state), and on selection reads
+// GET /api/v1/sharing/recipients/{id}/card and renders it with the SHARED CardContentView (one card
 // layout, never two). The governed copy key (sharing.linked.intro) frames the card; the app never names
 // the role. A 404 on the card read means no live card for the recipient (or access was revoked); it shows
 // a calm "no card to show yet" state, never the profile.

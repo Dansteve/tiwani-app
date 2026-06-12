@@ -1,5 +1,5 @@
 // DataExportSection behaviour with the api client and the download helper mocked. Pins the data flow:
-// clicking "Export my data" fetches GET /api/v3/me/export through the typed client and writes the
+// clicking "Export my data" fetches GET /api/v1/me/export through the typed client and writes the
 // returned document to a file (downloadJson), then shows the "Downloaded" state; a failed export shows
 // the inline error. The section renders nothing FROM the export (it only triggers the download).
 

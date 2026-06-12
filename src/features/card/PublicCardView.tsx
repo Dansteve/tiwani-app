@@ -2,7 +2,7 @@
 
 // The PUBLIC Continuity Card page a helper opens (Product.md §4.6 / §3.3). NO AUTH: it lives outside the
 // (app) onboarding guard, and a helper has no account. It reads the opaque token from ?t=<token>, fetches
-// the safe card (GET /api/v3/cards/{token}, no bearer), and renders it with CardContentView (the same
+// the safe card (GET /api/v1/cards/{token}, no bearer), and renders it with CardContentView (the same
 // card the Coordinator previewed). States: loading skeleton; a friendly "link expired or not found" page
 // on a 404 (or any error); a missing-token page when the link has no token. A short "what is this" line
 // orients the helper. Mobile-first, warm, on-brand, light + dark.

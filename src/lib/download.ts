@@ -2,7 +2,7 @@
 // browser helper; it is a no-op outside the browser (SSR / tests with no document) so a caller never has
 // to guard the environment. Two entry points over one DOM mechanism: downloadBlob saves any Blob already
 // in memory (e.g. the application/pdf the api returned for a Continuity Card), and downloadJson is the
-// JSON convenience over it (the Settings data export of the GET /api/v3/me/export document).
+// JSON convenience over it (the Settings data export of the GET /api/v1/me/export document).
 
 /**
  * Save an already-in-memory `blob` as `filename` to the user's device. Mechanism: mint a temporary

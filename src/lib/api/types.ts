@@ -94,7 +94,7 @@ export type ChildProfile = CareRecipientProfile;
 
 /**
  * One care recipient the caller can act on, role-tagged, for the recipient switcher (the api's
- * ActiveRecipient; GET /api/v3/recipients). The active-recipient plumbing RecipientProvider reads
+ * ActiveRecipient; GET /api/v1/recipients). The active-recipient plumbing RecipientProvider reads
  * (Docs/FeatureDecisions.md 2026-06-12 "Helper Village ACCESS", refinement 1):
  *   id          the care recipient id (the same id the per-recipient reads scope by).
  *   first_name  the FIRST name ONLY (the warm switcher label and the ceiling for a shared recipient).
@@ -128,7 +128,7 @@ export interface StrategyItem {
 
 /**
  * One selectable activity in a chapter's picker (the api's per-chapter activity list,
- * GET /api/v3/chapters/{chapter}/activities). `tier` is the activity's baseline participation tier
+ * GET /api/v1/chapters/{chapter}/activities). `tier` is the activity's baseline participation tier
  * from the scenario matrix, shown as a quiet hint before a plan is generated; the engine recomputes
  * the real tier per plan from the profile + flags (the app never relies on this for the plan).
  */
@@ -147,7 +147,7 @@ export interface ChapterActivity {
  * The two Strategy Library fields (Task 9, Sprints/3.sprint/9.StrategyLibrary.md) arrive on this shape:
  *   library_item_id  the strategy_library_item this line came from. Present once the strategy is saved
  *                    to the library; it is the key the suppress / allow endpoints act on
- *                    (POST /api/v3/strategies/{library_item_id}/suppress | /allow). OPTIONAL: a line
+ *                    (POST /api/v1/strategies/{library_item_id}/suppress | /allow). OPTIONAL: a line
  *                    with no id (a freshly seeded strategy not yet a library item, or a legacy stored
  *                    plan) can still be hidden from the view locally, but cannot be suppressed api-side.
  *   also_worked_in   the cross-context "Also worked in [chapter]" tags: the api returns one
@@ -176,15 +176,15 @@ export interface PlanStrategy {
 
 /**
  * The Preparation Plan: the LCE output the plan screen renders (Product.md §4.5). The app displays
- * these values and recomputes none of them. Mirrors the api's POST /api/v3/plans response
+ * these values and recomputes none of them. Mirrors the api's POST /api/v1/plans response
  * field-for-field: `scores` are the final adjusted four dimensions (1 to 5 each), `total` is 4 to 20,
  * `tier` is the recomputed participation tier, `strategies` are pre-ranked, `dimension_explanations`
  * is one api-authored sentence per dimension, and `scheduled_pulse_at` is the ISO time the api set
  * for the post-activity Pulse (date + 2h, or 09:00 next day).
  *
  * `dimension_explanations` is NULLABLE: it is a derivation the engine produces fresh, NOT a stored
- * field, so a freshly prepared plan (POST /api/v3/plans) carries the per-dimension sentences, but a
- * STORED plan re-read from the list (GET /api/v3/plans/{activity_id}) returns it as null. The plan
+ * field, so a freshly prepared plan (POST /api/v1/plans) carries the per-dimension sentences, but a
+ * STORED plan re-read from the list (GET /api/v1/plans/{activity_id}) returns it as null. The plan
  * renderer handles null by omitting the per-dimension sentences (it never assumes the map exists).
  */
 export interface PreparationPlan {
@@ -206,9 +206,9 @@ export interface PreparationPlan {
 }
 
 /**
- * A row on the "your prepared plans" list (GET /api/v3/plans), one per Preparation Plan the
+ * A row on the "your prepared plans" list (GET /api/v1/plans), one per Preparation Plan the
  * Coordinator has made, newest first. Mirrors the api's PlanSummary field-for-field. The Coordinator
- * re-opens a plan from this list (by `activity_id`, via GET /api/v3/plans/{activity_id}) without
+ * re-opens a plan from this list (by `activity_id`, via GET /api/v1/plans/{activity_id}) without
  * re-preparing it. The list reads only the caller's plans (RLS-scoped; a foreign activity_id is a 404
  * on the detail read). The app renders these and computes no score or tier.
  *   activity_id    the stored activity, the key the detail read fetches by (GET /plans/{activity_id}).
@@ -250,7 +250,7 @@ export interface PulseRecord {
 }
 
 /**
- * One activity awaiting a Pulse (GET /api/v3/pulses/pending), used to raise the in-app Pulse prompt
+ * One activity awaiting a Pulse (GET /api/v1/pulses/pending), used to raise the in-app Pulse prompt
  * (Product.md §4.7). The api schedules the Pulse when a plan is prepared; this row is what the app
  * needs to render and submit the prompt: `activity_id` drives submitPulse, `chapter` colours/labels
  * it, `activity_name` names the activity, `scheduled_at` is the ISO time the Pulse became due
@@ -264,7 +264,7 @@ export interface PendingPulse {
 }
 
 /**
- * A chapter's LCI as the api returns it (GET /api/v3/lci/chapters), one row per Life Chapter for the
+ * A chapter's LCI as the api returns it (GET /api/v1/lci/chapters), one row per Life Chapter for the
  * user. Mirrors the api's ChapterLci field-for-field. `score` is null before the first Pulse (the app
  * shows "--"); `trajectory` is the weekly band (building_picture with no prior point); `pulse_count`
  * drives the sparse-data state (< 3 shows the score with a "building your picture" note); `label` is
@@ -284,7 +284,7 @@ export interface ChapterLci {
 /**
  * The per-chapter status feed for the dashboard (Product.md §4.3), one row per Life Chapter for the
  * current user. The app maps these inputs to a grey/green/amber/red display status (it does not
- * compute the LCI or the alert; both arrive computed). Mirrors the api's /api/v3/chapters payload
+ * compute the LCI or the alert; both arrive computed). Mirrors the api's /api/v1/chapters payload
  * field-for-field: lci is null before any pulse, alert_level is null when no alert is active, and
  * last_prepared_at is null until an activity exists.
  */
@@ -298,7 +298,7 @@ export interface ChapterStatus {
 }
 
 /**
- * The overall resilience snapshot (GET /api/v3/lci/overall, Product.md §4.8): the equal-weighted
+ * The overall resilience snapshot (GET /api/v1/lci/overall, Product.md §4.8): the equal-weighted
  * average of the chapters that have at least one Pulse, computed by the api. Mirrors the api's
  * OverallLci field-for-field. `score` is null when no chapter has any Pulse yet (the app shows "--");
  * `trajectory` is the weekly band; `label` is the api's §4.8 sparse-data label (building_picture while
@@ -327,14 +327,14 @@ export interface AlertSignpost {
 }
 
 /**
- * An active Erosion Alert for a chapter (GET /api/v3/alerts, Product.md §4.9). Mirrors the api's
+ * An active Erosion Alert for a chapter (GET /api/v1/alerts, Product.md §4.9). Mirrors the api's
  * active-alert shape field-for-field. The copy is GOVERNED and psychiatrist-signed: the app renders
  * `copy`, `action_label`, and the `signposts` exactly as the api returns them and authors NO alert
  * wording (App SETUP / Continuity module). `level` is the numeric severity (1 to 2 caution/amber,
  * 3 critical/coral) and drives the placement (L1 a banner + dot on the chapter card, L2 a card atop
  * the dashboard, L3 a dashboard overlay). At most one active alert per chapter (the api's
  * higher-replaces-lower rule), so the alert is keyed and dismissed by chapter; dismissal is
- * POST /api/v3/alerts/{chapter}/dismiss and a dismissed alert returns only if the api escalates it.
+ * POST /api/v1/alerts/{chapter}/dismiss and a dismissed alert returns only if the api escalates it.
  */
 export interface AlertRecord {
   chapter: ChapterCode;
@@ -355,7 +355,7 @@ export interface CardStrategy {
 }
 
 /**
- * The SAFE, public Continuity Card content (Product.md §4.6), the exact body GET /api/v3/cards/{token}
+ * The SAFE, public Continuity Card content (Product.md §4.6), the exact body GET /api/v1/cards/{token}
  * returns to a helper with NO account. Mirrors the api's CardContent field-for-field. It deliberately
  * carries NO PII beyond the care recipient's FIRST name and NO clinical data, and never a user_id /
  * child_id / activity_id. Every string is the api's governed, non-clinical copy: the app renders it
@@ -398,7 +398,7 @@ export interface CardContent {
 }
 
 /**
- * The POST /api/v3/cards response the OWNER (the Coordinator) receives (Product.md §4.6). Mirrors the
+ * The POST /api/v1/cards response the OWNER (the Coordinator) receives (Product.md §4.6). Mirrors the
  * api's CardCreated field-for-field: the safe `content` (so the app previews the card without a second
  * fetch), the opaque share `token` (the link's only secret, ~43 url-safe chars from secrets.token_urlsafe;
  * the app builds the public share link from it and appends NO profile detail), and `expires_at` (the
@@ -419,7 +419,7 @@ export interface CardCreated {
 export type CardStatus = "active" | "expired" | "revoked";
 
 /**
- * A row on the Card History list (GET /api/v3/cards), one per card the Coordinator has generated,
+ * A row on the Card History list (GET /api/v1/cards), one per card the Coordinator has generated,
  * newest first. Mirrors the api's CardSummary field-for-field. It deliberately carries NO share
  * token (so the list never re-exposes the link's only secret) and NO activity_id: re-sharing a past
  * card is intentionally not possible from the list, because the board wants a re-share to REGENERATE
@@ -442,7 +442,7 @@ export interface CardSummary {
 }
 
 /**
- * The POST /api/v3/cards/{card_id}/revoke response (the Coordinator revoked the card). Mirrors the
+ * The POST /api/v1/cards/{card_id}/revoke response (the Coordinator revoked the card). Mirrors the
  * api: the updated CardSummary with `status` now "revoked". A 404 means the card is not the caller's
  * (RLS-scoped, a foreign or unknown id matches nothing); the app surfaces that inline and leaves the
  * list as-is. The app invalidates the ["cards"] read on success so the row flips to revoked.
@@ -452,7 +452,7 @@ export interface CardRevoked {
 }
 
 /**
- * The downloaded PDF of one of the caller's OWN Continuity Cards (GET /api/v3/cards/{card_id}/pdf, the
+ * The downloaded PDF of one of the caller's OWN Continuity Cards (GET /api/v1/cards/{card_id}/pdf, the
  * owner-only printable export). NOT a JSON body: the api returns a binary application/pdf attachment,
  * so the typed client returns the bytes as a Blob plus the filename it should save under, rather than a
  * parsed object. `blob` is the application/pdf payload (saved via lib/download.downloadBlob); `filename`
@@ -470,7 +470,7 @@ export interface CardPdf {
 // --- Request payloads ---
 
 /**
- * Partial update to the Coordinator's own profile (PUT /api/v3/profile). Mirrors the api's
+ * Partial update to the Coordinator's own profile (PUT /api/v1/profile). Mirrors the api's
  * UserProfileUpdate: every field optional, the Settings screen only sends first_name (email is
  * read-only, the rest are not user-editable here). first_name must be non-empty when present.
  */
@@ -479,7 +479,7 @@ export interface ProfileUpdate {
 }
 
 /**
- * Partial update to the care recipient (PUT /api/v3/child/{child_id}). Mirrors the api's
+ * Partial update to the care recipient (PUT /api/v1/child/{child_id}). Mirrors the api's
  * ChildProfileUpdate: every field optional, only the changed fields are sent. The api enforces the
  * single-select Communication (CM-) and Recovery (RC-) families server-side; the Sensory + Transitions
  * max-10 cap is a UI rule (the table stores every selected tag). age_band is nullable (clearable).
@@ -492,7 +492,7 @@ export interface CareRecipientUpdate {
 }
 
 /**
- * Create a care recipient (POST /api/v3/child). Mirrors the api's ChildProfileCreate (which extends
+ * Create a care recipient (POST /api/v1/child). Mirrors the api's ChildProfileCreate (which extends
  * ChildProfileBase): name is required (min length 1), the rest optional. user_id is never sent (the api
  * takes it from the session). Used by the Settings "add a care recipient" entry to add a SECOND
  * recipient. While the interim one-recipient guard is on, a second create is rejected with 409
@@ -518,7 +518,7 @@ export interface OnboardingPayload {
 }
 
 /**
- * The prepare request (POST /api/v3/plans): the LCE runs server-side and returns a PreparationPlan.
+ * The prepare request (POST /api/v1/plans): the LCE runs server-side and returns a PreparationPlan.
  * The app sends the chosen chapter + activity code and any day-level Trigger flags; it never applies
  * the flag effects itself. The api schedules the Pulse, so no date is sent (Product.md §4.4 step 9).
  */
@@ -531,7 +531,7 @@ export interface PreparePlanRequest {
 // --- Account data rights (data export + account closure) ---
 
 /**
- * The data-export document (GET /api/v3/me/export). The api gathers, RLS-scoped to the caller, every
+ * The data-export document (GET /api/v1/me/export). The api gathers, RLS-scoped to the caller, every
  * row that belongs to them: their profile, their care recipients, and the records keyed to them
  * (activities, pulses, LCI snapshots, alerts, cards). The app does NOT render this; it downloads it as
  * a JSON file, so the record arrays are deliberately typed as raw rows (unknown[]) rather than
@@ -549,7 +549,7 @@ export interface AccountExport {
 }
 
 /**
- * The account-closure confirmation (POST /api/v3/me/delete). Deletion is a SOFT delete with a 90-day
+ * The account-closure confirmation (POST /api/v1/me/delete). Deletion is a SOFT delete with a 90-day
  * recovery window: the api sets user_profile.deleted_at and RETAINS the data for 90 days (it is not
  * erased immediately; the user can reactivate by signing back in within the window). `deleted` is true
  * on success; `deleted_at` is the ISO timestamp the account was closed at. After this returns, the app
@@ -561,7 +561,7 @@ export interface AccountDeletionResult {
 }
 
 /**
- * The account closure state + the computed 90-day recovery window (GET /api/v3/me/account-status).
+ * The account closure state + the computed 90-day recovery window (GET /api/v1/me/account-status).
  * Mirrors the api's AccountStatus field-for-field. The app calls this after login (it works for a
  * soft-deleted caller, the api's allow-deleted dependency): when `deleted` is true the app renders the
  * reactivation interstitial instead of the dashboard. `deleted_at` is when the account was closed
@@ -578,7 +578,7 @@ export interface AccountStatus {
 }
 
 /**
- * The reactivation confirmation (POST /api/v3/me/reactivate). Mirrors the api's ReactivateResult.
+ * The reactivation confirmation (POST /api/v1/me/reactivate). Mirrors the api's ReactivateResult.
  * `reactivated` is true on success (the soft-deleted account is live again, or was never closed). A
  * reactivation attempted past the 90-day window is a 410 (ApiError.status === 410), not this body; the
  * interstitial surfaces that as "this account can no longer be reactivated". On success the app proceeds
@@ -600,7 +600,7 @@ export interface ReactivateResult {
 export type SubscriptionTierKey = "free" | "standard" | "premium";
 
 /**
- * One tier in the public price list (GET /api/v3/billing/plans). Mirrors a public.plan_tier row as
+ * One tier in the public price list (GET /api/v1/billing/plans). Mirrors a public.plan_tier row as
  * the api serialises it (PlanTier): the join key, the human name, the monthly/yearly price in GBP
  * pence (null where that cadence has no charge or is not sold yet, e.g. yearly until the owner sets
  * it), whether the tier is active, and the display order. The Stripe price ids are a server-side
@@ -615,13 +615,13 @@ export interface PlanTier {
   sort: number;
 }
 
-/** The price-list response wrapper (GET /api/v3/billing/plans). */
+/** The price-list response wrapper (GET /api/v1/billing/plans). */
 export interface PlanList {
   tiers: PlanTier[];
 }
 
 /**
- * The caller's own subscription state (GET /api/v3/billing/me), RLS-scoped to the caller. `tier` is
+ * The caller's own subscription state (GET /api/v1/billing/me), RLS-scoped to the caller. `tier` is
  * the authoritative tier the gate resolves (written only by the billing webhook); a user who has
  * never paid resolves to 'free' with status 'none' and no period end. The app shows this; it does not
  * gate on it. `status` is the Stripe-style lifecycle string ('none', 'active', 'past_due', ...) and
@@ -637,7 +637,7 @@ export interface MySubscription {
 export type BillingCadence = "monthly" | "yearly";
 
 /**
- * The checkout session response (POST /api/v3/billing/checkout): the Stripe-hosted URL the app
+ * The checkout session response (POST /api/v1/billing/checkout): the Stripe-hosted URL the app
  * redirects the caller to. STUBBED today (PENDING OWNER STRIPE KEYS): the route returns 503 until the
  * owner provides Stripe keys, so the app never receives this body yet and renders a calm
  * "coming soon" state on the 503 instead (the same calm-state pattern as the one-recipient 409).
@@ -650,7 +650,7 @@ export interface CheckoutSession {
 //
 // A Coordinator shares ONE care recipient with another person: they mint an email-bound invite, the
 // other person redeems it with their own account, and from then on they see ONLY that recipient's
-// Continuity Card (GET /api/v3/sharing/recipients/{recipient_id}/card), never the raw profile / LCI /
+// Continuity Card (GET /api/v1/sharing/recipients/{recipient_id}/card), never the raw profile / LCI /
 // alerts. The Card is the VISIBILITY CEILING (the decision's mandatory refinement A1). The Coordinator
 // sees a "who can see [name]" roster and revokes any link instantly; a revoked row stops resolving
 // server-side (a soft-revoke audit row is retained, the 0008 precedent). Consent is first-class
@@ -705,7 +705,7 @@ export type ShareCopyKey =
   | "sharing.adult_blocked";
 
 /**
- * The POST /api/v3/sharing/invites response (201 InviteCreated). The Coordinator minted an email-bound,
+ * The POST /api/v1/sharing/invites response (201 InviteCreated). The Coordinator minted an email-bound,
  * single-use, expiring invite for ONE recipient. Mirrors the api field-for-field:
  *   invite_id     the invite row id (the key the roster revokes a PENDING invite by).
  *   token         the opaque redeem secret; the app builds the redeem link from it (and appends no PII).
@@ -727,7 +727,7 @@ export interface ShareInviteCreated {
 }
 
 /**
- * The POST /api/v3/sharing/consent response (200 ConsentRecorded). For an ADULT recipient share the
+ * The POST /api/v1/sharing/consent response (200 ConsentRecorded). For an ADULT recipient share the
  * Coordinator records the recipient's consent BEFORE an invite can mint (the api's adult-consent gate;
  * without it the invite is a 409). Mirrors the api: the new consent row id, the governed copy key
  * (sharing.consent.adult), and the BUILT consent_text the api stored verbatim. A child share does not
@@ -740,7 +740,7 @@ export interface ShareConsentRecorded {
 }
 
 /**
- * The POST /api/v3/sharing/redeem response (200 RedeemResult). The recipient (signed in with THEIR own
+ * The POST /api/v1/sharing/redeem response (200 RedeemResult). The recipient (signed in with THEIR own
  * account) redeemed the invite token and is now linked to the recipient. Mirrors the api:
  *   recipient_id          the care recipient they now have access to (the id their shared-card read uses).
  *   recipient_first_name  that recipient's first name (the only PII, the warm label the app shows).
@@ -781,7 +781,7 @@ export interface RosterEntry {
 }
 
 /**
- * The GET /api/v3/sharing/recipients/{recipient_id}/roster response (200 Roster). The "who can see
+ * The GET /api/v1/sharing/recipients/{recipient_id}/roster response (200 Roster). The "who can see
  * [name]" list for ONE recipient. Mirrors the api:
  *   recipient_id          the recipient the roster is for.
  *   recipient_first_name  that recipient's first name (the warm label in the heading).
@@ -826,7 +826,7 @@ export interface SharedRecipient {
 }
 
 /**
- * The GET /api/v3/sharing/shared-with-me response (200 SharedWithMe). Every recipient another Coordinator
+ * The GET /api/v1/sharing/shared-with-me response (200 SharedWithMe). Every recipient another Coordinator
  * has shared with the caller, for the recipient's "shared with you" linked-state. Mirrors the api: a
  * `recipients` list (empty when nothing is shared with the caller). The caller picks one and reads its
  * shared card.
@@ -836,7 +836,7 @@ export interface SharedWithMe {
 }
 
 /**
- * The GET /api/v3/sharing/recipients/{recipient_id}/card response (200 SharedCard). The Continuity Card a
+ * The GET /api/v1/sharing/recipients/{recipient_id}/card response (200 SharedCard). The Continuity Card a
  * shared-with recipient is allowed to see, the VISIBILITY CEILING (the decision's refinement A1: a viewer
  * sees ONLY the Card, never the profile / LCI / alerts). Mirrors the api:
  *   recipient_id  the recipient the card is for.
@@ -855,7 +855,7 @@ export interface SharedCard {
 // --- Sharing request payloads ---
 
 /**
- * The POST /api/v3/sharing/invites body. The Coordinator mints an invite for ONE recipient:
+ * The POST /api/v1/sharing/invites body. The Coordinator mints an invite for ONE recipient:
  *   recipient_id  the care recipient to share (the active recipient from the switcher); the api verifies
  *                 it is the caller's (404 if not, never the client's word).
  *   email         the invitee's email; the invite is BOUND to it (redeem fails for a different account).
@@ -872,7 +872,7 @@ export interface ShareInviteCreate {
 }
 
 /**
- * The POST /api/v3/sharing/consent body: record an ADULT recipient's consent for a recipient before an
+ * The POST /api/v1/sharing/consent body: record an ADULT recipient's consent for a recipient before an
  * invite can mint. `recipient_id` is the adult recipient (the api verifies it is the caller's, 404 if
  * not). The api builds + stores the consent text and returns it; the app then mints the invite.
  */
@@ -881,7 +881,7 @@ export interface ShareConsentCreate {
 }
 
 /**
- * The POST /api/v3/sharing/redeem body: the recipient redeems an invite with the opaque `token` from the
+ * The POST /api/v1/sharing/redeem body: the recipient redeems an invite with the opaque `token` from the
  * link. AUTH REQUIRED, and the invite is email-bound, so the signed-in account's email must match the
  * invited email (a mismatch is a 400, surfaced as the one calm "can't open this link" state).
  */
@@ -895,7 +895,7 @@ export interface ShareRedeemRequest {
 // recipient's village roster (the members) sees the OPEN needs (the need + logistics only); a member
 // CLAIMS one (atomic, first-claim-wins); the owner sees it covered + who; the claimer/owner then sees
 // the exact location + contact; the confirm/done/dropped + auto-re-broadcast loop runs. These mirror
-// the api's /api/v3/village contract field-for-field. Framework-agnostic (Decisions.md D10).
+// the api's /api/v1/village contract field-for-field. Framework-agnostic (Decisions.md D10).
 //
 // THE VISIBILITY CEILING (hard, mirrors the api + the board decision): a member sees the NEED + LOGISTICS
 // only (title, detail, area_label, window, recipient FIRST name). The exact location_text / contact_name /
@@ -937,7 +937,7 @@ export type VillageResultCopyKey =
   | "need.cancelled_confirmation";
 
 /**
- * One OPEN-board row (GET /api/v3/village/needs?recipient_id=, MEMBER auth). The roster's view of a need:
+ * One OPEN-board row (GET /api/v1/village/needs?recipient_id=, MEMBER auth). The roster's view of a need:
  * the need + logistics ONLY (the visibility ceiling). Mirrors the api's NeedSummary field-for-field. It
  * deliberately carries NO exact location and NO contact (those are NeedDetail, claimer/owner-only).
  *   id                  the need id (the key the detail read + the lifecycle actions act on).
@@ -964,7 +964,7 @@ export interface NeedSummary {
 }
 
 /**
- * The FULL need (GET /api/v3/village/needs/{need_id}). The NeedSummary fields PLUS the exact logistics,
+ * The FULL need (GET /api/v1/village/needs/{need_id}). The NeedSummary fields PLUS the exact logistics,
  * which the api populates ONLY for the LIVE claimer or the owner (else null): the visibility ceiling in
  * the wire shape. Mirrors the api's NeedDetail field-for-field. The app shows the exact location/contact
  * ONLY when they are non-null (i.e. only the claimer/owner ever receives them), and never requests this
@@ -980,7 +980,7 @@ export interface NeedDetail extends NeedSummary {
 }
 
 /**
- * The result of a need write (POST /api/v3/village/needs and the five lifecycle actions
+ * The result of a need write (POST /api/v1/village/needs and the five lifecycle actions
  * claim/confirm/done/drop/cancel). Mirrors the api's NeedActionResult field-for-field. The api authors
  * the warm, GOVERNED confirmation: the app renders `message` VERBATIM and authors no need wording (the
  * governed-copy rule). `copy_key` names which governed line it is (the RESULT_KEY_BY_ACTION map).
@@ -1012,7 +1012,7 @@ export interface VillageMember {
 }
 
 /**
- * A recipient's village roster (GET /api/v3/village/roster?recipient_id=, MEMBER auth). Mirrors the api's
+ * A recipient's village roster (GET /api/v1/village/roster?recipient_id=, MEMBER auth). Mirrors the api's
  * RosterResponse field-for-field: the recipient's first name (for the warm title) + the members list. The
  * app renders the rows and computes nothing; the roster is read-only here (adding/revoking members is the
  * owner's invite flow, a separate surface).
@@ -1023,7 +1023,7 @@ export interface RosterResponse {
 }
 
 /**
- * The per-recipient consent record (POST /api/v3/village/consent, OWNER auth). Mirrors the api's
+ * The per-recipient consent record (POST /api/v1/village/consent, OWNER auth). Mirrors the api's
  * ConsentRecorded. The api supplies the governed `consent_text` (the `consent.share_with_village` line,
  * stored verbatim); the owner records consent ONCE before any need can be posted (the CONSENT gate, Art. 9).
  *   recipient_id  the recipient the consent is recorded for.
@@ -1035,7 +1035,7 @@ export interface ConsentRecorded {
 }
 
 /**
- * Post a need (POST /api/v3/village/needs, OWNER + CONSENT-gated). Mirrors the api's CreateNeedRequest
+ * Post a need (POST /api/v1/village/needs, OWNER + CONSENT-gated). Mirrors the api's CreateNeedRequest
  * field-for-field. `recipient_id` scopes the need to ONE recipient (the multi-recipient isolation rule);
  * `title` is required (the api 422s on an empty title); the rest are optional logistics. The contact /
  * exact location are part of the need but are revealed by the api ONLY to the live claimer + owner (the

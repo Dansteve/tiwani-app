@@ -2,7 +2,7 @@
 
 // The account-closure gate for the product surface ((app) segment). After login the app must learn
 // whether the signed-in account is soft-deleted, so it can offer reactivation INSTEAD of the dashboard
-// (Product.md §4.11). This guard reads GET /api/v3/me/account-status (which the api answers even for a
+// (Product.md §4.11). This guard reads GET /api/v1/me/account-status (which the api answers even for a
 // soft-deleted caller, the allow-deleted dependency) and, when `deleted` is true, renders the
 // ReactivationInterstitial in place of the children; otherwise it renders the app normally.
 //

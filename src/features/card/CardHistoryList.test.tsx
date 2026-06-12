@@ -2,7 +2,7 @@
 // asserts the screen renders exactly what the api returned and computes no status (App SETUP: render
 // the engine, never recompute it): the three lifecycle statuses (active / expired / revoked) each show
 // their label (never colour alone), the is_stale row shows the helper-safety cue, revoke calls
-// POST /api/v3/cards/{id}/revoke and the row flips to revoked after the list refetches, and the calm
+// POST /api/v1/cards/{id}/revoke and the row flips to revoked after the list refetches, and the calm
 // empty state points the Coordinator at preparing a plan. This path needs the demo password to drive
 // live, so it is unit-tested here.
 

@@ -3,7 +3,7 @@
 // The "Care recipients" Settings section (the multi-recipient surface): it lists the Coordinator's
 // recipients (from the RecipientProvider's ["children"] read, the same list the shell switcher uses) and
 // offers an "Add a care recipient" entry that runs the existing child-create flow (api.createChild ->
-// POST /api/v3/child) with name + support level. The deeper edit (age band, tags) stays in the existing
+// POST /api/v1/child) with name + support level. The deeper edit (age band, tags) stays in the existing
 // Care recipient section below, reached by switching to the new recipient.
 //
 // INTERIM GUARD (Docs/FeatureDecisions.md step 1): while the api's one-recipient guard is on, a second

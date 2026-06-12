@@ -1,7 +1,7 @@
 "use client";
 
 // The "Your data" Settings section: export everything the account holds (the data-rights export). It
-// fetches GET /api/v3/me/export through the typed client (which the api scopes to the caller via RLS,
+// fetches GET /api/v1/me/export through the typed client (which the api scopes to the caller via RLS,
 // so it can only ever contain this account's own data) and saves it to a JSON file on the device. The
 // app renders nothing from the export; it only triggers the download. Errors surface inline (the repo
 // has no toast library; the established pattern is an inline role="alert" on the destructive token, as

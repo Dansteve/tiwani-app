@@ -1,12 +1,12 @@
 "use client";
 
 // The post-login reactivation interstitial (Product.md §4.11 account closure + recovery). When the api
-// reports the signed-in account is soft-deleted (GET /api/v3/me/account-status -> deleted: true), the
+// reports the signed-in account is soft-deleted (GET /api/v1/me/account-status -> deleted: true), the
 // AccountStatusGuard renders THIS full-screen card INSTEAD of the dashboard, so a closed account cannot
 // reach the product surface until it reactivates or signs out.
 //
 // It offers reactivation within the 90-day window: a primary "Reactivate account" calls POST
-// /api/v3/me/reactivate; on success it invalidates the ["account-status"] (and ["profile"]) reads so the
+// /api/v1/me/reactivate; on success it invalidates the ["account-status"] (and ["profile"]) reads so the
 // guard re-reads and lets the user into the app. A secondary "Sign out" backs all the way out. The copy
 // is close to the owner's words and names the deletion date (formatted from deleted_at via the app's
 // existing formatCardDate). Errors surface inline (the repo has no toast library; the established pattern

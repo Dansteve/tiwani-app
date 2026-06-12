@@ -6,7 +6,7 @@
 // onboarding machine, TAG_FAMILIES + the 10-tag cap from the onboarding taxonomy, and the TagPill /
 // ChoiceCard / Field primitives. The selection rules (Sensory + Transitions multi-select sharing the
 // cap; Communication + Recovery single-select) live in the pure childForm helper, the same rules
-// onboarding applies. Saving is a mutation to PUT /api/v3/child/{id} that sends only the changed fields
+// onboarding applies. Saving is a mutation to PUT /api/v1/child/{id} that sends only the changed fields
 // and invalidates the ["child"] and ["chapters"] reads (support level + tags change future plans). The
 // app stores no scoring; it sends codes and renders the api's result.
 

@@ -1,6 +1,6 @@
 "use client";
 
-// The runtime owner of the active care recipient: it reads the caller's recipients (GET /api/v3/recipients,
+// The runtime owner of the active care recipient: it reads the caller's recipients (GET /api/v1/recipients,
 // the UNION of OWNED + SHARED, each role-tagged), resolves which one is active (a persisted choice validated
 // against that list, else the first), keeps that choice in localStorage, and exposes it (plus the active
 // recipient's ROLE) through context so every per-recipient read can scope to it AND the shell can drive the

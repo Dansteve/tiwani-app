@@ -9,7 +9,7 @@ import { SELECTED_RECIPIENT_STORAGE_KEY } from "@/state/selectedRecipient";
 // The switcher render test (client mocked): it shows only when there is MORE THAN ONE recipient, lists
 // them by first name with the active one selected, and switching updates the active id (persisted). A
 // single-recipient (or empty) user sees no switcher. Driven through the real RecipientProvider (which reads
-// GET /api/v3/recipients, role-tagged) so the component + state wiring is exercised end-to-end. The api
+// GET /api/v1/recipients, role-tagged) so the component + state wiring is exercised end-to-end. The api
 // already returns the FIRST name only on each ActiveRecipient; the helper mirrors that (first token).
 
 function child(id: string, name: string): ActiveRecipient {

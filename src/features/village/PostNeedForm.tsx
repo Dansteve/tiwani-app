@@ -4,7 +4,7 @@
 // OWNER + CONSENT-gated (FeatureDecisions.md 2026-06-12 refinement 1 + the api contract): a clear, bounded
 // ask converts where a vague "let me know" does not, so the form nudges for the what / when / where.
 //
-// Submit -> api.createNeed (POST /api/v3/village/needs). The api validates owner + consent + a non-empty
+// Submit -> api.createNeed (POST /api/v1/village/needs). The api validates owner + consent + a non-empty
 // title; on success it broadcasts the need to the roster and returns the GOVERNED posted confirmation,
 // which the app shows VERBATIM (message). The form maps the api's errors to calm states:
 //   - 409 no-consent (ConsentRequiredError) -> the CONSENT GATE: show the governed consent line and a

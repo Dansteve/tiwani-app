@@ -7,7 +7,7 @@ import type { ActiveRecipient, ShareRole } from "@/lib/api/types";
 import { SELECTED_RECIPIENT_STORAGE_KEY } from "@/state/selectedRecipient";
 
 // The runtime contract on top of the pure logic (selectedRecipient.test.ts): with the api client mocked,
-// the provider loads the recipients (GET /api/v3/recipients, role-tagged), resolves the active id (first by
+// the provider loads the recipients (GET /api/v1/recipients, role-tagged), resolves the active id (first by
 // default, a valid stored choice kept), persists a switch, and exposes it (plus the active role) through the
 // hook. Drives the provider through the public useRecipient hook, the probe-component approach
 // ThemeProvider.test.tsx uses. The active ROLE is what the shell ceiling reads (Helper Village ACCESS).

@@ -260,37 +260,37 @@ function childQuery(childId?: string | null): string {
   return childId ? `?child_id=${encodeURIComponent(childId)}` : "";
 }
 
-// --- Typed endpoint functions (mirror the api contract under /api/v3) ---
+// --- Typed endpoint functions (mirror the api contract under /api/v1) ---
 // The built Task 3 endpoints (profile, onboarding, child) match the api exactly. The rest carry the
-// /api/v3 prefix as placeholders; their final paths are set when Tasks 5-9 build those routes.
+// /api/v1 prefix as placeholders; their final paths are set when Tasks 5-9 build those routes.
 
 export const api = {
   me(signal?: AbortSignal): Promise<UserProfile> {
-    return http<UserProfile>("/api/v3/profile", { signal });
+    return http<UserProfile>("/api/v1/profile", { signal });
   },
 
   /**
-   * Update the Coordinator's own profile (PUT /api/v3/profile, partial). The Settings screen sends
+   * Update the Coordinator's own profile (PUT /api/v1/profile, partial). The Settings screen sends
    * only first_name; email is read-only. Returns the updated profile so the caller can invalidate the
    * ["profile"] read. The api 400s on an empty body, so the caller sends only changed fields.
    */
   updateProfile(update: ProfileUpdate): Promise<UserProfile> {
-    return http<UserProfile>("/api/v3/profile", { method: "PUT", body: update });
+    return http<UserProfile>("/api/v1/profile", { method: "PUT", body: update });
   },
 
   completeOnboarding(payload: OnboardingPayload): Promise<CareRecipientProfile> {
-    return http<CareRecipientProfile>("/api/v3/onboarding", {
+    return http<CareRecipientProfile>("/api/v1/onboarding", {
       method: "POST",
       body: payload,
     });
   },
 
   getCareRecipient(signal?: AbortSignal): Promise<CareRecipientProfile> {
-    return http<CareRecipientProfile>("/api/v3/child", { signal });
+    return http<CareRecipientProfile>("/api/v1/child", { signal });
   },
 
   /**
-   * List the caller's care recipients (GET /api/v3/children), newest first, for the recipient switcher.
+   * List the caller's care recipients (GET /api/v1/children), newest first, for the recipient switcher.
    * AUTH REQUIRED. RLS-scoped, so it only ever returns the caller's own recipients. Unlike GET /child,
    * an EMPTY list is a 200 (a fresh user with no recipient yet), NOT a 404: "you have no recipients" is a
    * valid switcher state. Today the interim one-recipient guard means it is a single element; it is
@@ -298,11 +298,11 @@ export const api = {
    * child_id from this list; the app renders the rows and computes nothing.
    */
   getChildren(signal?: AbortSignal): Promise<CareRecipientProfile[]> {
-    return http<CareRecipientProfile[]>("/api/v3/children", { signal });
+    return http<CareRecipientProfile[]>("/api/v1/children", { signal });
   },
 
   /**
-   * The recipient SWITCHER list (GET /api/v3/recipients): the UNION of the caller's OWNED recipients
+   * The recipient SWITCHER list (GET /api/v1/recipients): the UNION of the caller's OWNED recipients
    * (role "owner") and the recipients SHARED with the caller (role "viewer"/"editor"), each as an
    * ActiveRecipient { id, first_name, role }. AUTH REQUIRED. This is the active-recipient plumbing the
    * RecipientProvider reads (Docs/FeatureDecisions.md "Helper Village ACCESS", refinement 1): it surfaces
@@ -312,25 +312,25 @@ export const api = {
    * surfacing a recipient never widens what a viewer can read. An empty list is a valid 200.
    */
   getRecipients(signal?: AbortSignal): Promise<ActiveRecipient[]> {
-    return http<ActiveRecipient[]>("/api/v3/recipients", { signal });
+    return http<ActiveRecipient[]>("/api/v1/recipients", { signal });
   },
 
   /**
-   * Create a care recipient (POST /api/v3/child). AUTH REQUIRED: user_id is taken from the session, never
+   * Create a care recipient (POST /api/v1/child). AUTH REQUIRED: user_id is taken from the session, never
    * the client. The Settings "add a care recipient" entry adds a SECOND recipient with this. INTERIM
    * GUARD: while the api's one-recipient guard is on, a second create is rejected with 409 (ApiError.status
    * === 409); the caller catches that and shows a calm "one recipient for now / coming soon" message
    * instead of crashing. Returns the created recipient so the caller can invalidate the ["children"] read.
    */
   createChild(payload: CareRecipientCreate): Promise<CareRecipientProfile> {
-    return http<CareRecipientProfile>("/api/v3/child", {
+    return http<CareRecipientProfile>("/api/v1/child", {
       method: "POST",
       body: payload,
     });
   },
 
   /**
-   * Update the care recipient (PUT /api/v3/child/{child_id}, partial). The Settings screen sends only
+   * Update the care recipient (PUT /api/v1/child/{child_id}, partial). The Settings screen sends only
    * the changed fields (name, age_band, support_level_code, tags). The id comes from the GET /child
    * read, never the client's guess; RLS scopes the update to the caller (a forged id matches nothing,
    * 404). Returns the updated recipient so the caller can invalidate the ["child"] read. Edits apply
@@ -341,7 +341,7 @@ export const api = {
     update: CareRecipientUpdate
   ): Promise<CareRecipientProfile> {
     return http<CareRecipientProfile>(
-      `/api/v3/child/${encodeURIComponent(childId)}`,
+      `/api/v1/child/${encodeURIComponent(childId)}`,
       { method: "PUT", body: update }
     );
   },
@@ -352,7 +352,7 @@ export const api = {
    * sole recipient (single-recipient behaviour unchanged). A child_id the caller does not own is a 404.
    */
   getChapters(childId?: string | null, signal?: AbortSignal): Promise<ChapterStatus[]> {
-    return http<ChapterStatus[]>(`/api/v3/chapters${childQuery(childId)}`, { signal });
+    return http<ChapterStatus[]>(`/api/v1/chapters${childQuery(childId)}`, { signal });
   },
 
   /** The activity picker list for a chapter (Product.md §4.5): each pickable activity + its tier. */
@@ -361,7 +361,7 @@ export const api = {
     signal?: AbortSignal
   ): Promise<ChapterActivity[]> {
     return http<ChapterActivity[]>(
-      `/api/v3/chapters/${encodeURIComponent(chapter)}/activities`,
+      `/api/v1/chapters/${encodeURIComponent(chapter)}/activities`,
       { signal }
     );
   },
@@ -374,14 +374,14 @@ export const api = {
    * child_id the caller does not own is a 409 (it is invisible under RLS, so the api reads it as "none").
    */
   preparePlan(payload: PreparePlanRequest, childId?: string | null): Promise<PreparationPlan> {
-    return http<PreparationPlan>(`/api/v3/plans${childQuery(childId)}`, {
+    return http<PreparationPlan>(`/api/v1/plans${childQuery(childId)}`, {
       method: "POST",
       body: payload,
     });
   },
 
   /**
-   * List the Preparation Plans the caller has prepared (GET /api/v3/plans), newest first, for the
+   * List the Preparation Plans the caller has prepared (GET /api/v1/plans), newest first, for the
    * "your prepared plans" screen (the owner's "toggle plans" ask). AUTH REQUIRED: the bearer is
    * attached by http(); the api scopes the rows to the caller (RLS), so a user only ever sees their
    * own plans. Each row is a PlanSummary (activity + chapter + tier + total + prepared date + the two
@@ -390,13 +390,13 @@ export const api = {
    */
   listPlans(chapter?: ChapterCode, signal?: AbortSignal): Promise<PlanSummary[]> {
     const query = chapter ? `?chapter=${encodeURIComponent(chapter)}` : "";
-    return http<PlanSummary[]>(`/api/v3/plans${query}`, { signal });
+    return http<PlanSummary[]>(`/api/v1/plans${query}`, { signal });
   },
 
   /**
-   * Re-open one of the caller's OWN Preparation Plans (GET /api/v3/plans/{activity_id}), by
+   * Re-open one of the caller's OWN Preparation Plans (GET /api/v1/plans/{activity_id}), by
    * activity_id, WITHOUT re-preparing it. AUTH REQUIRED. The "your prepared plans" View action: the
-   * Coordinator re-opens a plan they made and sees the same PreparationPlan that POST /api/v3/plans
+   * Coordinator re-opens a plan they made and sees the same PreparationPlan that POST /api/v1/plans
    * returned, re-rendered by the plan component. A 404 means the plan is not the caller's (RLS-scoped,
    * a forged or unknown id matches nothing). NOTE: on this STORED read `dimension_explanations` is null
    * (it is a derivation the engine produces fresh, not a stored field), so the renderer omits the
@@ -404,21 +404,21 @@ export const api = {
    */
   getPlan(activityId: string, signal?: AbortSignal): Promise<PreparationPlan> {
     return http<PreparationPlan>(
-      `/api/v3/plans/${encodeURIComponent(activityId)}`,
+      `/api/v1/plans/${encodeURIComponent(activityId)}`,
       { signal }
     );
   },
 
   getStrategies(chapter: string, signal?: AbortSignal): Promise<StrategyItem[]> {
     return http<StrategyItem[]>(
-      `/api/v3/strategies?chapter=${encodeURIComponent(chapter)}`,
+      `/api/v1/strategies?chapter=${encodeURIComponent(chapter)}`,
       { signal }
     );
   },
 
   /**
    * Remove (suppress) a strategy for its scenario (Task 9, Sprints/3.sprint/9.StrategyLibrary.md):
-   * POST /api/v3/strategies/{library_item_id}/suppress. The api records the removal (it counts toward
+   * POST /api/v1/strategies/{library_item_id}/suppress. The api records the removal (it counts toward
    * the suppress-after-3 rule, scenario-specific) and excludes the strategy next time; the app fires
    * this when the Coordinator removes a strategy from a plan and invalidates the plan reads so the list
    * refetches without it. Reversible via allowStrategy. AUTH REQUIRED (the bearer is attached by http()).
@@ -427,28 +427,28 @@ export const api = {
    */
   suppressStrategy(libraryItemId: string): Promise<void> {
     return http<void>(
-      `/api/v3/strategies/${encodeURIComponent(libraryItemId)}/suppress`,
+      `/api/v1/strategies/${encodeURIComponent(libraryItemId)}/suppress`,
       { method: "POST" }
     );
   },
 
   /**
    * Re-allow a previously suppressed strategy for its scenario (Task 9): POST
-   * /api/v3/strategies/{library_item_id}/allow. The mirror of suppressStrategy, so suppression is
+   * /api/v1/strategies/{library_item_id}/allow. The mirror of suppressStrategy, so suppression is
    * reversible (the Coordinator can bring a removed strategy back). The app fires this from the
    * "removed strategies" affordance and invalidates the plan reads. AUTH REQUIRED. Returns 204; a
    * failure surfaces inline. PROVISIONAL CONTRACT: reconcile with the api half on integration.
    */
   allowStrategy(libraryItemId: string): Promise<void> {
     return http<void>(
-      `/api/v3/strategies/${encodeURIComponent(libraryItemId)}/allow`,
+      `/api/v1/strategies/${encodeURIComponent(libraryItemId)}/allow`,
       { method: "POST" }
     );
   },
 
   /** The activities awaiting a Pulse, for the in-app prompt (Product.md §4.7). */
   getPendingPulses(signal?: AbortSignal): Promise<PendingPulse[]> {
-    return http<PendingPulse[]>("/api/v3/pulses/pending", { signal });
+    return http<PendingPulse[]>("/api/v1/pulses/pending", { signal });
   },
 
   /**
@@ -464,7 +464,7 @@ export const api = {
     outcome: PulseOutcome,
     mainChallenge?: PressureDimension
   ): Promise<PulseRecord> {
-    return http<PulseRecord>("/api/v3/pulses", {
+    return http<PulseRecord>("/api/v1/pulses", {
       method: "POST",
       body: {
         activity_id: activityId,
@@ -475,21 +475,21 @@ export const api = {
   },
 
   /**
-   * ONE care recipient's overall resilience snapshot (GET /api/v3/lci/overall, Product.md §4.8). `childId`
+   * ONE care recipient's overall resilience snapshot (GET /api/v1/lci/overall, Product.md §4.8). `childId`
    * selects the recipient (?child_id=); omitted, the api defaults to the caller's sole recipient. The
    * overall is a single recipient's resilience, never a household aggregate. A non-owned id is a 404.
    */
   getOverallLci(childId?: string | null, signal?: AbortSignal): Promise<OverallLciSnapshot> {
-    return http<OverallLciSnapshot>(`/api/v3/lci/overall${childQuery(childId)}`, { signal });
+    return http<OverallLciSnapshot>(`/api/v1/lci/overall${childQuery(childId)}`, { signal });
   },
 
   /**
-   * ONE care recipient's per-chapter LCI list (GET /api/v3/lci/chapters, Product.md §4.8). `childId`
+   * ONE care recipient's per-chapter LCI list (GET /api/v1/lci/chapters, Product.md §4.8). `childId`
    * selects the recipient (?child_id=); omitted, the api defaults to the caller's sole recipient. Every
    * value is for the selected recipient only. A non-owned id is a 404.
    */
   getChapterLci(childId?: string | null, signal?: AbortSignal): Promise<ChapterLci[]> {
-    return http<ChapterLci[]>(`/api/v3/lci/chapters${childQuery(childId)}`, { signal });
+    return http<ChapterLci[]>(`/api/v1/lci/chapters${childQuery(childId)}`, { signal });
   },
 
   /**
@@ -499,19 +499,19 @@ export const api = {
    * api defaults to the caller's sole recipient. The list is one recipient's alerts, never two pooled.
    */
   getAlerts(childId?: string | null, signal?: AbortSignal): Promise<AlertRecord[]> {
-    return http<AlertRecord[]>(`/api/v3/alerts${childQuery(childId)}`, { signal });
+    return http<AlertRecord[]>(`/api/v1/alerts${childQuery(childId)}`, { signal });
   },
 
   /**
    * Dismiss ONE care recipient's active alert for a chapter (Product.md §4.9):
-   * POST /api/v3/alerts/{chapter}/dismiss. The api records the dismissal; a dismissed alert returns only
+   * POST /api/v1/alerts/{chapter}/dismiss. The api records the dismissal; a dismissed alert returns only
    * if conditions worsen past the next threshold (the api decides, the app never re-raises a dismissed
    * alert on its own). `childId` selects the recipient (?child_id=); omitted, the api defaults to the
    * caller's sole recipient, and dismissing one recipient's alert never touches another's. Returns 204.
    */
   dismissAlert(chapter: ChapterCode, childId?: string | null): Promise<void> {
     return http<void>(
-      `/api/v3/alerts/${encodeURIComponent(chapter)}/dismiss${childQuery(childId)}`,
+      `/api/v1/alerts/${encodeURIComponent(chapter)}/dismiss${childQuery(childId)}`,
       { method: "POST" }
     );
   },
@@ -525,7 +525,7 @@ export const api = {
    * `content` and builds the public share link from `token` (it appends no profile detail to the link).
    */
   generateCard(activityId: string): Promise<CardCreated> {
-    return http<CardCreated>("/api/v3/cards", {
+    return http<CardCreated>("/api/v1/cards", {
       method: "POST",
       body: { activity_id: activityId },
     });
@@ -539,13 +539,13 @@ export const api = {
    * "ask the family for a new link" state. The api read never exposes any other row or PII.
    */
   getCard(token: string, signal?: AbortSignal): Promise<CardContent> {
-    return http<CardContent>(`/api/v3/cards/${encodeURIComponent(token)}`, {
+    return http<CardContent>(`/api/v1/cards/${encodeURIComponent(token)}`, {
       signal,
     });
   },
 
   /**
-   * List the Continuity Cards the caller has generated (GET /api/v3/cards, Product.md §4.6), newest
+   * List the Continuity Cards the caller has generated (GET /api/v1/cards, Product.md §4.6), newest
    * first, for the Card History screen. AUTH REQUIRED: the bearer is attached by http(); the api
    * scopes the rows to the caller (RLS), so a user only ever sees their own cards. Each row is a
    * CardSummary (status + ages + is_stale) and carries NO share token (the list never re-exposes the
@@ -553,11 +553,11 @@ export const api = {
    * stale link). The app renders the rows; it computes no status.
    */
   listCards(signal?: AbortSignal): Promise<CardSummary[]> {
-    return http<CardSummary[]>("/api/v3/cards", { signal });
+    return http<CardSummary[]>("/api/v1/cards", { signal });
   },
 
   /**
-   * Revoke one of the caller's active cards (POST /api/v3/cards/{card_id}/revoke, Product.md §4.6),
+   * Revoke one of the caller's active cards (POST /api/v1/cards/{card_id}/revoke, Product.md §4.6),
    * which kills the public share link immediately. AUTH REQUIRED. Returns { card } with the updated
    * CardSummary (status now "revoked"); a 404 means the card is not the caller's (RLS-scoped). The
    * caller invalidates the ["cards"] read on success so the row flips to revoked. Only an active card
@@ -565,13 +565,13 @@ export const api = {
    */
   revokeCard(cardId: string): Promise<CardRevoked> {
     return http<CardRevoked>(
-      `/api/v3/cards/${encodeURIComponent(cardId)}/revoke`,
+      `/api/v1/cards/${encodeURIComponent(cardId)}/revoke`,
       { method: "POST" }
     );
   },
 
   /**
-   * View one of the caller's OWN Continuity Cards in full (GET /api/v3/cards/{card_id}/content,
+   * View one of the caller's OWN Continuity Cards in full (GET /api/v1/cards/{card_id}/content,
    * Product.md §4.6), by card_id, NOT the share token. AUTH REQUIRED. The Card History "View" action:
    * the owner re-opens a card they made and sees the same safe CardContent a helper sees (with the
    * staleness signal). Reading by id never exposes or re-mints the share link (re-sharing regenerates a
@@ -579,13 +579,13 @@ export const api = {
    */
   viewCard(cardId: string, signal?: AbortSignal): Promise<CardContent> {
     return http<CardContent>(
-      `/api/v3/cards/${encodeURIComponent(cardId)}/content`,
+      `/api/v1/cards/${encodeURIComponent(cardId)}/content`,
       { signal }
     );
   },
 
   /**
-   * Download one of the caller's OWN Continuity Cards as a PDF (GET /api/v3/cards/{card_id}/pdf,
+   * Download one of the caller's OWN Continuity Cards as a PDF (GET /api/v1/cards/{card_id}/pdf,
    * Product.md §4.6), by card_id, NOT the share token. AUTH REQUIRED. The Card History "Download PDF"
    * action: the owner saves a printable PDF of the SAME governed content the View shows (same
    * read-by-id, RLS-scoped, so a 404 means the card is not the caller's). Returns the application/pdf
@@ -601,25 +601,25 @@ export const api = {
    */
   downloadCardPdf(cardId: string, signal?: AbortSignal): Promise<CardPdf> {
     return httpBlob(
-      `/api/v3/cards/${encodeURIComponent(cardId)}/pdf`,
+      `/api/v1/cards/${encodeURIComponent(cardId)}/pdf`,
       `continuity-card-${cardId}.pdf`,
       signal
     );
   },
 
   /**
-   * Export the caller's OWN data (GET /api/v3/me/export, the data-rights export). AUTH REQUIRED: the
+   * Export the caller's OWN data (GET /api/v1/me/export, the data-rights export). AUTH REQUIRED: the
    * bearer is attached by http(); the api gathers, RLS-scoped to the caller, every row that belongs to
    * them (profile, care recipients, activities, pulses, LCI snapshots, alerts, cards) and returns it as
    * one JSON document. It can never contain another user's data. The Settings "Export my data" action
    * fetches this and saves it to a file on the device; the app renders nothing from it.
    */
   exportMyData(signal?: AbortSignal): Promise<AccountExport> {
-    return http<AccountExport>("/api/v3/me/export", { signal });
+    return http<AccountExport>("/api/v1/me/export", { signal });
   },
 
   /**
-   * Close (delete) the caller's account (POST /api/v3/me/delete). AUTH REQUIRED. Deletion is a SOFT
+   * Close (delete) the caller's account (POST /api/v1/me/delete). AUTH REQUIRED. Deletion is a SOFT
    * delete with a 90-day recovery window: the api sets user_profile.deleted_at and RETAINS the data for
    * 90 days (it is not erased immediately; the user can reactivate by signing back in within the
    * window, then it is permanently deleted by a manual purge). Idempotent. Returns the confirmation
@@ -627,23 +627,23 @@ export const api = {
    * route then treats the closed account as gone (410) until it reactivates.
    */
   deleteMyAccount(): Promise<AccountDeletionResult> {
-    return http<AccountDeletionResult>("/api/v3/me/delete", { method: "POST" });
+    return http<AccountDeletionResult>("/api/v1/me/delete", { method: "POST" });
   },
 
   /**
    * The caller's account closure state + the computed 90-day recovery window (GET
-   * /api/v3/me/account-status). AUTH REQUIRED, and it works for a SOFT-DELETED caller (the api's
+   * /api/v1/me/account-status). AUTH REQUIRED, and it works for a SOFT-DELETED caller (the api's
    * allow-deleted dependency), which is the point: the app calls this after login to learn the account
    * is closed so it can render the reactivation interstitial. Returns { deleted, deleted_at,
    * hard_delete_due_at, reactivatable }; the app renders these and computes neither the window nor the
    * due date.
    */
   getAccountStatus(signal?: AbortSignal): Promise<AccountStatus> {
-    return http<AccountStatus>("/api/v3/me/account-status", { signal });
+    return http<AccountStatus>("/api/v1/me/account-status", { signal });
   },
 
   /**
-   * Reactivate the caller's soft-deleted account within the 90-day window (POST /api/v3/me/reactivate).
+   * Reactivate the caller's soft-deleted account within the 90-day window (POST /api/v1/me/reactivate).
    * AUTH REQUIRED, and it works for a SOFT-DELETED caller (the allow-deleted dependency). Within the
    * window the api clears user_profile.deleted_at and the account is live again; past the window it is a
    * 410 (ApiError.status === 410) because the data is due for the manual purge. Returns { reactivated:
@@ -651,11 +651,11 @@ export const api = {
    * into the app.
    */
   reactivateAccount(): Promise<ReactivateResult> {
-    return http<ReactivateResult>("/api/v3/me/reactivate", { method: "POST" });
+    return http<ReactivateResult>("/api/v1/me/reactivate", { method: "POST" });
   },
 
   /**
-   * The active subscription plan/price list (GET /api/v3/billing/plans, Docs/FeatureDecisions.md the
+   * The active subscription plan/price list (GET /api/v1/billing/plans, Docs/FeatureDecisions.md the
    * Subscription DEFER entry). AUTH REQUIRED: the bearer is attached by http(). Returns { tiers: [...] }
    * (PlanList), free first, prices in GBP pence exactly as stored (the api reads plan_tier reference
    * data). The app SHOWS this list; it never decides paid access from it (the authoritative gate is the
@@ -663,21 +663,21 @@ export const api = {
    * pounds display formatting.
    */
   listBillingPlans(signal?: AbortSignal): Promise<PlanList> {
-    return http<PlanList>("/api/v3/billing/plans", { signal });
+    return http<PlanList>("/api/v1/billing/plans", { signal });
   },
 
   /**
-   * The caller's OWN subscription state (GET /api/v3/billing/me), RLS-scoped to the caller. AUTH
+   * The caller's OWN subscription state (GET /api/v1/billing/me), RLS-scoped to the caller. AUTH
    * REQUIRED. Returns { tier, status, current_period_end } (MySubscription); a user who has never paid
    * resolves to the free default (tier 'free', status 'none', no period end). The app shows the current
    * plan; it never trusts this to gate (the gate re-resolves the tier server-side).
    */
   getMySubscription(signal?: AbortSignal): Promise<MySubscription> {
-    return http<MySubscription>("/api/v3/billing/me", { signal });
+    return http<MySubscription>("/api/v1/billing/me", { signal });
   },
 
   /**
-   * Start a Stripe-hosted Checkout for a tier + cadence (POST /api/v3/billing/checkout). AUTH REQUIRED:
+   * Start a Stripe-hosted Checkout for a tier + cadence (POST /api/v1/billing/checkout). AUTH REQUIRED:
    * the user_id is taken from the session, never the client, and starting a checkout can NEVER set the
    * caller's own tier (only the Stripe webhook writes subscription state). Body is { tier_key, cadence }
    * (the api's CheckoutRequest); on success it returns { url } (CheckoutSession), the Stripe-hosted page
@@ -692,7 +692,7 @@ export const api = {
     tierKey: string,
     cadence: BillingCadence = "monthly"
   ): Promise<CheckoutSession> {
-    return http<CheckoutSession>("/api/v3/billing/checkout", {
+    return http<CheckoutSession>("/api/v1/billing/checkout", {
       method: "POST",
       body: { tier_key: tierKey, cadence },
     });
@@ -705,7 +705,7 @@ export const api = {
 
   /**
    * Mint an email-bound, single-use, expiring invite to share ONE care recipient (POST
-   * /api/v3/sharing/invites). Body is { recipient_id, email, role?, subject_kind? } (mirrors the api's
+   * /api/v1/sharing/invites). Body is { recipient_id, email, role?, subject_kind? } (mirrors the api's
    * invite create): recipient_id is the ACTIVE recipient from the switcher (the api verifies it is the
    * caller's, 404 if not); email binds the invite; subject_kind selects the consent path. Returns 201
    * ShareInviteCreated (the redeem token + the governed copy key + the recorded consent text). A 409
@@ -714,33 +714,33 @@ export const api = {
    * appends no PII (the link still needs an account to redeem).
    */
   createShareInvite(payload: ShareInviteCreate): Promise<ShareInviteCreated> {
-    return http<ShareInviteCreated>("/api/v3/sharing/invites", {
+    return http<ShareInviteCreated>("/api/v1/sharing/invites", {
       method: "POST",
       body: payload,
     });
   },
 
   // --- The Village Hub (FeatureDecisions.md 2026-06-12; Product.md §6) ---
-  // All under /api/v3/village, all AUTH (the bearer is attached by http()), all RLS-scoped by recipient.
+  // All under /api/v1/village, all AUTH (the bearer is attached by http()), all RLS-scoped by recipient.
   // Every per-recipient read carries ?recipient_id= (REQUIRED here, unlike the dashboard's optional
   // child_id): a need belongs to exactly one recipient and the roster/board are scoped to that recipient.
 
   /**
-   * Record per-recipient consent to share with the village (POST /api/v3/village/consent). OWNER only
+   * Record per-recipient consent to share with the village (POST /api/v1/village/consent). OWNER only
    * (403 if not the owner). The api SUPPLIES the governed consent text (the app never authors it) and
    * returns { recipient_id, consent_text }. The owner records this ONCE before any need can be posted
    * (the Art. 9 consent gate); a post before consent is a 409 (ConsentRequiredError). Body is
    * { recipient_id } only; the consent wording is the api's.
    */
   recordVillageConsent(recipientId: string): Promise<ConsentRecorded> {
-    return http<ConsentRecorded>("/api/v3/village/consent", {
+    return http<ConsentRecorded>("/api/v1/village/consent", {
       method: "POST",
       body: { recipient_id: recipientId },
     });
   },
 
   /**
-   * Post a need for one recipient (POST /api/v3/village/needs). OWNER + CONSENT-gated. Mirrors the api's
+   * Post a need for one recipient (POST /api/v1/village/needs). OWNER + CONSENT-gated. Mirrors the api's
    * CreateNeedRequest: recipient_id + a required title + optional logistics (detail, area_label, exact
    * location_text, contact_name/phone, the starts_at/ends_at window). The api broadcasts it to the
    * recipient's roster as an OPEN need and returns a NeedActionResult (the governed "posted" confirmation,
@@ -749,28 +749,28 @@ export const api = {
    * api only to the live claimer + owner (the visibility ceiling), never on the board.
    */
   createNeed(payload: CreateNeedRequest): Promise<NeedActionResult> {
-    return http<NeedActionResult>("/api/v3/village/needs", {
+    return http<NeedActionResult>("/api/v1/village/needs", {
       method: "POST",
       body: payload,
     });
   },
 
   /**
-   * Record an ADULT recipient's consent before an invite can mint (POST /api/v3/sharing/consent). Body is
+   * Record an ADULT recipient's consent before an invite can mint (POST /api/v1/sharing/consent). Body is
    * { recipient_id }; the api verifies the recipient is the caller's (404 if not), builds + stores the
    * recorded-consent text, and returns 200 ShareConsentRecorded (the consent id + the governed copy key +
    * the built consent_text). A child share does NOT call this (its consent is captured inline on the
    * invite); this clears the adult-share 409 so the subsequent createShareInvite succeeds.
    */
   recordShareConsent(payload: ShareConsentCreate): Promise<ShareConsentRecorded> {
-    return http<ShareConsentRecorded>("/api/v3/sharing/consent", {
+    return http<ShareConsentRecorded>("/api/v1/sharing/consent", {
       method: "POST",
       body: payload,
     });
   },
 
   /**
-   * Redeem an invite token to gain access to a shared recipient (POST /api/v3/sharing/redeem). AUTH
+   * Redeem an invite token to gain access to a shared recipient (POST /api/v1/sharing/redeem). AUTH
    * REQUIRED: the recipient is signed in with THEIR own account; the invite is email-bound, so the
    * session email must match the invited email. Body is { token }. Returns 200 ShareRedeemResult
    * (the recipient_id + first name + the governed "you now have access" copy key). A 400 (ApiError.status
@@ -778,7 +778,7 @@ export const api = {
    * caller shows one calm "this link can't be opened" state, never the raw reason.
    */
   redeemShare(payload: ShareRedeemRequest): Promise<ShareRedeemResult> {
-    return http<ShareRedeemResult>("/api/v3/sharing/redeem", {
+    return http<ShareRedeemResult>("/api/v1/sharing/redeem", {
       method: "POST",
       body: payload,
     });
@@ -786,20 +786,20 @@ export const api = {
 
   /**
    * The "who can see [name]" roster for ONE recipient (GET
-   * /api/v3/sharing/recipients/{recipient_id}/roster). AUTH REQUIRED. Returns 200 ShareRoster (the
+   * /api/v1/sharing/recipients/{recipient_id}/roster). AUTH REQUIRED. Returns 200 ShareRoster (the
    * recipient first name + the governed title/empty copy keys + the active + pending entries). A 404 means
    * the recipient is not the caller's (RLS-scoped). The app renders the rows + the revoke actions and
    * computes no state; an active entry revokes by membership_id, a pending one by invite_id.
    */
   getShareRoster(recipientId: string, signal?: AbortSignal): Promise<ShareRoster> {
     return http<ShareRoster>(
-      `/api/v3/sharing/recipients/${encodeURIComponent(recipientId)}/roster`,
+      `/api/v1/sharing/recipients/${encodeURIComponent(recipientId)}/roster`,
       { signal }
     );
   },
 
   /**
-   * The recipient's needs (GET /api/v3/village/needs?recipient_id=). MEMBER auth (403 if not a member).
+   * The recipient's needs (GET /api/v1/village/needs?recipient_id=). MEMBER auth (403 if not a member).
    * Returns NeedSummary rows (the need + logistics ONLY, NO exact location/contact, the ceiling). The
    * board renders the OPEN ones for a member to claim; the owner's view uses the same read and filters to
    * what it shows. `claimed_by_me` / `is_claimed` drive the per-row action + "covered" state. RLS-scoped:
@@ -807,14 +807,14 @@ export const api = {
    */
   listNeeds(recipientId: string, signal?: AbortSignal): Promise<NeedSummary[]> {
     return http<NeedSummary[]>(
-      `/api/v3/village/needs?recipient_id=${encodeURIComponent(recipientId)}`,
+      `/api/v1/village/needs?recipient_id=${encodeURIComponent(recipientId)}`,
       { signal }
     );
   },
 
   /**
    * Revoke an ACTIVE membership on a recipient (DELETE
-   * /api/v3/sharing/recipients/{recipient_id}/members/{membership_id}), which stops that person resolving
+   * /api/v1/sharing/recipients/{recipient_id}/members/{membership_id}), which stops that person resolving
    * the recipient on their next request (RLS; a retained soft-revoke audit row, the 0008 precedent). AUTH
    * REQUIRED. Returns 200 ShareRevokeResult (revoked + the governed confirm copy key). A 404 means the
    * membership is not the caller's; the caller surfaces it inline and refetches the roster to drop the row.
@@ -824,38 +824,38 @@ export const api = {
     membershipId: string
   ): Promise<ShareRevokeResult> {
     return http<ShareRevokeResult>(
-      `/api/v3/sharing/recipients/${encodeURIComponent(recipientId)}/members/${encodeURIComponent(membershipId)}`,
+      `/api/v1/sharing/recipients/${encodeURIComponent(recipientId)}/members/${encodeURIComponent(membershipId)}`,
       { method: "DELETE" }
     );
   },
 
   /**
    * Revoke a PENDING invite on a recipient (DELETE
-   * /api/v3/sharing/recipients/{recipient_id}/invites/{invite_id}), so the unredeemed link can no longer
+   * /api/v1/sharing/recipients/{recipient_id}/invites/{invite_id}), so the unredeemed link can no longer
    * be redeemed. AUTH REQUIRED. Returns 200 ShareRevokeResult. A 404 means the invite is not the caller's;
    * the caller surfaces it inline and refetches the roster to drop the row. Same shape as the membership
    * revoke, a different target (an unredeemed invite rather than a live membership).
    */
   revokeShareInvite(recipientId: string, inviteId: string): Promise<ShareRevokeResult> {
     return http<ShareRevokeResult>(
-      `/api/v3/sharing/recipients/${encodeURIComponent(recipientId)}/invites/${encodeURIComponent(inviteId)}`,
+      `/api/v1/sharing/recipients/${encodeURIComponent(recipientId)}/invites/${encodeURIComponent(inviteId)}`,
       { method: "DELETE" }
     );
   },
 
   /**
-   * The recipients another Coordinator has shared WITH the caller (GET /api/v3/sharing/shared-with-me),
+   * The recipients another Coordinator has shared WITH the caller (GET /api/v1/sharing/shared-with-me),
    * for the "shared with you" linked-state. AUTH REQUIRED. Returns 200 SharedWithMe (a recipients list,
    * empty when nothing is shared with the caller, which is a valid state, not a 404). The app lists them
    * and reads one recipient's shared card on selection.
    */
   getSharedWithMe(signal?: AbortSignal): Promise<SharedWithMe> {
-    return http<SharedWithMe>("/api/v3/sharing/shared-with-me", { signal });
+    return http<SharedWithMe>("/api/v1/sharing/shared-with-me", { signal });
   },
 
   /**
    * The Continuity Card a shared-with recipient is allowed to see (GET
-   * /api/v3/sharing/recipients/{recipient_id}/card), the VISIBILITY CEILING (a viewer sees ONLY the Card,
+   * /api/v1/sharing/recipients/{recipient_id}/card), the VISIBILITY CEILING (a viewer sees ONLY the Card,
    * never the profile / LCI / alerts). AUTH REQUIRED, membership-gated server-side. Returns 200 SharedCard
    * (the same safe CardContent the public card uses, so the app renders it with CardContentView). A 404
    * means the caller is NOT a member OR there is no live card for the recipient (NEVER the profile in
@@ -863,26 +863,26 @@ export const api = {
    */
   getSharedCard(recipientId: string, signal?: AbortSignal): Promise<SharedCard> {
     return http<SharedCard>(
-      `/api/v3/sharing/recipients/${encodeURIComponent(recipientId)}/card`,
+      `/api/v1/sharing/recipients/${encodeURIComponent(recipientId)}/card`,
       { signal }
     );
   },
 
   /**
-   * ONE need in full (GET /api/v3/village/needs/{need_id}). Returns NeedDetail: the NeedSummary fields
+   * ONE need in full (GET /api/v1/village/needs/{need_id}). Returns NeedDetail: the NeedSummary fields
    * PLUS the exact location_text / contact_name / contact_phone, which the api populates ONLY for the
    * LIVE claimer or the owner (else null). The app shows the exact logistics only when present, so a
    * non-claimer member never receives them. A need not visible to the caller is a 403/404.
    */
   getNeed(needId: string, signal?: AbortSignal): Promise<NeedDetail> {
     return http<NeedDetail>(
-      `/api/v3/village/needs/${encodeURIComponent(needId)}`,
+      `/api/v1/village/needs/${encodeURIComponent(needId)}`,
       { signal }
     );
   },
 
   /**
-   * CLAIM an open need (POST /api/v3/village/needs/{need_id}/claim). MEMBER auth; ATOMIC first-claim-wins
+   * CLAIM an open need (POST /api/v1/village/needs/{need_id}/claim). MEMBER auth; ATOMIC first-claim-wins
    * at the DB. A 409 (NeedConflictError) means it is no longer open (someone just claimed it, or it was
    * cancelled): the caller surfaces the calm "taken" state and re-reads the board. On success the api
    * returns the governed claim confirmation (rendered verbatim) and the need is now the caller's
@@ -890,68 +890,68 @@ export const api = {
    */
   claimNeed(needId: string): Promise<NeedActionResult> {
     return http<NeedActionResult>(
-      `/api/v3/village/needs/${encodeURIComponent(needId)}/claim`,
+      `/api/v1/village/needs/${encodeURIComponent(needId)}/claim`,
       { method: "POST" }
     );
   },
 
   /**
-   * CONFIRM a claimed need (POST /api/v3/village/needs/{need_id}/confirm). OWNER only (403 otherwise):
+   * CONFIRM a claimed need (POST /api/v1/village/needs/{need_id}/confirm). OWNER only (403 otherwise):
    * the Coordinator confirms the plan with the claimer, closing the follow-through loop's plan step.
    * Returns the governed "confirmed" confirmation (rendered verbatim); the status moves to `confirmed`.
    */
   confirmNeed(needId: string): Promise<NeedActionResult> {
     return http<NeedActionResult>(
-      `/api/v3/village/needs/${encodeURIComponent(needId)}/confirm`,
+      `/api/v1/village/needs/${encodeURIComponent(needId)}/confirm`,
       { method: "POST" }
     );
   },
 
   /**
-   * Mark a claimed need DONE (POST /api/v3/village/needs/{need_id}/done). The CLAIMER only (NotClaimer is
+   * Mark a claimed need DONE (POST /api/v1/village/needs/{need_id}/done). The CLAIMER only (NotClaimer is
    * 403): the member who claimed it marks it complete. Returns the governed "done" confirmation (verbatim);
    * the status moves to `done` (terminal). After done, the api's per-claim access expires (no standing visibility).
    */
   markNeedDone(needId: string): Promise<NeedActionResult> {
     return http<NeedActionResult>(
-      `/api/v3/village/needs/${encodeURIComponent(needId)}/done`,
+      `/api/v1/village/needs/${encodeURIComponent(needId)}/done`,
       { method: "POST" }
     );
   },
 
   /**
-   * DROP a claimed need (POST /api/v3/village/needs/{need_id}/drop). The CLAIMER only (NotClaimer is 403):
+   * DROP a claimed need (POST /api/v1/village/needs/{need_id}/drop). The CLAIMER only (NotClaimer is 403):
    * the member steps back. The api AUTO RE-BROADCASTS: the need returns to the board as a fresh OPEN one,
    * so a claim that cannot be honoured is not a dead end (the board's closed-loop rule). Returns the
    * governed "drop" confirmation (verbatim). The dropped claim is retained as the audit of what happened.
    */
   dropNeed(needId: string): Promise<NeedActionResult> {
     return http<NeedActionResult>(
-      `/api/v3/village/needs/${encodeURIComponent(needId)}/drop`,
+      `/api/v1/village/needs/${encodeURIComponent(needId)}/drop`,
       { method: "POST" }
     );
   },
 
   /**
-   * CANCEL a need (POST /api/v3/village/needs/{need_id}/cancel). OWNER only (403 otherwise): the
+   * CANCEL a need (POST /api/v1/village/needs/{need_id}/cancel). OWNER only (403 otherwise): the
    * Coordinator withdraws the need (it is no longer needed). Returns the governed "cancelled" confirmation
    * (verbatim); the status moves to `cancelled` (terminal, NOT re-broadcast, unlike a claimer's drop).
    */
   cancelNeed(needId: string): Promise<NeedActionResult> {
     return http<NeedActionResult>(
-      `/api/v3/village/needs/${encodeURIComponent(needId)}/cancel`,
+      `/api/v1/village/needs/${encodeURIComponent(needId)}/cancel`,
       { method: "POST" }
     );
   },
 
   /**
-   * The recipient's village roster (GET /api/v3/village/roster?recipient_id=). MEMBER auth (403 if not a
+   * The recipient's village roster (GET /api/v1/village/roster?recipient_id=). MEMBER auth (403 if not a
    * member). Returns { recipient_first_name, members }: the visible "who is in [name]'s village" list
    * (the board's mandatory transparency surface). The app renders the rows and computes nothing.
    */
   getRoster(recipientId: string, signal?: AbortSignal): Promise<RosterResponse> {
     return http<RosterResponse>(
-      `/api/v3/village/roster?recipient_id=${encodeURIComponent(recipientId)}`,
+      `/api/v1/village/roster?recipient_id=${encodeURIComponent(recipientId)}`,
       { signal }
     );
   },

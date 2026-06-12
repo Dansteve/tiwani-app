@@ -3,7 +3,7 @@
 // The single client-side provider stack mounted once in the root layout: the theme preference (UI state,
 // outermost so the toggle works everywhere including the auth screens) wrapping server state (TanStack
 // Query) wrapping auth/session (Supabase) wrapping the active care recipient. RecipientProvider sits
-// INSIDE AuthProvider because its GET /api/v3/children read needs the bearer the auth layer wires into the
+// INSIDE AuthProvider because its GET /api/v1/children read needs the bearer the auth layer wires into the
 // api client; it is inside QueryProvider because it is a TanStack Query read. Kept together so the layout
 // stays a thin shell.
 

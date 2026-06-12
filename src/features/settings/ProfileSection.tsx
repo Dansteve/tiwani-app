@@ -2,7 +2,7 @@
 
 // The "Your profile" Settings section (Product.md §4: the profile is editable forever). First name is
 // editable; email is read-only (identity is owned by Supabase Auth, not changed here). Saving is a
-// TanStack Query mutation to PUT /api/v3/profile that invalidates the ["profile"] read on success, so
+// TanStack Query mutation to PUT /api/v1/profile that invalidates the ["profile"] read on success, so
 // the greeting and anywhere else reading the profile update within seconds. The app renders the api's
 // result; it computes nothing. Errors surface inline (the repo has no toast library; the established
 // pattern is an inline role="alert" on the destructive token, as on the Plan and Dashboard screens).

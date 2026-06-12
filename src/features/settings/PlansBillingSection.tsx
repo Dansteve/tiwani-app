@@ -4,13 +4,13 @@
 // plan, and offers an "Upgrade" on each paid tier. It is the APP HALF of the subscription feature
 // (the api foundation is feat/api-subscription-foundation; the contract is
 // HardRules/Api/Modules/Subscription.md). Two reads, RLS-scoped to the caller:
-//   - ["billing", "plans"] (api.listBillingPlans -> GET /api/v3/billing/plans): the price list, free
+//   - ["billing", "plans"] (api.listBillingPlans -> GET /api/v1/billing/plans): the price list, free
 //     first, prices in GBP pence. The app SHOWS this; it never decides paid access from it (the gate
 //     is the server-side require_entitlement). Pence are formatted to pounds with lib/format.formatPence.
-//   - ["billing", "me"]    (api.getMySubscription -> GET /api/v3/billing/me): the caller's CURRENT
+//   - ["billing", "me"]    (api.getMySubscription -> GET /api/v1/billing/me): the caller's CURRENT
 //     tier (+ status + period end). The tier the gate resolves; the app shows it, never trusts it to gate.
 //
-// CHECKOUT IS STUBBED (PENDING OWNER STRIPE KEYS): POST /api/v3/billing/checkout returns 503 until the
+// CHECKOUT IS STUBBED (PENDING OWNER STRIPE KEYS): POST /api/v1/billing/checkout returns 503 until the
 // owner provides Stripe keys (Subscription.md). So the "Upgrade" CTA catches the 503 and shows a calm
 // "Upgrade is coming soon" state (role="status", the muted token), NOT an error toast, mirroring the
 // existing one-recipient 409 guard (RecipientsSection). When the keys land the SAME CTA receives a real

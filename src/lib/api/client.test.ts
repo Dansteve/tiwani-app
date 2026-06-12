@@ -1,5 +1,5 @@
 // Unit tests for the binary endpoint in the typed api client (lib/api/client): downloadCardPdf, the
-// owner-only Continuity Card PDF export (GET /api/v3/cards/{card_id}/pdf). It is the one client function
+// owner-only Continuity Card PDF export (GET /api/v1/cards/{card_id}/pdf). It is the one client function
 // that returns a FILE, not JSON, so it goes through httpBlob rather than http<T>. With global fetch and
 // the env + token provider stubbed (no live backend), we assert the contract: it requests the right
 // path with the Supabase bearer and an application/pdf Accept, returns the bytes as a Blob, takes the
@@ -55,7 +55,7 @@ describe("api.downloadCardPdf", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("https://api.test/api/v3/cards/card_1/pdf");
+    expect(url).toBe("https://api.test/api/v1/cards/card_1/pdf");
     expect(options.method).toBe("GET");
     const headers = options.headers as Record<string, string>;
     expect(headers.Accept).toBe("application/pdf");
@@ -83,7 +83,7 @@ describe("api.downloadCardPdf", () => {
     await api.downloadCardPdf("a/b id");
 
     const [url] = fetchMock.mock.calls[0] as [string];
-    expect(url).toBe("https://api.test/api/v3/cards/a%2Fb%20id/pdf");
+    expect(url).toBe("https://api.test/api/v1/cards/a%2Fb%20id/pdf");
   });
 
   it("falls back to a sensible default filename when Content-Disposition is absent", async () => {

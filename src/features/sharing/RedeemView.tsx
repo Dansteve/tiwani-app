@@ -7,7 +7,7 @@
 //     invite" call to action. After they sign in / sign up, a banner in the app picks the token up and
 //     brings them back here to finish (so the link survives the sign-in bounce). The page lives OUTSIDE
 //     the (app) onboarding guard, so a signed-out visitor sees this rather than being silently bounced.
-//   - SIGNED IN: it redeems straight away (POST /api/v3/sharing/redeem). On success it shows the warm,
+//   - SIGNED IN: it redeems straight away (POST /api/v1/sharing/redeem). On success it shows the warm,
 //     GOVERNED linked-state copy and a button into "Shared with you". A 400 (unknown / expired / used /
 //     revoked / wrong-email) is one calm "this link can't be opened" state, never the raw reason.
 // The app renders the api's governed copy and never names the role.
