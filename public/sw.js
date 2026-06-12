@@ -2,7 +2,7 @@
 // the next load, never a stale cached app shell) with a cached fallback for offline; CACHE-FIRST for
 // other same-origin GETs (the hashed, immutable static assets). Bump CACHE_NAME on any change here so
 // the activate step evicts the previous cache and the new worker takes over (skipWaiting + claim).
-const CACHE_NAME = 'tiwani-v3';
+const CACHE_NAME = 'tiwani-v4';
 const PRECACHE = [
     '/',
     '/icon-only.svg',
