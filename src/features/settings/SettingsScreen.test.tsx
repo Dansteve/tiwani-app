@@ -3,6 +3,11 @@
 // computes anything). Pins three things end to end: the loaded profile + care recipient render their
 // real values, email is read-only, and editing a field sends the right partial PUT (only changed fields)
 // and shows the saved state. Uses the seeded demo recipient (Ade) so the test mirrors the manual QA.
+//
+// The screen is grouped into three tabs (Profile / Care recipients / Data & privacy), Profile active by
+// default. The profile assertions run on the default tab; the care-recipient assertions first switch to
+// the "Care recipients" tab (tabTo). A dedicated block pins the tabbing itself: the right section shows
+// under the right tab and nothing is dropped.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
@@ -88,6 +93,11 @@ function renderScreen() {
   );
 }
 
+/** Switch to a tab by its visible label (the care-recipient + data sections live behind their tab). */
+async function tabTo(user: ReturnType<typeof userEvent.setup>, label: RegExp) {
+  await user.click(screen.getByRole("tab", { name: label }));
+}
+
 beforeEach(() => {
   window.localStorage.clear();
   me.mockReset();
@@ -119,10 +129,15 @@ beforeEach(() => {
 
 describe("SettingsScreen", () => {
   it("loads the profile and the care recipient's real values", async () => {
+    const user = userEvent.setup();
     renderScreen();
 
+    // Profile is the default tab: its fields are visible without switching.
     expect(await screen.findByDisplayValue("Sam")).toBeInTheDocument();
     expect(screen.getByDisplayValue("coordinator@example.com")).toBeInTheDocument();
+
+    // The care recipient lives under the "Care recipients" tab; switch to it, then assert its values.
+    await tabTo(user, /care recipients/i);
     expect(await screen.findByDisplayValue("Ade")).toBeInTheDocument();
 
     // The seeded recipient's coded values are reflected in the selectors (pressed = selected).
@@ -165,6 +180,8 @@ describe("SettingsScreen", () => {
     const user = userEvent.setup();
     renderScreen();
 
+    // The care-recipient editor is under the "Care recipients" tab.
+    await tabTo(user, /care recipients/i);
     // Add a new sensory tag to Ade's existing three.
     await screen.findByDisplayValue("Ade");
     await user.click(screen.getByRole("button", { name: /bright or flickering light/i }));
@@ -183,5 +200,66 @@ describe("SettingsScreen", () => {
     const nameInput = await screen.findByDisplayValue("Sam");
     const profileCard = nameInput.closest("form") as HTMLElement;
     expect(within(profileCard).getByRole("button", { name: /save changes/i })).toBeDisabled();
+  });
+});
+
+// The tab shell: every section that was on the flat screen is reachable under exactly one of the three
+// tabs (Profile / Care recipients / Data & privacy), Profile active by default, and switching a tab
+// reveals that tab's content (and only it). This is the regrouping's contract: nothing dropped, one home
+// per section.
+describe("SettingsScreen tabs", () => {
+  it("shows three tabs with Profile active by default", async () => {
+    renderScreen();
+    // Profile's own content (the first-name field) is visible on load, before any tab interaction.
+    expect(await screen.findByDisplayValue("Sam")).toBeInTheDocument();
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual([
+      "Profile",
+      "Care recipients",
+      "Data & privacy",
+    ]);
+    expect(screen.getByRole("tab", { name: "Profile" })).toHaveAttribute("aria-selected", "true");
+    // Only the active tab's panel is rendered: the other tabs' content is absent until selected.
+    expect(screen.queryByDisplayValue("Ade")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("data-export-section")).not.toBeInTheDocument();
+  });
+
+  it("keeps the Account sign-out + Appearance under the Profile tab", async () => {
+    renderScreen();
+    await screen.findByDisplayValue("Sam");
+    // Sign-out (the stubbed LogoutButton) and the theme control sit with the Coordinator's own profile.
+    expect(screen.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
+    expect(screen.getByRole("radiogroup", { name: /theme/i })).toBeInTheDocument();
+  });
+
+  it("shows the recipient list + the 'removing someone' copy under Care recipients", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+    await screen.findByDisplayValue("Sam");
+
+    await tabTo(user, /care recipients/i);
+    // The recipient editor (Ade) and the add-recipient flow are here.
+    expect(await screen.findByDisplayValue("Ade")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /add a care recipient/i })).toBeInTheDocument();
+    // The verbatim "removing someone is coming soon" copy is preserved under this tab.
+    expect(
+      screen.getByText(/Need to remove someone\? That is coming soon\. For now, get in touch and we will help\./i)
+    ).toBeInTheDocument();
+    // Profile-tab content is no longer mounted.
+    expect(screen.queryByDisplayValue("Sam")).not.toBeInTheDocument();
+  });
+
+  it("shows the export + close-account sections under Data & privacy", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+    await screen.findByDisplayValue("Sam");
+
+    await tabTo(user, /data & privacy/i);
+    // Both the data-export and account-closure sections (stubbed) land under this one tab.
+    expect(screen.getByTestId("data-export-section")).toBeInTheDocument();
+    expect(screen.getByTestId("danger-zone-section")).toBeInTheDocument();
+    // The care-recipient editor is not here (it lives under its own tab).
+    expect(screen.queryByDisplayValue("Ade")).not.toBeInTheDocument();
   });
 });

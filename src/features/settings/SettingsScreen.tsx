@@ -5,11 +5,19 @@
 // each loaded object to its section, which owns its own save mutation. The app renders what the api
 // returns and computes nothing; the section mutations invalidate the right reads on success.
 //
+// The sections are grouped under three TABS so each part has one clear job: "Profile" (the Coordinator's
+// own profile, appearance, and sign-out), "Care recipients" (the recipient list + add + the editor for
+// the active one), and "Data & privacy" (export everything + close the account). The tabs are the app's
+// own accessible primitive (components/ui/tabs): a keyboard-navigable role="tablist". The grouping is a
+// shell-and-composition change only; no section's internals, reads, mutations, or copy change. Profile is
+// the default active tab.
+//
 // Errors and absence are explicit, never a blank screen: a failed read shows an inline message, and a
 // Coordinator who has not finished onboarding (no care recipient yet, the api 404s) gets a prompt to
 // finish setup rather than an empty form. Account / sign-out stays on the page (LogoutButton), since
 // signing out is a device action, not a profile edit.
 
+import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
@@ -24,6 +32,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { TabsList, TabPanel, type TabItem } from "@/components/ui/tabs";
 import { ProfileSection } from "@/features/settings/ProfileSection";
 import { CareRecipientSection } from "@/features/settings/CareRecipientSection";
 import { RecipientsSection } from "@/features/settings/RecipientsSection";
@@ -32,10 +41,25 @@ import { DangerZoneSection } from "@/features/settings/DangerZoneSection";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { useRecipient } from "@/state/RecipientProvider";
 
+// The three tabs, in display order. Profile is first (the default active tab).
+const SETTINGS_TABS = [
+  { value: "profile", label: "Profile" },
+  { value: "recipients", label: "Care recipients" },
+  { value: "data", label: "Data & privacy" },
+] as const satisfies readonly TabItem[];
+
+type SettingsTab = (typeof SETTINGS_TABS)[number]["value"];
+
+const TABS_ID = "settings";
+
 export function SettingsScreen() {
   // The recipients (and which one is active) come from the provider, shared with the shell switcher.
   const { recipients, activeRecipient } = useRecipient();
   const isMulti = recipients.length > 1;
+
+  // The active tab. Local state, defaulting to Profile; the app does not mirror Settings tabs in the URL
+  // elsewhere, so local state is the source of truth here.
+  const [tab, setTab] = useState<SettingsTab>("profile");
 
   const profileQuery = useQuery({
     queryKey: ["profile"],
@@ -70,82 +94,106 @@ export function SettingsScreen() {
         </p>
       </header>
 
-      {/* Your profile */}
-      {profileQuery.isLoading ? (
-        <SectionSkeleton lines={2} />
-      ) : profileQuery.isError ? (
-        <SectionError>We could not load your profile just now. Please try again shortly.</SectionError>
-      ) : profileQuery.data ? (
-        <ProfileSection profile={profileQuery.data} />
+      <TabsList
+        tabs={SETTINGS_TABS}
+        value={tab}
+        onValueChange={(next) => setTab(next as SettingsTab)}
+        label="Settings sections"
+        idBase={TABS_ID}
+      />
+
+      {/* Profile: the Coordinator's own settings, kept together: their profile, how the app looks on this
+          device (Appearance), and signing out (Account, a device action distinct from a profile edit). */}
+      {tab === "profile" ? (
+        <TabPanel value="profile" idBase={TABS_ID} className="space-y-6">
+          {/* Your profile */}
+          {profileQuery.isLoading ? (
+            <SectionSkeleton lines={2} />
+          ) : profileQuery.isError ? (
+            <SectionError>We could not load your profile just now. Please try again shortly.</SectionError>
+          ) : profileQuery.data ? (
+            <ProfileSection profile={profileQuery.data} />
+          ) : null}
+
+          {/* Appearance (theme). A device preference, set on this device and remembered here. */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Appearance</CardTitle>
+              <CardDescription>
+                Choose how TIWANI looks on this device. System follows your device setting.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ThemeToggle variant="segmented" />
+            </CardContent>
+          </Card>
+
+          {/* Account (sign out). A device action, kept distinct from the profile edits above. */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Account</CardTitle>
+              <CardDescription>
+                Sign out of TIWANI on this device. Your data stays safe and is here when you return.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LogoutButton variant="button" />
+            </CardContent>
+          </Card>
+        </TabPanel>
       ) : null}
 
-      {/* Care recipients: the list of everyone the Coordinator cares for + the add-a-recipient entry
-          (the multi-recipient surface). It drives off the provider's shared ["children"] read. */}
-      <RecipientsSection />
+      {/* Care recipients: the list of everyone the Coordinator cares for + the add-a-recipient entry,
+          then the editor for the recipient currently in view. */}
+      {tab === "recipients" ? (
+        <TabPanel value="recipients" idBase={TABS_ID} className="space-y-6">
+          {/* The multi-recipient surface. It drives off the provider's shared ["children"] read. */}
+          <RecipientsSection />
 
-      {/* Care recipient editor: edits the recipient currently in view (the active one when there are
-          several, else the single ["child"] read). With several recipients there is always one active, so
-          the not-onboarded prompt only applies to a single/zero-recipient user (the ["child"] 404). */}
-      {!isMulti && childQuery.isLoading ? (
-        <SectionSkeleton lines={5} />
-      ) : !isMulti && childMissing ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">Care recipient</CardTitle>
-            <CardDescription>
-              You have not added the person you care for yet.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link
-              href="/onboarding"
-              className={cn(buttonVariants({ variant: "default" }))}
-            >
-              Finish setting up
-            </Link>
-          </CardContent>
-        </Card>
-      ) : !isMulti && childQuery.isError ? (
-        <SectionError>
-          We could not load the care recipient just now. Please try again shortly.
-        </SectionError>
-      ) : editorChild ? (
-        <CareRecipientSection key={editorChild.id} child={editorChild} />
+          {/* Care recipient editor: edits the recipient currently in view (the active one when there are
+              several, else the single ["child"] read). With several recipients there is always one active,
+              so the not-onboarded prompt only applies to a single/zero-recipient user (the ["child"] 404). */}
+          {!isMulti && childQuery.isLoading ? (
+            <SectionSkeleton lines={5} />
+          ) : !isMulti && childMissing ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">Care recipient</CardTitle>
+                <CardDescription>
+                  You have not added the person you care for yet.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link
+                  href="/onboarding"
+                  className={cn(buttonVariants({ variant: "default" }))}
+                >
+                  Finish setting up
+                </Link>
+              </CardContent>
+            </Card>
+          ) : !isMulti && childQuery.isError ? (
+            <SectionError>
+              We could not load the care recipient just now. Please try again shortly.
+            </SectionError>
+          ) : editorChild ? (
+            <CareRecipientSection key={editorChild.id} child={editorChild} />
+          ) : null}
+        </TabPanel>
       ) : null}
 
-      {/* Appearance (theme). A device preference, set on this device and remembered here. */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Appearance</CardTitle>
-          <CardDescription>
-            Choose how TIWANI looks on this device. System follows your device setting.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ThemeToggle variant="segmented" />
-        </CardContent>
-      </Card>
+      {/* Data & privacy: export everything the account holds, and the calm two-step account closure. */}
+      {tab === "data" ? (
+        <TabPanel value="data" idBase={TABS_ID} className="space-y-6">
+          {/* Your data (export). Download a copy of everything the account holds; the file saves to the
+              device and nothing is rendered from it. */}
+          <DataExportSection />
 
-      {/* Your data (export). Download a copy of everything the account holds; the file saves to the
-          device and nothing is rendered from it. */}
-      <DataExportSection />
-
-      {/* Account (sign out). A device action, kept distinct from the profile edits above. */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Account</CardTitle>
-          <CardDescription>
-            Sign out of TIWANI on this device. Your data stays safe and is here when you return.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LogoutButton variant="button" />
-        </CardContent>
-      </Card>
-
-      {/* Close account (the deletion flow). A calm two-step confirm with honest, factual copy: the
-          account is closed and the data is retained per the retention policy, not erased on the spot. */}
-      <DangerZoneSection />
+          {/* Close account (the deletion flow). A calm two-step confirm with honest, factual copy: the
+              account is closed and the data is retained per the retention policy, not erased on the spot. */}
+          <DangerZoneSection />
+        </TabPanel>
+      ) : null}
     </div>
   );
 }
