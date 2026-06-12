@@ -14,10 +14,18 @@ import { api, ApiError } from "@/lib/api/client";
 import { env } from "@/lib/env";
 import { Wordmark } from "@/components/Wordmark";
 import { CardContentView } from "@/features/card/CardContentView";
+import { PrintCardButton } from "@/features/card/PrintCardButton";
 
 export function PublicCardView({ token }: { token: string | null }) {
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+    // data-public-card marks this subtree as the print root: the @media print block in styles/theme.css
+    // is scoped to it, so on paper it re-skins the deep-teal card to clean black-on-white and hides the
+    // app chrome (the "Support summary" pill, the Print button, the footer), WITHOUT touching the in-app
+    // card preview or Card History, which render the same CardContentView outside this wrapper.
+    <main
+      data-public-card
+      className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-12"
+    >
       <PublicCardHeader />
       <div className="mt-8">
         {token ? <CardByToken token={token} /> : <MissingLink />}
@@ -31,7 +39,12 @@ function PublicCardHeader() {
   return (
     <header className="flex items-center justify-between">
       <Wordmark className="text-xl" />
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      {/* The pill is screen chrome; the print stylesheet hides it so the printed sheet leads with the
+          card, not a UI label. */}
+      <span
+        data-print-hidden
+        className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+      >
         Support summary
       </span>
     </header>
@@ -65,6 +78,21 @@ function CardByToken({ token }: { token: string }) {
           activity. It is a guide, not a set of instructions, use your judgement.
         </span>
       </p>
+
+      {/* Print affordance (the free safety net, Docs/FeatureDecisions.md): a helper with no app and no
+          printer-friendly PDF can still put the FULL card, including the health-and-safety and "if things
+          get difficult" lines, on paper. The button + this note are screen chrome (data-print-hidden), so
+          they never appear on the printed page; the print stylesheet re-skins the card for black and white. */}
+      <div
+        data-print-hidden
+        className="flex flex-col gap-2 rounded-2xl border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <p className="text-sm text-muted-foreground">
+          Need it on paper? Print this card to keep the strategies and safety notes to hand.
+        </p>
+        <PrintCardButton firstName={data.child_first_name} />
+      </div>
+
       <CardContentView content={data} />
     </div>
   );
@@ -118,7 +146,10 @@ function MissingLink() {
 
 function PublicCardFooter() {
   return (
-    <footer className="mt-12 border-t border-border pt-6 text-center text-sm text-muted-foreground">
+    <footer
+      data-print-hidden
+      className="mt-12 border-t border-border pt-6 text-center text-sm text-muted-foreground"
+    >
       <p>
         Made with{" "}
         <a
