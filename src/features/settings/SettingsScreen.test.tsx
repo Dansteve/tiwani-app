@@ -34,8 +34,10 @@ const ADE: CareRecipientProfile = {
 
 const me = vi.fn();
 const getCareRecipient = vi.fn();
+const getChildren = vi.fn();
 const updateProfile = vi.fn();
 const updateCareRecipient = vi.fn();
+const createChild = vi.fn();
 
 vi.mock("@/lib/api/client", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/client")>("@/lib/api/client");
@@ -44,8 +46,10 @@ vi.mock("@/lib/api/client", async () => {
     api: {
       me: (...a: unknown[]) => me(...a),
       getCareRecipient: (...a: unknown[]) => getCareRecipient(...a),
+      getChildren: (...a: unknown[]) => getChildren(...a),
       updateProfile: (...a: unknown[]) => updateProfile(...a),
       updateCareRecipient: (...a: unknown[]) => updateCareRecipient(...a),
+      createChild: (...a: unknown[]) => createChild(...a),
     },
   };
 });
@@ -57,25 +61,34 @@ vi.mock("@/components/LogoutButton", () => ({
 
 import { SettingsScreen } from "@/features/settings/SettingsScreen";
 import { ThemeProvider } from "@/state/ThemeProvider";
+import { RecipientProvider } from "@/state/RecipientProvider";
 
 function renderScreen() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   // ThemeProvider wraps the screen as it does in the real app (the Appearance card's ThemeToggle reads
-  // useTheme); without it the toggle throws by design.
+  // useTheme); RecipientProvider supplies the recipients + active one (the screen reads useRecipient).
   return render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <SettingsScreen />
+        <RecipientProvider>
+          <SettingsScreen />
+        </RecipientProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
 }
 
 beforeEach(() => {
+  window.localStorage.clear();
   me.mockReset();
   getCareRecipient.mockReset();
+  getChildren.mockReset();
   updateProfile.mockReset();
   updateCareRecipient.mockReset();
+  createChild.mockReset();
+  // A SINGLE-recipient user (Ade): the switcher hides, isMulti is false, and the editor uses the
+  // ["child"] read exactly as before, so these single-recipient assertions are unchanged.
+  getChildren.mockResolvedValue([{ ...ADE }]);
 
   // A small in-memory store so a PUT persists: the subsequent read (after invalidation) returns the
   // updated row, exactly as the real api does. This is what lets the screen settle to "Saved".

@@ -26,9 +26,15 @@ import {
 } from "@/components/ui/card";
 import { ProfileSection } from "@/features/settings/ProfileSection";
 import { CareRecipientSection } from "@/features/settings/CareRecipientSection";
+import { RecipientsSection } from "@/features/settings/RecipientsSection";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
+import { useRecipient } from "@/state/RecipientProvider";
 
 export function SettingsScreen() {
+  // The recipients (and which one is active) come from the provider, shared with the shell switcher.
+  const { recipients, activeRecipient } = useRecipient();
+  const isMulti = recipients.length > 1;
+
   const profileQuery = useQuery({
     queryKey: ["profile"],
     queryFn: ({ signal }) => api.me(signal),
@@ -48,6 +54,11 @@ export function SettingsScreen() {
     childQuery.error instanceof ApiError &&
     childQuery.error.status === 404;
 
+  // The recipient the editor edits: with several recipients it follows the switcher (activeRecipient, so
+  // editing always targets the one being viewed); with one (or before the list loads) it is the single
+  // ["child"] read, which keeps the not-onboarded 404 prompt below for a fresh user.
+  const editorChild = isMulti ? activeRecipient : childQuery.data;
+
   return (
     <div className="space-y-6">
       <header>
@@ -66,10 +77,16 @@ export function SettingsScreen() {
         <ProfileSection profile={profileQuery.data} />
       ) : null}
 
-      {/* Care recipient */}
-      {childQuery.isLoading ? (
+      {/* Care recipients: the list of everyone the Coordinator cares for + the add-a-recipient entry
+          (the multi-recipient surface). It drives off the provider's shared ["children"] read. */}
+      <RecipientsSection />
+
+      {/* Care recipient editor: edits the recipient currently in view (the active one when there are
+          several, else the single ["child"] read). With several recipients there is always one active, so
+          the not-onboarded prompt only applies to a single/zero-recipient user (the ["child"] 404). */}
+      {!isMulti && childQuery.isLoading ? (
         <SectionSkeleton lines={5} />
-      ) : childMissing ? (
+      ) : !isMulti && childMissing ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-xl">Care recipient</CardTitle>
@@ -86,12 +103,12 @@ export function SettingsScreen() {
             </Link>
           </CardContent>
         </Card>
-      ) : childQuery.isError ? (
+      ) : !isMulti && childQuery.isError ? (
         <SectionError>
           We could not load the care recipient just now. Please try again shortly.
         </SectionError>
-      ) : childQuery.data ? (
-        <CareRecipientSection child={childQuery.data} />
+      ) : editorChild ? (
+        <CareRecipientSection key={editorChild.id} child={editorChild} />
       ) : null}
 
       {/* Appearance (theme). A device preference, set on this device and remembered here. */}
