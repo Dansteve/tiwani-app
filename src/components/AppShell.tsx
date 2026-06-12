@@ -15,6 +15,7 @@ import {
   Settings,
   History,
   FileText,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -40,10 +41,13 @@ const NAV: NavItem[] = [
 ];
 
 // Secondary destinations: surfaces that are not top-level tabs, so they stay off the mobile bottom bar
-// (the bar keeps the six primary destinations) and live in the desktop sidebar's secondary section. Your
-// plans (re-open a prepared plan) and Card history (a card's status + revoke) are both reached here on
-// desktop and from their own flows on mobile.
+// (the bar keeps the six primary destinations to avoid crowding / horizontal overflow). They live in the
+// desktop sidebar's secondary section AND in a compact, scrollable strip at the top of the content on
+// mobile (SecondaryNavStrip), so a phone can still reach them (this also closes the prior mobile gap for
+// Your plans / Card history). Your plans (re-open a prepared plan), Card history (a card's status +
+// revoke), and Village (post a need / claim one for the active recipient) are all reached this way.
 const SECONDARY_NAV: NavItem[] = [
+  { href: "/village", label: "Village", icon: Users },
   { href: "/plans", label: "Your plans", icon: FileText },
   { href: "/card/history", label: "Card history", icon: History },
 ];
@@ -138,6 +142,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               content (still only when there is more than one recipient). On desktop it lives in the
               sidebar above, so this copy is hidden there. */}
           <RecipientSwitcher surface="content" className="mb-6 max-w-xs lg:hidden" />
+          {/* The secondary destinations (Village / Your plans / Card history) as a compact, scrollable
+              strip on mobile only (the desktop sidebar carries them above). Keeps the bottom tab bar at
+              six while still letting a phone reach them. */}
+          <SecondaryNavStrip pathname={pathname} />
           {children}
         </main>
       </div>
@@ -169,5 +177,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         })}
       </nav>
     </div>
+  );
+}
+
+// The secondary destinations as a compact, horizontally-scrollable strip, shown on mobile / tablet only
+// (hidden at lg, where the sidebar carries them). It scrolls inside itself on a narrow phone (the app
+// <main> clips overflow), so it never causes horizontal page overflow; each pill is a 44px-min tap target
+// with colour + label, and the active one is the filled primary state (not colour alone). This is how a
+// phone reaches Village / Your plans / Card history without crowding the six-item bottom bar.
+function SecondaryNavStrip({ pathname }: { pathname: string }) {
+  return (
+    <nav
+      aria-label="More"
+      className="mb-6 flex gap-2 overflow-x-auto lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      {SECONDARY_NAV.map((item) => {
+        const active = isActive(pathname, item.href);
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors",
+              active
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-card text-foreground hover:bg-secondary"
+            )}
+          >
+            <Icon className="size-4 shrink-0" aria-hidden="true" />
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }

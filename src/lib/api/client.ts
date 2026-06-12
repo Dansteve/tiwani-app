@@ -24,6 +24,11 @@ import type {
   ChapterCode,
   ChapterLci,
   ChapterStatus,
+  ConsentRecorded,
+  CreateNeedRequest,
+  NeedActionResult,
+  NeedDetail,
+  NeedSummary,
   OnboardingPayload,
   OverallLciSnapshot,
   PendingPulse,
@@ -35,6 +40,7 @@ import type {
   PulseOutcome,
   PulseRecord,
   ReactivateResult,
+  RosterResponse,
   StrategyItem,
   UserProfile,
 } from "@/lib/api/types";
@@ -481,5 +487,142 @@ export const api = {
    */
   reactivateAccount(): Promise<ReactivateResult> {
     return http<ReactivateResult>("/api/v3/me/reactivate", { method: "POST" });
+  },
+
+  // --- The Village Hub (FeatureDecisions.md 2026-06-12; Product.md §6) ---
+  // All under /api/v3/village, all AUTH (the bearer is attached by http()), all RLS-scoped by recipient.
+  // Every per-recipient read carries ?recipient_id= (REQUIRED here, unlike the dashboard's optional
+  // child_id): a need belongs to exactly one recipient and the roster/board are scoped to that recipient.
+
+  /**
+   * Record per-recipient consent to share with the village (POST /api/v3/village/consent). OWNER only
+   * (403 if not the owner). The api SUPPLIES the governed consent text (the app never authors it) and
+   * returns { recipient_id, consent_text }. The owner records this ONCE before any need can be posted
+   * (the Art. 9 consent gate); a post before consent is a 409 (ConsentRequiredError). Body is
+   * { recipient_id } only; the consent wording is the api's.
+   */
+  recordVillageConsent(recipientId: string): Promise<ConsentRecorded> {
+    return http<ConsentRecorded>("/api/v3/village/consent", {
+      method: "POST",
+      body: { recipient_id: recipientId },
+    });
+  },
+
+  /**
+   * Post a need for one recipient (POST /api/v3/village/needs). OWNER + CONSENT-gated. Mirrors the api's
+   * CreateNeedRequest: recipient_id + a required title + optional logistics (detail, area_label, exact
+   * location_text, contact_name/phone, the starts_at/ends_at window). The api broadcasts it to the
+   * recipient's roster as an OPEN need and returns a NeedActionResult (the governed "posted" confirmation,
+   * rendered verbatim). 403 not-owner; 409 no-consent (the caller routes to the consent gate); 422 empty
+   * title (the form blocks this before submit). The exact location/contact are stored but revealed by the
+   * api only to the live claimer + owner (the visibility ceiling), never on the board.
+   */
+  createNeed(payload: CreateNeedRequest): Promise<NeedActionResult> {
+    return http<NeedActionResult>("/api/v3/village/needs", {
+      method: "POST",
+      body: payload,
+    });
+  },
+
+  /**
+   * The recipient's needs (GET /api/v3/village/needs?recipient_id=). MEMBER auth (403 if not a member).
+   * Returns NeedSummary rows (the need + logistics ONLY, NO exact location/contact, the ceiling). The
+   * board renders the OPEN ones for a member to claim; the owner's view uses the same read and filters to
+   * what it shows. `claimed_by_me` / `is_claimed` drive the per-row action + "covered" state. RLS-scoped:
+   * a caller only ever sees a recipient they are a member of.
+   */
+  listNeeds(recipientId: string, signal?: AbortSignal): Promise<NeedSummary[]> {
+    return http<NeedSummary[]>(
+      `/api/v3/village/needs?recipient_id=${encodeURIComponent(recipientId)}`,
+      { signal }
+    );
+  },
+
+  /**
+   * ONE need in full (GET /api/v3/village/needs/{need_id}). Returns NeedDetail: the NeedSummary fields
+   * PLUS the exact location_text / contact_name / contact_phone, which the api populates ONLY for the
+   * LIVE claimer or the owner (else null). The app shows the exact logistics only when present, so a
+   * non-claimer member never receives them. A need not visible to the caller is a 403/404.
+   */
+  getNeed(needId: string, signal?: AbortSignal): Promise<NeedDetail> {
+    return http<NeedDetail>(
+      `/api/v3/village/needs/${encodeURIComponent(needId)}`,
+      { signal }
+    );
+  },
+
+  /**
+   * CLAIM an open need (POST /api/v3/village/needs/{need_id}/claim). MEMBER auth; ATOMIC first-claim-wins
+   * at the DB. A 409 (NeedConflictError) means it is no longer open (someone just claimed it, or it was
+   * cancelled): the caller surfaces the calm "taken" state and re-reads the board. On success the api
+   * returns the governed claim confirmation (rendered verbatim) and the need is now the caller's
+   * (claimed_by_me true on the next read, so the exact logistics are then revealed to them).
+   */
+  claimNeed(needId: string): Promise<NeedActionResult> {
+    return http<NeedActionResult>(
+      `/api/v3/village/needs/${encodeURIComponent(needId)}/claim`,
+      { method: "POST" }
+    );
+  },
+
+  /**
+   * CONFIRM a claimed need (POST /api/v3/village/needs/{need_id}/confirm). OWNER only (403 otherwise):
+   * the Coordinator confirms the plan with the claimer, closing the follow-through loop's plan step.
+   * Returns the governed "confirmed" confirmation (rendered verbatim); the status moves to `confirmed`.
+   */
+  confirmNeed(needId: string): Promise<NeedActionResult> {
+    return http<NeedActionResult>(
+      `/api/v3/village/needs/${encodeURIComponent(needId)}/confirm`,
+      { method: "POST" }
+    );
+  },
+
+  /**
+   * Mark a claimed need DONE (POST /api/v3/village/needs/{need_id}/done). The CLAIMER only (NotClaimer is
+   * 403): the member who claimed it marks it complete. Returns the governed "done" confirmation (verbatim);
+   * the status moves to `done` (terminal). After done, the api's per-claim access expires (no standing visibility).
+   */
+  markNeedDone(needId: string): Promise<NeedActionResult> {
+    return http<NeedActionResult>(
+      `/api/v3/village/needs/${encodeURIComponent(needId)}/done`,
+      { method: "POST" }
+    );
+  },
+
+  /**
+   * DROP a claimed need (POST /api/v3/village/needs/{need_id}/drop). The CLAIMER only (NotClaimer is 403):
+   * the member steps back. The api AUTO RE-BROADCASTS: the need returns to the board as a fresh OPEN one,
+   * so a claim that cannot be honoured is not a dead end (the board's closed-loop rule). Returns the
+   * governed "drop" confirmation (verbatim). The dropped claim is retained as the audit of what happened.
+   */
+  dropNeed(needId: string): Promise<NeedActionResult> {
+    return http<NeedActionResult>(
+      `/api/v3/village/needs/${encodeURIComponent(needId)}/drop`,
+      { method: "POST" }
+    );
+  },
+
+  /**
+   * CANCEL a need (POST /api/v3/village/needs/{need_id}/cancel). OWNER only (403 otherwise): the
+   * Coordinator withdraws the need (it is no longer needed). Returns the governed "cancelled" confirmation
+   * (verbatim); the status moves to `cancelled` (terminal, NOT re-broadcast, unlike a claimer's drop).
+   */
+  cancelNeed(needId: string): Promise<NeedActionResult> {
+    return http<NeedActionResult>(
+      `/api/v3/village/needs/${encodeURIComponent(needId)}/cancel`,
+      { method: "POST" }
+    );
+  },
+
+  /**
+   * The recipient's village roster (GET /api/v3/village/roster?recipient_id=). MEMBER auth (403 if not a
+   * member). Returns { recipient_first_name, members }: the visible "who is in [name]'s village" list
+   * (the board's mandatory transparency surface). The app renders the rows and computes nothing.
+   */
+  getRoster(recipientId: string, signal?: AbortSignal): Promise<RosterResponse> {
+    return http<RosterResponse>(
+      `/api/v3/village/roster?recipient_id=${encodeURIComponent(recipientId)}`,
+      { signal }
+    );
   },
 };

@@ -7,6 +7,7 @@ import { describe, it, expect } from "vitest";
 
 import {
   formatLci,
+  formatNeedWindow,
   lciBand,
   sparseDataNote,
   trajectoryLabel,
@@ -71,5 +72,36 @@ describe("trajectoryLabel", () => {
     for (const [value, label] of Object.entries(cases)) {
       expect(trajectoryLabel(value as Trajectory)).toBe(label);
     }
+  });
+});
+
+describe("formatNeedWindow", () => {
+  // Locale + timezone vary across machines, so these assert structure (the sentinel, the range joiner,
+  // the single-point shape), not an exact localized string.
+  it("returns the 'to be arranged' sentinel when there is no time at all", () => {
+    expect(formatNeedWindow(null, null)).toBe("Time to be arranged");
+    expect(formatNeedWindow(undefined, undefined)).toBe("Time to be arranged");
+  });
+
+  it("renders a single point when only a start is given (no range joiner)", () => {
+    const out = formatNeedWindow("2025-06-14T14:00:00Z", null);
+    expect(out).not.toBe("Time to be arranged");
+    expect(out).not.toContain(" to ");
+  });
+
+  it("renders a range with a 'to' joiner when both ends are given", () => {
+    const out = formatNeedWindow("2025-06-14T14:00:00Z", "2025-06-14T16:00:00Z");
+    expect(out).toContain(" to ");
+  });
+
+  it("collapses a same-day range so the date appears once (start side longer than the end side)", () => {
+    // Same calendar day: the end is just a time, so the start segment (with the date) is the longer half.
+    const out = formatNeedWindow("2025-06-14T14:00:00Z", "2025-06-14T16:00:00Z");
+    const [startPart, endPart] = out.split(" to ");
+    expect(startPart.length).toBeGreaterThan(endPart.length);
+  });
+
+  it("ignores an unparseable value rather than crashing", () => {
+    expect(formatNeedWindow("not-a-date", null)).toBe("Time to be arranged");
   });
 });
