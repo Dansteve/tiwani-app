@@ -42,20 +42,36 @@ const VILLAGE_TABS = [
   { value: "village", label: "Village" },
 ] as const satisfies readonly TabItem[];
 
+// The VIEWER tab set (Docs/FeatureDecisions.md "Helper Village ACCESS", refinement 1): a viewer reaches
+// the Village NEEDS (claim) + the roster ONLY. "Post & track" is the OWNER posting surface, so it is
+// dropped under the ceiling, never shown-then-403.
+const VIEWER_VILLAGE_TABS = [
+  { value: "help", label: "Ways to help" },
+  { value: "village", label: "Village" },
+] as const satisfies readonly TabItem[];
+
 type VillageTab = (typeof VILLAGE_TABS)[number]["value"];
 
 const TABS_ID = "village";
 
 export function VillageScreen() {
-  const { activeChildId, activeRecipient, isLoading } = useRecipient();
+  const { activeChildId, activeRecipient, activeRole, isLoading } = useRecipient();
+  // A viewer/editor (a recipient SHARED with the caller) gets the help + roster tabs only, not the owner
+  // posting surface. null/owner gets the full set. The recipient switcher resolves the role.
+  const restricted = activeRole === "viewer" || activeRole === "editor";
   const [tab, setTab] = useState<VillageTab>("post");
+  // If a viewer somehow holds "post" (e.g. switched from an owned recipient while on that tab), coerce to
+  // "help": "post" is not in their tab set, so the owner posting surface never renders for them.
+  const effectiveTab: VillageTab = restricted && tab === "post" ? "help" : tab;
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold md:text-3xl">Village</h1>
         <p className="mt-1 text-base text-muted-foreground">
-          Share a specific need with the people around you, and let someone pick it up.
+          {restricted
+            ? "Pick up a specific way to help, when you can."
+            : "Share a specific need with the people around you, and let someone pick it up."}
         </p>
       </header>
 
@@ -66,8 +82,9 @@ export function VillageScreen() {
       ) : (
         <VillageForRecipient
           recipientId={activeChildId}
-          recipientFirstName={firstNameOf(activeRecipient?.name)}
-          tab={tab}
+          recipientFirstName={activeRecipient?.first_name || "them"}
+          restricted={restricted}
+          tab={effectiveTab}
           onTabChange={setTab}
         />
       )}
@@ -78,14 +95,17 @@ export function VillageScreen() {
 function VillageForRecipient({
   recipientId,
   recipientFirstName,
+  restricted,
   tab,
   onTabChange,
 }: {
   recipientId: string;
   recipientFirstName: string;
+  restricted: boolean;
   tab: VillageTab;
   onTabChange: (tab: VillageTab) => void;
 }) {
+  const tabs = restricted ? VIEWER_VILLAGE_TABS : VILLAGE_TABS;
   return (
     <div className="space-y-6">
       {/* The always-on transparency cue: how many people can see this village, one tap from the full
@@ -94,16 +114,16 @@ function VillageForRecipient({
       <VillageCountChip recipientId={recipientId} onOpenRoster={() => onTabChange("village")} />
 
       <TabsList
-        tabs={VILLAGE_TABS}
+        tabs={tabs}
         value={tab}
         onValueChange={(next) => onTabChange(next as VillageTab)}
         label="Village sections"
         idBase={TABS_ID}
       />
 
-      {/* Post & track (the owner side): post a need, then watch it get covered. The form keys on the
-          recipient so switching recipient resets it. The list polls for a member's claim. */}
-      {tab === "post" ? (
+      {/* Post & track (the OWNER side, hidden for a viewer): post a need, then watch it get covered. The
+          form keys on the recipient so switching recipient resets it. The list polls for a member's claim. */}
+      {!restricted && tab === "post" ? (
         <TabPanel value="post" idBase={TABS_ID} className="space-y-6">
           <PostNeedForm
             key={recipientId}
@@ -163,14 +183,6 @@ function VillageCountChip({
       {label}
     </button>
   );
-}
-
-// The recipient's first name for the warm form placeholder (never the full name). A single-word name is
-// itself; a multi-word name uses the first token. Empty when unknown (the placeholder then reads generically).
-function firstNameOf(name: string | null | undefined): string {
-  if (!name) return "them";
-  const first = name.trim().split(/\s+/)[0];
-  return first || "them";
 }
 
 // A fresh user with no recipient yet: the hub needs a recipient to scope to, so point at finishing setup.

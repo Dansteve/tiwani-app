@@ -35,7 +35,7 @@ const getOverallLci = vi.fn();
 const getPendingPulses = vi.fn();
 const getAlerts = vi.fn();
 const dismissAlert = vi.fn();
-const getChildren = vi.fn();
+const getRecipients = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   api: {
@@ -45,7 +45,7 @@ vi.mock("@/lib/api/client", () => ({
     getPendingPulses: (...args: unknown[]) => getPendingPulses(...args),
     getAlerts: (...args: unknown[]) => getAlerts(...args),
     dismissAlert: (...args: unknown[]) => dismissAlert(...args),
-    getChildren: (...args: unknown[]) => getChildren(...args),
+    getRecipients: (...args: unknown[]) => getRecipients(...args),
   },
 }));
 
@@ -76,10 +76,10 @@ beforeEach(() => {
   getPendingPulses.mockReset();
   getAlerts.mockReset();
   dismissAlert.mockReset();
-  getChildren.mockReset();
+  getRecipients.mockReset();
   // A single-recipient user: the active child_id resolves to the sole recipient, the per-recipient reads
   // carry it, and the switcher hides itself. The dashboard renders exactly as before.
-  getChildren.mockResolvedValue([
+  getRecipients.mockResolvedValue([
     {
       id: "c_1",
       user_id: "u_1",

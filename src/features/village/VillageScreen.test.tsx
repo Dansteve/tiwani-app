@@ -1,0 +1,89 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// The Village viewer-ceiling test (Docs/FeatureDecisions.md 2026-06-12 "Helper Village ACCESS",
+// refinement 1): an OWNER sees the "Post & track" owner surface; a VIEWER (a recipient SHARED with the
+// caller) sees the "Ways to help" + roster tabs ONLY, never the owner posting surface, never shown-then-403.
+// The child feature panels are stubbed so this stays about the tab set the role drives.
+
+const recipientState: {
+  activeChildId: string | null;
+  activeRecipient: { id: string; first_name: string; role: string } | null;
+  activeRole: string | null;
+  isLoading: boolean;
+} = {
+  activeChildId: "rec_1",
+  activeRecipient: { id: "rec_1", first_name: "Ada", role: "owner" },
+  activeRole: "owner",
+  isLoading: false,
+};
+
+vi.mock("@/state/RecipientProvider", () => ({
+  useRecipient: () => recipientState,
+}));
+
+const getRoster = vi.fn();
+vi.mock("@/lib/api/client", () => ({
+  api: { getRoster: (...a: unknown[]) => getRoster(...a) },
+}));
+
+// Stub the child panels (each has its own focused test) so the tab shell is what is exercised here.
+vi.mock("@/features/village/PostNeedForm", () => ({
+  PostNeedForm: () => <div data-testid="post-need-form" />,
+}));
+vi.mock("@/features/village/OwnerNeedsList", () => ({
+  OwnerNeedsList: () => <div data-testid="owner-needs-list" />,
+}));
+vi.mock("@/features/village/OpenNeedsList", () => ({
+  OpenNeedsList: () => <div data-testid="open-needs-list" />,
+}));
+vi.mock("@/features/village/RosterPanel", () => ({
+  RosterPanel: () => <div data-testid="roster-panel" />,
+}));
+
+import { VillageScreen } from "@/features/village/VillageScreen";
+
+function renderVillage() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <VillageScreen />
+    </QueryClientProvider>
+  );
+}
+
+beforeEach(() => {
+  getRoster.mockReset();
+  getRoster.mockResolvedValue({ recipient_first_name: "Ada", members: [] });
+  recipientState.activeChildId = "rec_1";
+  recipientState.activeRecipient = { id: "rec_1", first_name: "Ada", role: "owner" };
+  recipientState.activeRole = "owner";
+  recipientState.isLoading = false;
+});
+
+describe("VillageScreen viewer ceiling", () => {
+  it("shows the owner 'Post & track' surface for an OWNER", () => {
+    recipientState.activeRole = "owner";
+    renderVillage();
+    expect(screen.getByRole("tab", { name: /post & track/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /ways to help/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /^village$/i })).toBeInTheDocument();
+    // The owner default tab renders the posting surface.
+    expect(screen.getByTestId("post-need-form")).toBeInTheDocument();
+  });
+
+  it("HIDES 'Post & track' for a VIEWER and defaults to the 'Ways to help' board", () => {
+    recipientState.activeRole = "viewer";
+    recipientState.activeRecipient = { id: "rec_1", first_name: "Ada", role: "viewer" };
+    renderVillage();
+
+    // The owner posting tab + surface are gone (the ceiling), never shown-then-403.
+    expect(screen.queryByRole("tab", { name: /post & track/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("post-need-form")).not.toBeInTheDocument();
+    // The viewer reaches the claim board + the roster.
+    expect(screen.getByRole("tab", { name: /ways to help/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /^village$/i })).toBeInTheDocument();
+    expect(screen.getByTestId("open-needs-list")).toBeInTheDocument();
+  });
+});

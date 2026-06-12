@@ -61,9 +61,16 @@ type SettingsTab = (typeof SETTINGS_TABS)[number]["value"];
 const TABS_ID = "settings";
 
 export function SettingsScreen() {
-  // The recipients (and which one is active) come from the provider, shared with the shell switcher.
-  const { recipients, activeRecipient } = useRecipient();
-  const isMulti = recipients.length > 1;
+  // The active recipient id comes from the provider (the role-tagged switcher list). Settings edits the
+  // caller's OWNED recipients (full profiles), so it reads the owner-scoped GET /children itself, not the
+  // switcher's minimal ActiveRecipient (which carries no support level / tags). isMulti is the OWNED count.
+  const { activeChildId } = useRecipient();
+  const ownedQuery = useQuery({
+    queryKey: ["children"],
+    queryFn: ({ signal }) => api.getChildren(signal),
+  });
+  const owned = ownedQuery.data ?? [];
+  const isMulti = owned.length > 1;
 
   // The active tab. Local state, defaulting to Profile; the app does not mirror Settings tabs in the URL
   // elsewhere, so local state is the source of truth here.
@@ -88,10 +95,11 @@ export function SettingsScreen() {
     childQuery.error instanceof ApiError &&
     childQuery.error.status === 404;
 
-  // The recipient the editor edits: with several recipients it follows the switcher (activeRecipient, so
-  // editing always targets the one being viewed); with one (or before the list loads) it is the single
-  // ["child"] read, which keeps the not-onboarded 404 prompt below for a fresh user.
-  const editorChild = isMulti ? activeRecipient : childQuery.data;
+  // The recipient the editor edits (always a FULL owned profile): the active OWNED recipient if the
+  // switcher's active one is one the caller owns, else the sole ["child"] read (which keeps the
+  // not-onboarded 404 prompt below for a fresh user, and is the right target when the active recipient is
+  // a SHARED one the caller cannot edit).
+  const editorChild = owned.find((c) => c.id === activeChildId) ?? childQuery.data;
 
   return (
     <div className="space-y-6">

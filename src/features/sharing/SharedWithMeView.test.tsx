@@ -13,6 +13,7 @@ import type { CardContent, SharedCard, SharedWithMe } from "@/lib/api/types";
 
 const getSharedWithMe = vi.fn();
 const getSharedCard = vi.fn();
+const getRecipients = vi.fn();
 
 vi.mock("@/lib/api/client", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/client")>("@/lib/api/client");
@@ -21,18 +22,24 @@ vi.mock("@/lib/api/client", async () => {
     api: {
       getSharedWithMe: (...a: unknown[]) => getSharedWithMe(...a),
       getSharedCard: (...a: unknown[]) => getSharedCard(...a),
+      // The card view links into the recipient's Village (refinement 3), setting them active; the wrapping
+      // RecipientProvider reads /recipients.
+      getRecipients: (...a: unknown[]) => getRecipients(...a),
     },
   };
 });
 
 import { ApiError } from "@/lib/api/client";
 import { SharedWithMeView } from "@/features/sharing/SharedWithMeView";
+import { RecipientProvider } from "@/state/RecipientProvider";
 
 function renderView() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <SharedWithMeView />
+      <RecipientProvider>
+        <SharedWithMeView />
+      </RecipientProvider>
     </QueryClientProvider>
   );
 }
@@ -70,6 +77,9 @@ const SHARED_CARD: SharedCard = {
 beforeEach(() => {
   getSharedWithMe.mockReset();
   getSharedCard.mockReset();
+  getRecipients.mockReset();
+  getRecipients.mockResolvedValue([]);
+  window.localStorage.clear();
 });
 
 describe("SharedWithMeView", () => {
@@ -95,6 +105,12 @@ describe("SharedWithMeView", () => {
     expect(getSharedCard).toHaveBeenCalledWith("rec_1", expect.anything());
     // The governed linked-state intro is shown.
     expect(screen.getByText(/You can now see Ada's Continuity Card/i)).toBeInTheDocument();
+    // Refinement 3 (converge the surfaces): the card links into Ada's Village so a helper is never
+    // stranded on the card.
+    expect(screen.getByRole("link", { name: /find ways to help Ada/i })).toHaveAttribute(
+      "href",
+      "/village"
+    );
   });
 
   it("shows the calm 'no card yet' state on a 404, never the profile", async () => {

@@ -3,32 +3,24 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import type { CareRecipientProfile } from "@/lib/api/types";
+import type { ActiveRecipient } from "@/lib/api/types";
 import { SELECTED_RECIPIENT_STORAGE_KEY } from "@/state/selectedRecipient";
 
 // The switcher render test (client mocked): it shows only when there is MORE THAN ONE recipient, lists
 // them by first name with the active one selected, and switching updates the active id (persisted). A
-// single-recipient (or empty) user sees no switcher. Driven through the real RecipientProvider so the
-// component + state wiring is exercised end-to-end.
+// single-recipient (or empty) user sees no switcher. Driven through the real RecipientProvider (which reads
+// GET /api/v3/recipients, role-tagged) so the component + state wiring is exercised end-to-end. The api
+// already returns the FIRST name only on each ActiveRecipient; the helper mirrors that (first token).
 
-function child(id: string, name: string): CareRecipientProfile {
-  return {
-    id,
-    user_id: "u_1",
-    name,
-    age_band: null,
-    support_level_code: "SL-MED",
-    tags: [],
-    created_at: "2025-01-01T00:00:00Z",
-    updated_at: "2025-01-01T00:00:00Z",
-  };
+function child(id: string, name: string): ActiveRecipient {
+  return { id, first_name: name.split(/\s+/)[0], role: "owner" };
 }
 
-const getChildren = vi.fn();
+const getRecipients = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   api: {
-    getChildren: (...args: unknown[]) => getChildren(...args),
+    getRecipients: (...args: unknown[]) => getRecipients(...args),
   },
 }));
 
@@ -48,7 +40,7 @@ function renderSwitcher() {
 
 beforeEach(() => {
   window.localStorage.clear();
-  getChildren.mockReset();
+  getRecipients.mockReset();
 });
 
 afterEach(() => {
@@ -57,24 +49,24 @@ afterEach(() => {
 
 describe("RecipientSwitcher", () => {
   it("renders nothing for a single-recipient user", async () => {
-    getChildren.mockResolvedValue([child("c_1", "Ada Lovelace")]);
+    getRecipients.mockResolvedValue([child("c_1", "Ada Lovelace")]);
     renderSwitcher();
 
     // Give the children query time to resolve, then assert the control never appears.
-    await waitFor(() => expect(getChildren).toHaveBeenCalled());
+    await waitFor(() => expect(getRecipients).toHaveBeenCalled());
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
   it("renders nothing for a user with no recipients yet", async () => {
-    getChildren.mockResolvedValue([]);
+    getRecipients.mockResolvedValue([]);
     renderSwitcher();
 
-    await waitFor(() => expect(getChildren).toHaveBeenCalled());
+    await waitFor(() => expect(getRecipients).toHaveBeenCalled());
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
   it("lists recipients by first name with the first active, when there are several", async () => {
-    getChildren.mockResolvedValue([child("c_ada", "Ada Lovelace"), child("c_ben", "Ben Carter")]);
+    getRecipients.mockResolvedValue([child("c_ada", "Ada Lovelace"), child("c_ben", "Ben Carter")]);
     renderSwitcher();
 
     const select = (await screen.findByRole("combobox")) as HTMLSelectElement;
@@ -89,7 +81,7 @@ describe("RecipientSwitcher", () => {
 
   it("switches the active recipient and persists the choice", async () => {
     const user = userEvent.setup();
-    getChildren.mockResolvedValue([child("c_ada", "Ada Lovelace"), child("c_ben", "Ben Carter")]);
+    getRecipients.mockResolvedValue([child("c_ada", "Ada Lovelace"), child("c_ben", "Ben Carter")]);
     renderSwitcher();
 
     const select = (await screen.findByRole("combobox")) as HTMLSelectElement;
@@ -100,7 +92,7 @@ describe("RecipientSwitcher", () => {
   });
 
   it("meets the 44px tap-target floor (h-11)", async () => {
-    getChildren.mockResolvedValue([child("c_ada", "Ada Lovelace"), child("c_ben", "Ben Carter")]);
+    getRecipients.mockResolvedValue([child("c_ada", "Ada Lovelace"), child("c_ben", "Ben Carter")]);
     renderSwitcher();
 
     const select = await screen.findByRole("combobox");

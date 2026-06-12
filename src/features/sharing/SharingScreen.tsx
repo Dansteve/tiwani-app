@@ -17,7 +17,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Share2, Users } from "lucide-react";
 
-import type { CareRecipientProfile } from "@/lib/api/types";
+import type { ActiveRecipient } from "@/lib/api/types";
 import {
   Card,
   CardContent,
@@ -29,7 +29,7 @@ import { TabsList, TabPanel, type TabItem } from "@/components/ui/tabs";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useRecipient } from "@/state/RecipientProvider";
-import { shareFirstName, sharingCopy } from "@/features/sharing/copy";
+import { sharingCopy } from "@/features/sharing/copy";
 import { ShareInvitePanel } from "@/features/sharing/ShareInvitePanel";
 import { ShareRoster } from "@/features/sharing/ShareRoster";
 import { SharedWithMeView } from "@/features/sharing/SharedWithMeView";
@@ -39,32 +39,45 @@ const SHARING_TABS = [
   { value: "received", label: "Shared with you" },
 ] as const satisfies readonly TabItem[];
 
+// A viewer (a recipient SHARED with the caller) cannot manage sharing for a recipient they do not own, so
+// under the ceiling only the "Shared with you" tab is offered (Docs/FeatureDecisions.md "Helper Village
+// ACCESS", refinement 1). The owner sees both tabs.
+const RECEIVED_ONLY_TABS = [
+  { value: "received", label: "Shared with you" },
+] as const satisfies readonly TabItem[];
+
 type SharingTab = (typeof SHARING_TABS)[number]["value"];
 
 const TABS_ID = "sharing";
 
 export function SharingScreen() {
-  const { activeRecipient, isLoading } = useRecipient();
+  const { activeRecipient, activeRole, isLoading } = useRecipient();
+  const restricted = activeRole === "viewer" || activeRole === "editor";
+  const tabs = restricted ? RECEIVED_ONLY_TABS : SHARING_TABS;
   const [tab, setTab] = useState<SharingTab>("manage");
+  // A viewer only has the "received" tab; coerce so the owner "manage" panel never renders for them.
+  const effectiveTab: SharingTab = restricted ? "received" : tab;
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold md:text-3xl">Sharing</h1>
         <p className="mt-1 text-base text-muted-foreground">
-          Invite people you trust to see a Continuity Card, and see the cards shared with you.
+          {restricted
+            ? "The Continuity Cards families have shared with you."
+            : "Invite people you trust to see a Continuity Card, and see the cards shared with you."}
         </p>
       </header>
 
       <TabsList
-        tabs={SHARING_TABS}
-        value={tab}
+        tabs={tabs}
+        value={effectiveTab}
         onValueChange={(next) => setTab(next as SharingTab)}
         label="Sharing sections"
         idBase={TABS_ID}
       />
 
-      {tab === "manage" ? (
+      {!restricted && effectiveTab === "manage" ? (
         <TabPanel value="manage" idBase={TABS_ID} className="space-y-6">
           {isLoading ? (
             <SectionSkeleton />
@@ -76,7 +89,7 @@ export function SharingScreen() {
         </TabPanel>
       ) : null}
 
-      {tab === "received" ? (
+      {effectiveTab === "received" ? (
         <TabPanel value="received" idBase={TABS_ID} className="space-y-6">
           <Card>
             <CardHeader>
@@ -95,8 +108,8 @@ export function SharingScreen() {
   );
 }
 
-function ManageForRecipient({ recipient }: { recipient: CareRecipientProfile }) {
-  const firstName = shareFirstName(recipient.name);
+function ManageForRecipient({ recipient }: { recipient: ActiveRecipient }) {
+  const firstName = recipient.first_name;
 
   return (
     <>

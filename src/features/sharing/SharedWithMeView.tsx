@@ -12,14 +12,18 @@
 // a calm "no card to show yet" state, never the profile.
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, HeartHandshake, Info } from "lucide-react";
+import { ChevronRight, HeartHandshake, Info, Users } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import type { SharedRecipient } from "@/lib/api/types";
 import { CardContentView } from "@/features/card/CardContentView";
 import { sharingCopy } from "@/features/sharing/copy";
 import { Alert } from "@/components/ui/alert";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useRecipient } from "@/state/RecipientProvider";
 
 export function SharedWithMeView() {
   const [openId, setOpenId] = useState<string | null>(null);
@@ -95,6 +99,7 @@ function SharedCardView({
   recipient: SharedRecipient;
   onBack: () => void;
 }) {
+  const { setActiveChildId } = useRecipient();
   const card = useQuery({
     queryKey: ["shared-card", recipient.recipient_id],
     queryFn: ({ signal }) => api.getSharedCard(recipient.recipient_id, signal),
@@ -119,6 +124,18 @@ function SharedCardView({
         <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <span>{sharingCopy(introKey, recipient.recipient_first_name)}</span>
       </p>
+
+      {/* Converge the card + the Village (Docs/FeatureDecisions.md "Helper Village ACCESS", refinement 3):
+          a helper is never stranded on the card. Open this recipient's Village (set them active first so
+          the Village scopes to them) to pick up a specific way to help. */}
+      <Link
+        href="/village"
+        onClick={() => setActiveChildId(recipient.recipient_id)}
+        className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-2")}
+      >
+        <Users className="size-4 shrink-0" aria-hidden="true" />
+        Find ways to help {recipient.recipient_first_name}
+      </Link>
 
       {card.isLoading ? (
         <div

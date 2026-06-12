@@ -52,7 +52,7 @@ const PLAN: PreparationPlan = {
 
 const getChapterActivities = vi.fn();
 const preparePlan = vi.fn();
-const getChildren = vi.fn();
+const getRecipients = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   ApiError: class ApiError extends Error {
@@ -65,7 +65,7 @@ vi.mock("@/lib/api/client", () => ({
   api: {
     getChapterActivities: (...args: unknown[]) => getChapterActivities(...args),
     preparePlan: (...args: unknown[]) => preparePlan(...args),
-    getChildren: (...args: unknown[]) => getChildren(...args),
+    getRecipients: (...args: unknown[]) => getRecipients(...args),
   },
 }));
 
@@ -76,7 +76,7 @@ import { RecipientProvider } from "@/state/RecipientProvider";
 function renderScreen(chapterParam: string | null) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   // RecipientProvider supplies the active recipient the plan POST scopes to (the screen reads
-  // useRecipient), the same way the real app wraps it; getChildren feeds it the recipients list.
+  // useRecipient), the same way the real app wraps it; getRecipients feeds it the recipients list.
   return render(
     <QueryClientProvider client={client}>
       <RecipientProvider>
@@ -89,10 +89,10 @@ function renderScreen(chapterParam: string | null) {
 beforeEach(() => {
   getChapterActivities.mockReset();
   preparePlan.mockReset();
-  getChildren.mockReset();
+  getRecipients.mockReset();
   getChapterActivities.mockResolvedValue(ACTIVITIES);
   preparePlan.mockResolvedValue(PLAN);
-  getChildren.mockResolvedValue(RECIPIENTS);
+  getRecipients.mockResolvedValue(RECIPIENTS);
 });
 
 describe("PlanScreen prepare flow", () => {

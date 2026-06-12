@@ -31,7 +31,11 @@ vi.mock("@/lib/api/client", async () => {
   return {
     ApiError: actual.ApiError,
     api: {
+      // The section reads the owner-scoped /children (full profiles); the wrapping RecipientProvider reads
+      // /recipients (the switcher list). Both are fed the same fixture here so the active id resolves to a
+      // recipient in the list (role absent -> the provider treats it as the owner surface, correct here).
       getChildren: (...a: unknown[]) => getChildren(...a),
+      getRecipients: (...a: unknown[]) => getChildren(...a),
       createChild: (...a: unknown[]) => createChild(...a),
     },
   };

@@ -13,7 +13,7 @@
 // the api yet, so removing a recipient is not offered here (flagged below as needing an api endpoint).
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Plus } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
@@ -46,9 +46,16 @@ const SUPPORT_LABEL: Record<SupportLevelCode, string> = {
 
 export function RecipientsSection() {
   const queryClient = useQueryClient();
-  // The recipients + the active one come from the provider (the single ["children"] read the switcher
-  // shares), so this section never fires a duplicate list query.
-  const { recipients, activeChildId } = useRecipient();
+  // The active recipient comes from the provider (the role-tagged switcher list). The OWNED recipients
+  // shown + edited here need the FULL profile (support level), which the switcher's ActiveRecipient does
+  // not carry, so this owner-only section reads the owner-scoped GET /children itself (a separate cache
+  // entry from the provider's ["recipients"]).
+  const { activeChildId } = useRecipient();
+  const childrenQuery = useQuery({
+    queryKey: ["children"],
+    queryFn: ({ signal }) => api.getChildren(signal),
+  });
+  const recipients = childrenQuery.data ?? [];
 
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
@@ -57,8 +64,10 @@ export function RecipientsSection() {
   const create = useMutation({
     mutationFn: (payload: CareRecipientCreate) => api.createChild(payload),
     onSuccess: () => {
-      // The new recipient must appear in the list and the switcher: refresh the shared children read.
+      // The new recipient must appear in this owned list AND in the shell switcher, so refresh BOTH the
+      // owner-scoped ["children"] read here and the provider's ["recipients"] (owned + shared) list.
       queryClient.invalidateQueries({ queryKey: ["children"] });
+      queryClient.invalidateQueries({ queryKey: ["recipients"] });
       setName("");
       setSupportLevel("SL-MED");
       setAdding(false);

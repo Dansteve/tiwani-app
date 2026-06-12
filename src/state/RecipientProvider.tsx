@@ -1,11 +1,18 @@
 "use client";
 
-// The runtime owner of the active care recipient: it reads the caller's recipients (GET /api/v3/children),
-// resolves which one is active (a persisted choice validated against that list, else the first), keeps that
-// choice in localStorage, and exposes it through context so every per-recipient read can scope to it. The
-// pure resolve/persist logic lives in state/selectedRecipient.ts; this is only the React lifecycle around
-// it (the children query + the hydrate-once-on-mount of the stored id, the same effect-hydration pattern
-// ThemeProvider uses, so SSR and the first client render agree and there is no mismatch).
+// The runtime owner of the active care recipient: it reads the caller's recipients (GET /api/v3/recipients,
+// the UNION of OWNED + SHARED, each role-tagged), resolves which one is active (a persisted choice validated
+// against that list, else the first), keeps that choice in localStorage, and exposes it (plus the active
+// recipient's ROLE) through context so every per-recipient read can scope to it AND the shell can drive the
+// visibility ceiling. The pure resolve/persist logic lives in state/selectedRecipient.ts; this is only the
+// React lifecycle around it (the recipients query + the hydrate-once-on-mount of the stored id, the same
+// effect-hydration pattern ThemeProvider uses, so SSR and the first client render agree, no mismatch).
+//
+// THE SHARED-RECIPIENT FIX (Docs/FeatureDecisions.md "Helper Village ACCESS", refinement 1): reading
+// /recipients (not the owner-only /children) means a helper who redeemed an invite (a membership, no owned
+// recipient) finally appears in the switcher and can reach the Village. `activeRole` ("owner"/"viewer"/
+// "editor") drives the shell ceiling: a viewer reaches only the Village + the shared Card, never the
+// owner-only screens (AppShell + the RoleRouteGuard read it).
 //
 // Single-recipient stays invisible: with one recipient the active id is simply that recipient, the
 // switcher (AppShell) hides itself, and the per-recipient reads still namespace their query keys by the
@@ -24,7 +31,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
-import type { CareRecipientProfile } from "@/lib/api/types";
+import type { ActiveRecipient, ShareRole } from "@/lib/api/types";
 import {
   localRecipientStore,
   readStoredRecipientId,
@@ -33,12 +40,19 @@ import {
 } from "@/state/selectedRecipient";
 
 interface RecipientContextValue {
-  /** The caller's recipients (api order, newest first); empty until loaded or for a fresh user. */
-  recipients: CareRecipientProfile[];
+  /** The caller's recipients (OWNED + SHARED, role-tagged, newest-owned first); empty for a fresh user. */
+  recipients: ActiveRecipient[];
   /** The active recipient id threaded into every per-recipient read, or null (no recipient / api default). */
   activeChildId: string | null;
   /** The active recipient object, or null when none is resolved yet. */
-  activeRecipient: CareRecipientProfile | null;
+  activeRecipient: ActiveRecipient | null;
+  /**
+   * The active recipient's ROLE, or null when none is resolved yet (a fresh user, or while loading). The
+   * shell drives the visibility CEILING off this: "owner" reaches every screen; "viewer"/"editor" reach
+   * only the Village + the shared Card (AppShell hides the owner-only nav, RoleRouteGuard blocks the routes).
+   * null is treated as owner-surface (a setting-up owner / the api default), never restricted.
+   */
+  activeRole: ShareRole | null;
   /** Switch the active recipient (persists the choice and refetches that recipient's reads via the key). */
   setActiveChildId: (id: string) => void;
   /** True while the recipients list is first loading. */
@@ -60,8 +74,8 @@ export function RecipientProvider({ children }: { children: ReactNode }) {
   // attached by the client. The read is resilient: on error the provider leaves activeChildId null and the
   // app falls back to the api's default recipient, so a transient failure never blanks the dashboard.
   const childrenQuery = useQuery({
-    queryKey: ["children"],
-    queryFn: ({ signal }) => api.getChildren(signal),
+    queryKey: ["recipients"],
+    queryFn: ({ signal }) => api.getRecipients(signal),
   });
 
   // The user's explicit choice this session. Seeded from storage on mount (an effect, not during render,
@@ -102,11 +116,16 @@ export function RecipientProvider({ children }: { children: ReactNode }) {
     [recipients, activeChildId]
   );
 
+  // The active recipient's role drives the shell ceiling. null (no recipient resolved yet) is NOT
+  // restricted: it is a setting-up owner or the api-default state, which sees the normal owner surface.
+  const activeRole = activeRecipient?.role ?? null;
+
   const value = useMemo<RecipientContextValue>(
     () => ({
       recipients,
       activeChildId,
       activeRecipient,
+      activeRole,
       setActiveChildId: (id: string) => {
         writeStoredRecipientId(localRecipientStore(), id);
         setChosenId(id);
@@ -117,7 +136,7 @@ export function RecipientProvider({ children }: { children: ReactNode }) {
       // the list resolves (or errors), the active id is final and the gated reads may run.
       ready: !childrenQuery.isLoading,
     }),
-    [recipients, activeChildId, activeRecipient, childrenQuery.isLoading, childrenQuery.isError]
+    [recipients, activeChildId, activeRecipient, activeRole, childrenQuery.isLoading, childrenQuery.isError]
   );
 
   return <RecipientContext.Provider value={value}>{children}</RecipientContext.Provider>;

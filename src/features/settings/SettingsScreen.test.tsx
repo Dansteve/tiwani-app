@@ -51,7 +51,10 @@ vi.mock("@/lib/api/client", async () => {
     api: {
       me: (...a: unknown[]) => me(...a),
       getCareRecipient: (...a: unknown[]) => getCareRecipient(...a),
+      // The screen reads the owner-scoped /children (full profiles); the wrapping RecipientProvider reads
+      // /recipients (the switcher list). Both are fed the same fixture so the active id resolves.
       getChildren: (...a: unknown[]) => getChildren(...a),
+      getRecipients: (...a: unknown[]) => getChildren(...a),
       updateProfile: (...a: unknown[]) => updateProfile(...a),
       updateCareRecipient: (...a: unknown[]) => updateCareRecipient(...a),
       createChild: (...a: unknown[]) => createChild(...a),

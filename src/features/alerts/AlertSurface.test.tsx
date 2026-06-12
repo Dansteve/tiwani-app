@@ -60,7 +60,7 @@ const getOverallLci = vi.fn();
 const getPendingPulses = vi.fn();
 const getAlerts = vi.fn();
 const dismissAlert = vi.fn();
-const getChildren = vi.fn();
+const getRecipients = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   api: {
@@ -70,7 +70,7 @@ vi.mock("@/lib/api/client", () => ({
     getPendingPulses: (...args: unknown[]) => getPendingPulses(...args),
     getAlerts: (...args: unknown[]) => getAlerts(...args),
     dismissAlert: (...args: unknown[]) => dismissAlert(...args),
-    getChildren: (...args: unknown[]) => getChildren(...args),
+    getRecipients: (...args: unknown[]) => getRecipients(...args),
   },
 }));
 
@@ -95,7 +95,7 @@ beforeEach(() => {
   // dialog), which would otherwise sit over the alert surfaces these tests assert on. The recipient state
   // (also localStorage) starts clean, so the single mocked recipient resolves to the default active id.
   window.localStorage.setItem("tiwani.tour.dashboard.seen.v1", "1");
-  for (const fn of [me, getChapters, getOverallLci, getPendingPulses, getAlerts, dismissAlert, getChildren]) {
+  for (const fn of [me, getChapters, getOverallLci, getPendingPulses, getAlerts, dismissAlert, getRecipients]) {
     fn.mockReset();
   }
   me.mockResolvedValue(PROFILE);
@@ -106,7 +106,7 @@ beforeEach(() => {
   dismissAlert.mockResolvedValue(undefined);
   // A single-recipient user: the active child_id resolves to that one recipient, so the per-recipient
   // reads (and the dismiss) carry it. The switcher hides itself (one recipient); the dashboard is unchanged.
-  getChildren.mockResolvedValue([
+  getRecipients.mockResolvedValue([
     {
       id: "c_1",
       user_id: "u_1",

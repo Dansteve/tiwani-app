@@ -12,6 +12,7 @@ import type {
   AccountDeletionResult,
   AccountExport,
   AccountStatus,
+  ActiveRecipient,
   AlertRecord,
   BillingCadence,
   CheckoutSession,
@@ -298,6 +299,20 @@ export const api = {
    */
   getChildren(signal?: AbortSignal): Promise<CareRecipientProfile[]> {
     return http<CareRecipientProfile[]>("/api/v3/children", { signal });
+  },
+
+  /**
+   * The recipient SWITCHER list (GET /api/v3/recipients): the UNION of the caller's OWNED recipients
+   * (role "owner") and the recipients SHARED with the caller (role "viewer"/"editor"), each as an
+   * ActiveRecipient { id, first_name, role }. AUTH REQUIRED. This is the active-recipient plumbing the
+   * RecipientProvider reads (Docs/FeatureDecisions.md "Helper Village ACCESS", refinement 1): it surfaces
+   * a helper's SHARED recipients so they reach the switcher and the Village to claim a need, where GET
+   * /children (owner-only full profiles) left them with an empty switcher. THE CEILING: a member entry
+   * carries the FIRST NAME ONLY (read api-side via the capped member-card path), never the profile, so
+   * surfacing a recipient never widens what a viewer can read. An empty list is a valid 200.
+   */
+  getRecipients(signal?: AbortSignal): Promise<ActiveRecipient[]> {
+    return http<ActiveRecipient[]>("/api/v3/recipients", { signal });
   },
 
   /**

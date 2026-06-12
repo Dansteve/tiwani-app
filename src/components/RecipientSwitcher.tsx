@@ -15,13 +15,6 @@ import { ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRecipient } from "@/state/RecipientProvider";
 
-/** First name only (the switcher labels recipients warmly, never the full name). */
-function firstName(name: string): string {
-  const trimmed = name.trim();
-  if (!trimmed) return "Recipient";
-  return trimmed.split(/\s+/)[0];
-}
-
 export function RecipientSwitcher({
   surface = "content",
   className,
@@ -65,7 +58,7 @@ export function RecipientSwitcher({
         >
           {recipients.map((recipient) => (
             <option key={recipient.id} value={recipient.id}>
-              {firstName(recipient.name)}
+              {recipient.first_name || "Recipient"}
             </option>
           ))}
         </select>

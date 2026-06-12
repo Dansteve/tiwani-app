@@ -6,7 +6,12 @@
 // Native app (Decisions.md D10) and unit-testable without a window (the same pure-store shape theme.ts and
 // the pulse dismissals use). The React lifecycle around it lives in state/RecipientProvider.tsx.
 
-import type { CareRecipientProfile } from "@/lib/api/types";
+// The selection logic needs only an `id`, so it is typed structurally (not to a concrete shape): it
+// accepts the switcher's ActiveRecipient (the role-tagged list) or any future recipient-like row, and
+// stays framework- and contract-agnostic.
+interface HasId {
+  id: string;
+}
 
 // Versioned key: bump the version if the stored shape ever changes so a stale value is ignored.
 export const SELECTED_RECIPIENT_STORAGE_KEY = "tiwani.recipient.selected.v1";
@@ -29,7 +34,7 @@ export interface RecipientStore {
  * fetch: the provider fetches the list and feeds it here.
  */
 export function resolveActiveRecipientId(
-  recipients: readonly CareRecipientProfile[],
+  recipients: readonly HasId[],
   storedId: string | null
 ): string | null {
   if (recipients.length === 0) return null;

@@ -92,6 +92,25 @@ export interface CareRecipientProfile {
 
 export type ChildProfile = CareRecipientProfile;
 
+/**
+ * One care recipient the caller can act on, role-tagged, for the recipient switcher (the api's
+ * ActiveRecipient; GET /api/v3/recipients). The active-recipient plumbing RecipientProvider reads
+ * (Docs/FeatureDecisions.md 2026-06-12 "Helper Village ACCESS", refinement 1):
+ *   id          the care recipient id (the same id the per-recipient reads scope by).
+ *   first_name  the FIRST name ONLY (the warm switcher label and the ceiling for a shared recipient).
+ *   role        the caller's role on it: `owner` (the caller created them, full access) or
+ *               `viewer` / `editor` (the recipient was SHARED with the caller; the visibility CEILING
+ *               holds, so the shell hides the owner-only screens and offers only the Village + the Card).
+ * Deliberately NOT the full CareRecipientProfile: a member must never receive the raw profile, so this
+ * carries only what the switcher needs (a label + an id + a role). Owner-only screens that need the full
+ * profile read it from GET /children (owner-scoped). The app drives the shell ceiling off `role`.
+ */
+export interface ActiveRecipient {
+  id: string;
+  first_name: string;
+  role: ShareRole;
+}
+
 /** Per-dimension scores keyed by dimension. */
 export type DimensionScores = Record<PressureDimension, number>;
 

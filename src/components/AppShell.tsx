@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useRecipient } from "@/state/RecipientProvider";
 import { Wordmark } from "@/components/Wordmark";
 import { LogoutButton } from "@/components/LogoutButton";
 import { RecipientSwitcher } from "@/components/RecipientSwitcher";
@@ -64,12 +65,33 @@ const SECONDARY_NAV: NavItem[] = [
   { href: "/card/history", label: "Card history", icon: History },
 ];
 
+// The VIEWER ceiling (Docs/FeatureDecisions.md "Helper Village ACCESS", refinement 1): when the active
+// recipient was SHARED with the caller (role viewer/editor), the shell shows ONLY the surfaces a viewer
+// may use, the Village (claim a need) + the shared Card ("Shared"), plus Settings (their OWN account, not
+// recipient data: sign out, theme, data rights). Every owner-only screen (dashboard / plan / pulse /
+// continuity / your plans / card history) is HIDDEN, never shown-then-403. The RoleRouteGuard blocks the
+// routes themselves so a bookmark or a mid-screen recipient switch lands on the Village, not a 403.
+const VIEWER_NAV: NavItem[] = [
+  { href: "/village", label: "Village", icon: Users },
+  { href: "/sharing", label: "Shared", icon: Share2 },
+  { href: "/settings", label: "Settings", icon: Settings },
+];
+
 function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { activeRole } = useRecipient();
+
+  // A viewer/editor (a recipient SHARED with the caller) is held to the viewer ceiling: the nav shows
+  // only the Village + the shared Card + their own Settings. An owner (or the null no-recipient-yet
+  // state) sees the full nav. The RoleRouteGuard enforces the same ceiling on the routes themselves.
+  const restricted = activeRole === "viewer" || activeRole === "editor";
+  const desktopPrimary = restricted ? VIEWER_NAV : [...NAV, ...DESKTOP_PRIMARY_EXTRA];
+  const bottomTabs = restricted ? VIEWER_NAV : NAV;
+  const secondaryNav = restricted ? [] : SECONDARY_NAV;
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -88,7 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <RecipientSwitcher surface="sidebar" className="mt-6" />
 
         <nav className="mt-8 flex flex-col gap-1" aria-label="Primary">
-          {[...NAV, ...DESKTOP_PRIMARY_EXTRA].map((item) => {
+          {desktopPrimary.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
             return (
@@ -115,13 +137,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Secondary links: surfaces that are not top-level tabs (the mobile bar stays at the six
             primary destinations). Your plans and Card history are reached here on desktop and from
             their own flows on mobile. The data-tour anchor lets the dashboard coach-marks point here
-            (a desktop-only step; the mobile bottom bar has no secondary section). */}
+            (a desktop-only step; the mobile bottom bar has no secondary section). Hidden for a viewer
+            (secondaryNav is empty under the ceiling). */}
+        {secondaryNav.length > 0 ? (
         <nav
           data-tour="secondary-nav"
           className="mt-6 flex flex-col gap-1 border-t border-sidebar-border pt-4"
           aria-label="Secondary"
         >
-          {SECONDARY_NAV.map((item) => {
+          {secondaryNav.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
             return (
@@ -142,6 +166,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+        ) : null}
 
         {/* Sign out sits at the bottom of the sidebar (mobile signs out from the Settings tab). */}
         <LogoutButton variant="nav" className="mt-auto" />
@@ -163,8 +188,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <PendingInviteBanner />
           {/* The secondary destinations (Village / Your plans / Card history) as a compact, scrollable
               strip on mobile only (the desktop sidebar carries them above). Keeps the bottom tab bar at
-              six while still letting a phone reach them. */}
-          <SecondaryNavStrip pathname={pathname} />
+              six while still letting a phone reach them. Empty (so it renders nothing) for a viewer. */}
+          <SecondaryNavStrip pathname={pathname} items={secondaryNav} />
           {children}
         </main>
       </div>
@@ -174,7 +199,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         aria-label="Primary"
         className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-card pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
-        {NAV.map((item) => {
+        {bottomTabs.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;
           return (
@@ -204,13 +229,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 // <main> clips overflow), so it never causes horizontal page overflow; each pill is a 44px-min tap target
 // with colour + label, and the active one is the filled primary state (not colour alone). This is how a
 // phone reaches Village / Your plans / Card history without crowding the six-item bottom bar.
-function SecondaryNavStrip({ pathname }: { pathname: string }) {
+function SecondaryNavStrip({ pathname, items }: { pathname: string; items: NavItem[] }) {
+  // Nothing to show (a viewer under the ceiling): render no strip at all.
+  if (items.length === 0) return null;
   return (
     <nav
       aria-label="More"
       className="mb-6 flex gap-2 overflow-x-auto lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      {SECONDARY_NAV.map((item) => {
+      {items.map((item) => {
         const active = isActive(pathname, item.href);
         const Icon = item.icon;
         return (

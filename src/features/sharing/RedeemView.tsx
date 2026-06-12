@@ -14,8 +14,8 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { useMutation } from "@tanstack/react-query";
-import { CheckCircle2, Info, LogIn } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, Heart, Info, LogIn } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import type { ShareRedeemResult } from "@/lib/api/types";
@@ -24,6 +24,7 @@ import { Wordmark } from "@/components/Wordmark";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/state/AuthProvider";
+import { useRecipient } from "@/state/RecipientProvider";
 import { sharingCopy } from "@/features/sharing/copy";
 import {
   clearPendingInviteToken,
@@ -42,14 +43,22 @@ export function RedeemView({ token }: { token: string | null }) {
 
 function RedeemToken({ token }: { token: string }) {
   const { session, loading: authLoading, configured } = useAuth();
+  const { setActiveChildId } = useRecipient();
+  const queryClient = useQueryClient();
   const authResolved = !configured || !authLoading;
   const signedIn = Boolean(session);
 
   const redeem = useMutation<ShareRedeemResult, unknown, void>({
     mutationFn: () => api.redeemShare({ token }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       // The intent is consumed: drop the stashed token so the in-app banner stops offering it.
       clearPendingInviteToken();
+      // Land the helper IN the just-shared recipient's Village (Docs/FeatureDecisions.md "Helper Village
+      // ACCESS", refinement 2): make the redeemed recipient the active one and refetch the switcher list
+      // so it includes the new membership, so /village opens scoped to them (and the shell flips to the
+      // viewer ceiling). The success screen routes there.
+      setActiveChildId(data.recipient_id);
+      queryClient.invalidateQueries({ queryKey: ["recipients"] });
     },
   });
 
@@ -103,9 +112,26 @@ function RedeemSuccess({ result }: { result: ShareRedeemResult }) {
           </p>
         </div>
       </div>
-      <Link href="/sharing" className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full")}>
-        See {result.recipient_first_name}&apos;s Continuity Card
-      </Link>
+
+      {/* First-time orientation (refinement 2): the Village is where a helper picks up a hand. */}
+      <p className="flex items-start gap-2 text-sm text-muted-foreground">
+        <Heart className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+        <span>
+          {result.recipient_first_name}&apos;s village is where you can pick up a hand, a specific way to
+          help when you have the time. You can open their Continuity Card any time too.
+        </span>
+      </p>
+
+      <div className="flex flex-col gap-3">
+        {/* Primary: land in the Village (the redeem destination), not just the card. */}
+        <Link href="/village" className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full")}>
+          Go to {result.recipient_first_name}&apos;s village
+        </Link>
+        {/* Secondary: the shared Continuity Card. */}
+        <Link href="/sharing" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full")}>
+          See {result.recipient_first_name}&apos;s Continuity Card
+        </Link>
+      </div>
     </div>
   );
 }

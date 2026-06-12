@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 
 const redeemShare = vi.fn();
+const getRecipients = vi.fn();
 
 vi.mock("@/lib/api/client", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/client")>("@/lib/api/client");
@@ -18,6 +19,9 @@ vi.mock("@/lib/api/client", async () => {
     ApiError: actual.ApiError,
     api: {
       redeemShare: (...a: unknown[]) => redeemShare(...a),
+      // The page now lives inside RecipientProvider (root layout), which reads /recipients; it has none
+      // yet at redeem time (the membership is just being minted), so an empty list is realistic.
+      getRecipients: (...a: unknown[]) => getRecipients(...a),
     },
   };
 });
@@ -35,12 +39,18 @@ vi.mock("@/state/AuthProvider", () => ({
 import { ApiError } from "@/lib/api/client";
 import { RedeemView } from "@/features/sharing/RedeemView";
 import { readPendingInviteToken } from "@/features/sharing/pendingInvite";
+import { RecipientProvider } from "@/state/RecipientProvider";
+import { SELECTED_RECIPIENT_STORAGE_KEY } from "@/state/selectedRecipient";
 
 function renderRedeem(token: string | null) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // RedeemView lives under the root Providers (RecipientProvider) in the real app: redeem success sets the
+  // active recipient + refetches the switcher so /village opens scoped to the just-shared recipient.
   return render(
     <QueryClientProvider client={client}>
-      <RedeemView token={token} />
+      <RecipientProvider>
+        <RedeemView token={token} />
+      </RecipientProvider>
     </QueryClientProvider>
   );
 }
@@ -50,7 +60,10 @@ const FAKE_SESSION = { access_token: "x", user: { id: "u_1" } } as unknown as Se
 
 beforeEach(() => {
   redeemShare.mockReset();
+  getRecipients.mockReset();
+  getRecipients.mockResolvedValue([]);
   window.sessionStorage.clear();
+  window.localStorage.clear();
   authState.session = null;
   authState.loading = false;
   authState.configured = true;
@@ -86,7 +99,14 @@ describe("RedeemView", () => {
 
     expect(await screen.findByRole("heading", { name: /you are connected/i })).toBeInTheDocument();
     expect(screen.getByText(/You can now see Ada's Continuity Card/i)).toBeInTheDocument();
-    // The CTA goes to the sharing screen; no role word is shown.
+    // Refinement 2: the PRIMARY CTA lands the helper IN the Village (not just the card), and the
+    // just-shared recipient becomes the active one so /village opens scoped to them.
+    expect(screen.getByRole("link", { name: /go to Ada's village/i })).toHaveAttribute(
+      "href",
+      "/village"
+    );
+    expect(window.localStorage.getItem(SELECTED_RECIPIENT_STORAGE_KEY)).toBe("rec_1");
+    // The secondary CTA still opens the shared Continuity Card; no role word is shown.
     expect(screen.getByRole("link", { name: /see Ada's Continuity Card/i })).toHaveAttribute(
       "href",
       "/sharing"
