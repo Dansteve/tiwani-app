@@ -45,6 +45,12 @@ interface RecipientContextValue {
   isLoading: boolean;
   /** True when the recipients list failed to load (the app still works on the api's default). */
   isError: boolean;
+  /**
+   * True once the recipients read has SETTLED (success or error), so the active id is final. Per-recipient
+   * reads gate on this (`enabled: ready`) so they fire ONCE under the resolved child_id, never first under
+   * the unresolved default and then again after the list loads (no double-fetch, no flash on first paint).
+   */
+  ready: boolean;
 }
 
 const RecipientContext = createContext<RecipientContextValue | null>(null);
@@ -100,6 +106,9 @@ export function RecipientProvider({ children }: { children: ReactNode }) {
       },
       isLoading: childrenQuery.isLoading,
       isError: childrenQuery.isError,
+      // Settled = no longer fetching the first time. isLoading is true only on the very first load; once
+      // the list resolves (or errors), the active id is final and the gated reads may run.
+      ready: !childrenQuery.isLoading,
     }),
     [recipients, activeChildId, activeRecipient, childrenQuery.isLoading, childrenQuery.isError]
   );

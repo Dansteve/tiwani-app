@@ -10,20 +10,31 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
 import { LciPanel } from "@/features/continuity/LciPanel";
+import { useRecipient } from "@/state/RecipientProvider";
+import { recipientKey } from "@/state/selectedRecipient";
 
 export function ContinuityScreen() {
+  // The active care recipient scopes both LCI reads (in the key, so a switch refetches, and in the call).
+  // The reads gate on `ready` (the recipients list has settled) so they fire once under the resolved id.
+  const { activeChildId, ready } = useRecipient();
+  const childKey = recipientKey(activeChildId);
+
   const overallQuery = useQuery({
-    queryKey: ["lci", "overall"],
-    queryFn: ({ signal }) => api.getOverallLci(signal),
+    queryKey: ["lci", "overall", childKey],
+    queryFn: ({ signal }) => api.getOverallLci(activeChildId, signal),
+    enabled: ready,
   });
 
   const chaptersQuery = useQuery({
-    queryKey: ["lci", "chapters"],
-    queryFn: ({ signal }) => api.getChapterLci(signal),
+    queryKey: ["lci", "chapters", childKey],
+    queryFn: ({ signal }) => api.getChapterLci(activeChildId, signal),
+    enabled: ready,
   });
 
+  // While the recipient list is still settling the LCI reads are disabled (no data, not loading in the
+  // TanStack sense), so treat "not ready" as loading to keep the skeleton up rather than flashing empty.
   const isError = overallQuery.isError || chaptersQuery.isError;
-  const isLoading = overallQuery.isLoading || chaptersQuery.isLoading;
+  const isLoading = !ready || overallQuery.isLoading || chaptersQuery.isLoading;
 
   return (
     <div className="space-y-6">

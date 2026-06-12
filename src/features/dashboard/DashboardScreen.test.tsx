@@ -35,6 +35,7 @@ const getOverallLci = vi.fn();
 const getPendingPulses = vi.fn();
 const getAlerts = vi.fn();
 const dismissAlert = vi.fn();
+const getChildren = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   api: {
@@ -44,28 +45,52 @@ vi.mock("@/lib/api/client", () => ({
     getPendingPulses: (...args: unknown[]) => getPendingPulses(...args),
     getAlerts: (...args: unknown[]) => getAlerts(...args),
     dismissAlert: (...args: unknown[]) => dismissAlert(...args),
+    getChildren: (...args: unknown[]) => getChildren(...args),
   },
 }));
 
 import { DashboardScreen } from "@/features/dashboard/DashboardScreen";
+import { RecipientProvider } from "@/state/RecipientProvider";
 
 function renderScreen() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <DashboardScreen />
+      <RecipientProvider>
+        <DashboardScreen />
+      </RecipientProvider>
     </QueryClientProvider>
   );
 }
 
 beforeEach(() => {
   window.sessionStorage.clear();
+  window.localStorage.clear();
+  // Mark the dashboard coach-marks tour as already seen so it does not auto-open (a dialog) over the
+  // assertions below. The recipient state (also localStorage) starts clean, so the single mocked
+  // recipient resolves to the default active id.
+  window.localStorage.setItem("tiwani.tour.dashboard.seen.v1", "1");
   me.mockReset();
   getChapters.mockReset();
   getOverallLci.mockReset();
   getPendingPulses.mockReset();
   getAlerts.mockReset();
   dismissAlert.mockReset();
+  getChildren.mockReset();
+  // A single-recipient user: the active child_id resolves to the sole recipient, the per-recipient reads
+  // carry it, and the switcher hides itself. The dashboard renders exactly as before.
+  getChildren.mockResolvedValue([
+    {
+      id: "c_1",
+      user_id: "u_1",
+      name: "Kayode",
+      age_band: null,
+      support_level_code: "SL-MED",
+      tags: [],
+      created_at: "2025-01-01T00:00:00Z",
+      updated_at: "2025-01-01T00:00:00Z",
+    },
+  ]);
   me.mockResolvedValue(PROFILE);
   getChapters.mockResolvedValue(GREY_CHAPTERS);
   // A brand-new user: no overall LCI snapshot yet (the indicator stays hidden) and no pending pulses.

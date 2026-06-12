@@ -60,6 +60,7 @@ const getOverallLci = vi.fn();
 const getPendingPulses = vi.fn();
 const getAlerts = vi.fn();
 const dismissAlert = vi.fn();
+const getChildren = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   api: {
@@ -69,23 +70,32 @@ vi.mock("@/lib/api/client", () => ({
     getPendingPulses: (...args: unknown[]) => getPendingPulses(...args),
     getAlerts: (...args: unknown[]) => getAlerts(...args),
     dismissAlert: (...args: unknown[]) => dismissAlert(...args),
+    getChildren: (...args: unknown[]) => getChildren(...args),
   },
 }));
 
 import { DashboardScreen } from "@/features/dashboard/DashboardScreen";
+import { RecipientProvider } from "@/state/RecipientProvider";
 
 function renderDashboard() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <DashboardScreen />
+      <RecipientProvider>
+        <DashboardScreen />
+      </RecipientProvider>
     </QueryClientProvider>
   );
 }
 
 beforeEach(() => {
   window.sessionStorage.clear();
-  for (const fn of [me, getChapters, getOverallLci, getPendingPulses, getAlerts, dismissAlert]) {
+  window.localStorage.clear();
+  // Mark the dashboard coach-marks tour as already seen: it auto-opens on the first visit (and is a
+  // dialog), which would otherwise sit over the alert surfaces these tests assert on. The recipient state
+  // (also localStorage) starts clean, so the single mocked recipient resolves to the default active id.
+  window.localStorage.setItem("tiwani.tour.dashboard.seen.v1", "1");
+  for (const fn of [me, getChapters, getOverallLci, getPendingPulses, getAlerts, dismissAlert, getChildren]) {
     fn.mockReset();
   }
   me.mockResolvedValue(PROFILE);
@@ -94,6 +104,20 @@ beforeEach(() => {
   getPendingPulses.mockResolvedValue([]);
   getAlerts.mockResolvedValue([]);
   dismissAlert.mockResolvedValue(undefined);
+  // A single-recipient user: the active child_id resolves to that one recipient, so the per-recipient
+  // reads (and the dismiss) carry it. The switcher hides itself (one recipient); the dashboard is unchanged.
+  getChildren.mockResolvedValue([
+    {
+      id: "c_1",
+      user_id: "u_1",
+      name: "Kayode",
+      age_band: null,
+      support_level_code: "SL-MED",
+      tags: [],
+      created_at: "2025-01-01T00:00:00Z",
+      updated_at: "2025-01-01T00:00:00Z",
+    },
+  ]);
 });
 
 describe("Erosion Alert placements on the dashboard (§4.9)", () => {
@@ -156,8 +180,9 @@ describe("Erosion Alert placements on the dashboard (§4.9)", () => {
     await waitFor(() => expect(screen.getByText(L2.copy)).toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: /dismiss the family life & routine alert/i }));
 
-    // The dismiss endpoint was called with the chapter, and the banner is hidden immediately.
-    expect(dismissAlert).toHaveBeenCalledWith("family");
+    // The dismiss endpoint was called with the chapter AND the active recipient, and the banner is hidden
+    // immediately (the recipient is the single one this user has, c_1).
+    expect(dismissAlert).toHaveBeenCalledWith("family", "c_1");
     await waitFor(() => expect(screen.queryByText(L2.copy)).not.toBeInTheDocument());
   });
 });
