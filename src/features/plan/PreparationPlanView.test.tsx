@@ -79,7 +79,10 @@ describe("PreparationPlanView pressure summary (§4.5 bands)", () => {
     renderPlan(makePlan({ total: 8 }));
     expect(screen.getByText("This looks manageable")).toBeInTheDocument();
     expect(screen.getByText("Manageable")).toBeInTheDocument();
-    expect(screen.getByText(/out of 20/i)).toHaveTextContent("8");
+    // The total is shown big in the Total Pressure Score card ("8 / 20").
+    expect(screen.getByText("Total pressure score")).toBeInTheDocument();
+    expect(screen.getByText("8")).toBeInTheDocument();
+    expect(screen.getByText("/ 20")).toBeInTheDocument();
   });
 
   it("shows the amber 'needs preparation' band and copy for a total of 11 (9 to 13)", () => {
@@ -182,6 +185,57 @@ describe("PreparationPlanView Strategy Library remove (Task 9)", () => {
     expect(within(strategyList()).getByText("Arrive early")).toBeInTheDocument();
   });
 
+  it("shows an OBVIOUS undo the moment a strategy is removed, and the undo re-allows it (Task 14)", async () => {
+    renderPlan(makeLibraryPlan());
+
+    // No undo before a removal.
+    expect(screen.queryByRole("button", { name: /^undo$/i })).not.toBeInTheDocument();
+
+    // Remove a library-backed strategy: the undo snackbar appears at once, naming what was removed.
+    fireEvent.click(screen.getByRole("button", { name: /remove plan an exit/i }));
+    const undo = screen.getByRole("button", { name: /^undo$/i });
+    expect(undo).toBeInTheDocument();
+    // The snackbar is a status region (announced, not focus-stealing) and says what went.
+    const snackbar = undo.closest('[role="status"]')! as HTMLElement;
+    expect(within(snackbar).getByText("Plan an exit")).toBeInTheDocument();
+    await waitFor(() => expect(suppressStrategy).toHaveBeenCalledWith("lib_exit"));
+
+    // Click Undo: it re-allows the strategy api-side and the strategy returns to the list.
+    fireEvent.click(undo);
+    await waitFor(() => expect(allowStrategy).toHaveBeenCalledWith("lib_exit"));
+    expect(within(strategyList()).getByText("Plan an exit")).toBeInTheDocument();
+    // The snackbar has gone after undo.
+    expect(screen.queryByRole("button", { name: /^undo$/i })).not.toBeInTheDocument();
+  });
+
+  it("shows NO undo snackbar for a local-only (no library_item_id) removal: there is nothing to re-allow", () => {
+    renderPlan(
+      makePlan({
+        strategies: [
+          { title: "No-id strategy", detail: "A legacy line with no library item." },
+        ],
+      })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /remove no-id strategy/i }));
+    // It is hidden, but with no api key there is nothing to undo, so no snackbar (and no api call).
+    expect(screen.queryByText("No-id strategy")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^undo$/i })).not.toBeInTheDocument();
+    expect(suppressStrategy).not.toHaveBeenCalled();
+  });
+
+  it("removes only the strategy for THIS scenario, not the others (scenario-scoped, the api owns it)", async () => {
+    renderPlan(makeLibraryPlan());
+
+    // Remove one library item: ONLY its id is suppressed (the api scopes the suppression to that
+    // scenario/activity, suppress-after-3); the other strategy is untouched.
+    fireEvent.click(screen.getByRole("button", { name: /remove plan an exit/i }));
+    await waitFor(() => expect(suppressStrategy).toHaveBeenCalledWith("lib_exit"));
+    expect(suppressStrategy).toHaveBeenCalledTimes(1);
+    expect(suppressStrategy).not.toHaveBeenCalledWith("lib_arrive");
+    expect(within(strategyList()).getByText("Arrive early")).toBeInTheDocument();
+  });
+
   it("offers a 'Removed strategies' re-allow affordance only after a removal, and restores on re-allow", async () => {
     renderPlan(makeLibraryPlan());
 
@@ -263,11 +317,35 @@ describe("PreparationPlanView dimension breakdown", () => {
   });
 });
 
-describe("PreparationPlanView actions", () => {
-  it("offers a Generate Continuity Card action linking to the card route for this activity", () => {
+describe("PreparationPlanView action dock", () => {
+  it("offers an Export Continuity Card action linking to the card route for this activity", () => {
     renderPlan(makePlan());
-    const link = screen.getByRole("link", { name: /generate continuity card/i });
+    const link = screen.getByRole("link", { name: /export continuity card/i });
     expect(link).toHaveAttribute("href", "/card?activity=act_1");
+  });
+
+  it("offers a Delegate Logistics action linking to the Village post-a-need flow", () => {
+    renderPlan(makePlan());
+    const link = screen.getByRole("link", { name: /delegate logistics/i });
+    expect(link).toHaveAttribute("href", "/village");
+  });
+
+  it("offers a Share action in the header linking to the card route for this activity", () => {
+    renderPlan(makePlan());
+    const link = screen.getByRole("link", { name: /^share$/i });
+    expect(link).toHaveAttribute("href", "/card?activity=act_1");
+  });
+
+  it("offers a Back control that returns to the prepare inputs", () => {
+    const onPrepareAnother = vi.fn();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <PreparationPlanView plan={makePlan()} onPrepareAnother={onPrepareAnother} />
+      </QueryClientProvider>
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
+    expect(onPrepareAnother).toHaveBeenCalledTimes(1);
   });
 });
 
