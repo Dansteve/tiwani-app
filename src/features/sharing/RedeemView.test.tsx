@@ -117,6 +117,20 @@ describe("RedeemView", () => {
     expect(readPendingInviteToken()).toBeNull();
   });
 
+  it("shows a clear loading message (not a blank skeleton) while a signed-in redeem is in flight", async () => {
+    authState.session = FAKE_SESSION;
+    // A redeem that never settles, so the view stays in its loading phase for the assertion.
+    redeemShare.mockReturnValue(new Promise(() => {}));
+
+    renderRedeem("tok_slow");
+
+    // The loading state names what is happening and reassures about the cold-start wait, never a blank.
+    expect(await screen.findByText(/opening your invite/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/this can take a moment the first time, while the app wakes up/i)
+    ).toBeInTheDocument();
+  });
+
   it("shows the one calm 'can't be opened' state on a 400 bad token", async () => {
     authState.session = FAKE_SESSION;
     redeemShare.mockRejectedValue(new ApiError(400, "bad token"));

@@ -12,10 +12,10 @@
 //     revoked / wrong-email) is one calm "this link can't be opened" state, never the raw reason.
 // The app renders the api's governed copy and never names the role.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Heart, Info, LogIn } from "lucide-react";
+import { CheckCircle2, Heart, Info, Loader2, LogIn } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import type { ShareRedeemResult } from "@/lib/api/types";
@@ -30,6 +30,11 @@ import {
   clearPendingInviteToken,
   setPendingInviteToken,
 } from "@/features/sharing/pendingInvite";
+
+// The safety-timeout window for the loading state: long enough to clear a cold-start of the api (which
+// can take ~30 to 60s after idle), short enough that a genuinely stuck request resolves to a calm "try
+// again" rather than an endless spinner. Past this, the loading phase falls through to RedeemUnavailable.
+const REDEEM_TIMEOUT_MS = 90_000;
 
 export function RedeemView({ token }: { token: string | null }) {
   return (
@@ -77,8 +82,28 @@ function RedeemToken({ token }: { token: string }) {
     redeem.mutate();
   }, [authResolved, signedIn, token, redeem]);
 
+  // The view is "loading" while auth is unresolved, or while a signed-in user's redeem is pending/idle.
+  const loading = !authResolved || (signedIn && (redeem.isPending || redeem.isIdle));
+
+  // A SAFETY TIMEOUT so the page never sits on the loading state forever. The api is on a host that
+  // cold-starts after idle (the redeem POST can hang ~30 to 60s), and a stuck auth resolution would
+  // also leave `loading` true with no error to surface. While loading, a ~90s timer runs; if it fires
+  // while still loading, we flip `timedOut` and fall through to the generic "something went wrong, try
+  // again" state instead of a perpetual spinner. The timer is cleared on resolve / unmount / not-loading.
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => setTimedOut(true), REDEEM_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  // The timeout fired while still loading: show the generic retry path (NOT the bad-token copy), never blank.
+  if (timedOut && loading) {
+    return <RedeemUnavailable badToken={false} />;
+  }
+
   // Still resolving auth, or redeeming for a signed-in user: a calm loading state.
-  if (!authResolved || (signedIn && (redeem.isPending || redeem.isIdle))) {
+  if (loading) {
     return <RedeemLoading />;
   }
 
@@ -204,15 +229,21 @@ function MissingInvite() {
   );
 }
 
+// A CLEAR loading message (not a blank skeleton): a spinner plus a line of reassurance, because the
+// redeem can hang while the api wakes from a cold start. aria-busy keeps assistive tech informed.
 function RedeemLoading() {
   return (
     <div
       aria-busy="true"
-      aria-label="Opening your invite"
-      className="space-y-4"
+      className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card px-6 py-12 text-center"
     >
-      <div className="h-6 w-3/4 animate-pulse rounded bg-secondary" />
-      <div className="h-32 w-full animate-pulse rounded-2xl border border-border bg-card" />
+      <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
+      <div className="space-y-1">
+        <p className="text-lg font-semibold text-foreground">Opening your invite&hellip;</p>
+        <p className="text-sm text-muted-foreground">
+          This can take a moment the first time, while the app wakes up.
+        </p>
+      </div>
     </div>
   );
 }
