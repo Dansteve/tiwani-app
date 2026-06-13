@@ -87,8 +87,8 @@ describe("ShareInvitePanel", () => {
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: /create invite link/i }));
 
-    // The redeem link (built from the token) is shown in the read-only field.
-    const link = (await screen.findByLabelText(/invite link/i)) as HTMLInputElement;
+    // The redeem link (built from the token) is shown in the read-only "Join link" field.
+    const link = (await screen.findByLabelText(/join link/i)) as HTMLInputElement;
     expect(link.value).toContain("/link?token=tok_redeem");
     expect(createShareInvite).toHaveBeenCalledWith({
       recipient_id: "rec_1",
@@ -97,6 +97,39 @@ describe("ShareInvitePanel", () => {
     });
     // The "for this email only" reassurance names the invitee address.
     expect(screen.getByText(/carer@example.com/)).toBeInTheDocument();
+  });
+
+  it("offers all three ways to send the same invite on success: link, code, and email", async () => {
+    const user = userEvent.setup();
+    createShareInvite.mockResolvedValue({
+      invite_id: "inv_3",
+      token: "tok_threeway",
+      role: "viewer",
+      expires_at: "2026-07-01T00:00:00Z",
+      copy_key: "sharing.invite.intro",
+      consent_text: "I confirm I have the authority to share Ada's information with the person I am inviting.",
+    });
+
+    renderPanel();
+    await user.type(screen.getByLabelText(/their email/i), "carer@example.com");
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: /create invite link/i }));
+
+    // 1) The LINK field.
+    const link = (await screen.findByLabelText(/join link/i)) as HTMLInputElement;
+    expect(link.value).toContain("/link?token=tok_threeway");
+
+    // 2) The CODE field shows the raw token (the same invite token, to paste into the Join front door).
+    const code = screen.getByLabelText(/village code/i) as HTMLInputElement;
+    expect(code.value).toBe("tok_threeway");
+    expect(screen.getByRole("button", { name: /copy code/i })).toBeInTheDocument();
+
+    // 3) The "Send by email" mailto, pre-filled to the invited address, carrying the link and the code.
+    const mailto = screen.getByRole("link", { name: /send by email/i });
+    const href = mailto.getAttribute("href") ?? "";
+    expect(href.startsWith("mailto:carer%40example.com?")).toBe(true);
+    expect(decodeURIComponent(href)).toContain("/link?token=tok_threeway");
+    expect(decodeURIComponent(href)).toContain("tok_threeway");
   });
 
   it("records consent first for an adult share before minting the invite", async () => {

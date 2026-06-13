@@ -198,7 +198,9 @@ function VillageCountChip({
   );
 }
 
-// A fresh user with no recipient yet: the hub needs a recipient to scope to, so point at finishing setup.
+// A fresh user with no recipient yet: the hub needs a recipient to scope to. Either they are a Coordinator
+// who should finish setting up, or they were asked to HELP and have a join link or code to redeem (Docs/
+// FeatureDecisions.md "Helper Village ACCESS"). Offer both: finish setup, or join a village.
 function NoRecipient() {
   return (
     <div className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center">
@@ -207,12 +209,23 @@ function NoRecipient() {
         The Village is built around one person at a time. Finish setting up, then you can ask your
         village for a hand.
       </p>
-      <Link
-        href="/onboarding"
-        className={cn(buttonVariants({ variant: "default", size: "lg" }), "mt-6")}
-      >
-        Finish setting up
-      </Link>
+      <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+        <Link
+          href="/onboarding"
+          className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full sm:w-auto")}
+        >
+          Finish setting up
+        </Link>
+        <Link
+          href="/join"
+          className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto")}
+        >
+          Join a village
+        </Link>
+      </div>
+      <p className="mx-auto mt-4 max-w-sm text-sm text-muted-foreground">
+        Were you asked to help with someone? Join their village with the link or code they sent you.
+      </p>
     </div>
   );
 }
