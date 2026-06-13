@@ -139,7 +139,15 @@ export function ShareInvitePanel({
           </div>
         </div>
 
-        <ShareLinkRow url={redeemUrl} />
+        {/* Three ways to send the SAME email-bound invite: the link, the code (the token, to paste into the
+            Join front door), and a pre-filled email to the invited address (Docs/FeatureDecisions.md
+            "Helper Village ACCESS"). */}
+        <ShareLinkRow
+          url={redeemUrl}
+          token={created.token}
+          inviteEmail={email.trim()}
+          recipientFirstName={firstName}
+        />
 
         <p className="text-sm text-muted-foreground">
           This invite is for {email.trim()} only, and it works once. You can remove their access at any

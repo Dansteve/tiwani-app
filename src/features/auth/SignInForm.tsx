@@ -48,12 +48,22 @@ export function SignInForm() {
       title="Welcome back"
       subtitle="Sign in to pick up where you left off."
       footer={
-        <>
-          New to TIWANI?{" "}
-          <Link href="/sign-up" className="font-medium text-primary underline-offset-4 hover:underline">
-            Create an account
-          </Link>
-        </>
+        <div className="space-y-2">
+          <p>
+            New to TIWANI?{" "}
+            <Link href="/sign-up" className="font-medium text-primary underline-offset-4 hover:underline">
+              Create an account
+            </Link>
+          </p>
+          {/* The "Join a village" front door (Docs/FeatureDecisions.md "Helper Village ACCESS"): a helper
+              sent a join link or code finds the place to paste it. */}
+          <p>
+            Been asked to help with someone?{" "}
+            <Link href="/join" className="font-medium text-primary underline-offset-4 hover:underline">
+              Join a village
+            </Link>
+          </p>
+        </div>
       }
     >
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">

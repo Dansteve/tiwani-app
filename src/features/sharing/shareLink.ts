@@ -26,3 +26,90 @@ export function buildRedeemUrl(token: string, origin: string): string {
   const base = origin.replace(/\/$/, "");
   return base ? `${base}${query}` : query;
 }
+
+/** The front-door route a helper uses to paste a join link or code (an account-less static page). */
+export const JOIN_PATH = "/join";
+
+/**
+ * Pull the invite token out of whatever a helper pasted into the join front door. It accepts EITHER:
+ *   - a full link the owner sent (`<origin>/link?token=XYZ`, a `/join?token=XYZ`, or any URL carrying the
+ *     token in `?token=` / `&token=` / a `#token=` fragment), or
+ *   - a bare token / village code on its own.
+ * It is the SAME email-bound invite token throughout (the "code" is just the token presented to be pasted,
+ * Docs/FeatureDecisions.md "Helper Village ACCESS"); this helper only normalises the input back to that
+ * token so the existing redeem flow can run. It carries no parsing of any other field.
+ *
+ * Returns the trimmed token, or null for empty / unusable input (so the caller shows one calm error). It is
+ * deliberately lenient on the token shape (the api is the real validator and binds it to the invited email):
+ * anything in `token=` is taken verbatim, and a bare paste with no URL structure is treated as the token
+ * itself, EXCEPT an input that looks like a URL but carries no token (so a stray link is a clear error, not
+ * a bogus token). Pure + framework-agnostic (Decisions.md D10): no window dependency, fully unit-testable.
+ */
+export function extractInviteToken(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  // A token carried in a query or fragment (`?token=` / `&token=` / `#token=`), wherever it sits in the
+  // string. Capture up to the next param / fragment / whitespace separator, then URL-decode it.
+  const paramMatch = trimmed.match(/[?&#]token=([^&#\s]+)/i);
+  if (paramMatch) {
+    const value = safeDecode(paramMatch[1]).trim();
+    return value || null;
+  }
+
+  // No token param. If the paste looks like a URL or a path (it has a scheme or a slash), it is a link
+  // WITHOUT the token (or the wrong link), so treat it as unusable rather than mistaking the path for a
+  // token. Otherwise the whole paste IS the bare token / code.
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) || trimmed.includes("/")) {
+    return null;
+  }
+  return trimmed;
+}
+
+/** decodeURIComponent that never throws on a malformed sequence (returns the raw value instead). */
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/** A warm, non-clinical email the owner can send so a helper gets the join link AND the code together. */
+export interface JoinEmail {
+  subject: string;
+  body: string;
+}
+
+/**
+ * Build the warm, non-clinical "join my village" email the owner sends to the person they just invited
+ * (the STOPGAP for system-sent email, which is a backlog item, Docs/FeatureDecisions.md "Helper Village
+ * ACCESS" refinement 4). It carries the join link AND the code (both resolve to the same email-bound
+ * invite), plus a plain explanation that they sign in with this email address. No clinical words, no role
+ * names; `recipientFirstName` warms the copy when known. The caller wraps this into a `mailto:` href.
+ */
+export function buildJoinEmail(joinUrl: string, code: string, recipientFirstName?: string): JoinEmail {
+  const who = recipientFirstName?.trim();
+  const subject = who ? `Join ${who}'s village on TIWANI` : "Join a village on TIWANI";
+  const bodyLines = [
+    who
+      ? `I'd love your help with ${who}. I'm using TIWANI to share a simple guide to what helps, and to ask for a hand now and then.`
+      : "I'd love your help. I'm using TIWANI to share a simple guide to what helps, and to ask for a hand now and then.",
+    "",
+    "To join, open this link and sign in (or create a free account) with this email address:",
+    joinUrl,
+    "",
+    "If the link does not open, go to the Join page in the app and paste this code instead:",
+    code,
+    "",
+    "Thank you.",
+  ];
+  return { subject, body: bodyLines.join("\n") };
+}
+
+/** Wrap a subject + body into a `mailto:` href for one or no recipient address. */
+export function buildMailtoHref(to: string, email: JoinEmail): string {
+  const params = new URLSearchParams({ subject: email.subject, body: email.body });
+  const address = to.trim();
+  return `mailto:${encodeURIComponent(address)}?${params.toString()}`;
+}

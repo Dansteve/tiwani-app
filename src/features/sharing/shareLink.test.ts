@@ -5,7 +5,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
 
 import {
+  buildJoinEmail,
+  buildMailtoHref,
   buildRedeemUrl,
+  extractInviteToken,
   REDEEM_PATH,
   REDEEM_TOKEN_PARAM,
 } from "@/features/sharing/shareLink";
@@ -43,6 +46,93 @@ describe("buildRedeemUrl", () => {
     expect(url).not.toContain("@");
     expect(url).not.toContain("email");
     expect(url).not.toContain("recipient");
+  });
+});
+
+describe("extractInviteToken", () => {
+  it("extracts the token from a full redeem link", () => {
+    expect(extractInviteToken("https://app.tiwani.test/link?token=tok_abc")).toBe("tok_abc");
+  });
+
+  it("extracts the token from a /join link too", () => {
+    expect(extractInviteToken("https://app.tiwani.test/join?token=tok_xyz")).toBe("tok_xyz");
+  });
+
+  it("takes a bare token / code on its own", () => {
+    expect(extractInviteToken("tok_bare_code")).toBe("tok_bare_code");
+  });
+
+  it("trims surrounding whitespace from a bare token", () => {
+    expect(extractInviteToken("  tok_padded  ")).toBe("tok_padded");
+  });
+
+  it("url-decodes a token carried in the query", () => {
+    expect(extractInviteToken("https://app.tiwani.test/link?token=a%20b%2Fc")).toBe("a b/c");
+  });
+
+  it("finds the token when other params precede it", () => {
+    expect(extractInviteToken("https://app.tiwani.test/link?foo=1&token=tok_after&bar=2")).toBe(
+      "tok_after"
+    );
+  });
+
+  it("finds a token carried in a fragment", () => {
+    expect(extractInviteToken("https://app.tiwani.test/link#token=tok_frag")).toBe("tok_frag");
+  });
+
+  it("returns null for empty / whitespace-only input", () => {
+    expect(extractInviteToken("")).toBeNull();
+    expect(extractInviteToken("   ")).toBeNull();
+  });
+
+  it("returns null for a link that carries no token (a stray / wrong link)", () => {
+    expect(extractInviteToken("https://app.tiwani.test/link")).toBeNull();
+    expect(extractInviteToken("https://example.com/some/other/page")).toBeNull();
+  });
+
+  it("returns null for a path-like paste with no token (not mistaken for a bare token)", () => {
+    expect(extractInviteToken("/link?foo=bar")).toBeNull();
+  });
+});
+
+describe("buildJoinEmail", () => {
+  it("warms the subject + body with the recipient's first name and carries both the link and the code", () => {
+    const email = buildJoinEmail("https://app.tiwani.test/link?token=tok_1", "tok_1", "Ada");
+    expect(email.subject).toBe("Join Ada's village on TIWANI");
+    expect(email.body).toContain("https://app.tiwani.test/link?token=tok_1");
+    expect(email.body).toContain("tok_1");
+    expect(email.body).toContain("Ada");
+  });
+
+  it("falls back to a generic warm subject when no name is given", () => {
+    const email = buildJoinEmail("https://app.tiwani.test/link?token=tok_2", "tok_2");
+    expect(email.subject).toBe("Join a village on TIWANI");
+    expect(email.body).toContain("tok_2");
+  });
+
+  it("uses no clinical or role words in the copy", () => {
+    const email = buildJoinEmail("https://app.tiwani.test/link?token=tok_3", "tok_3", "Sam");
+    const text = `${email.subject}\n${email.body}`.toLowerCase();
+    for (const banned of ["viewer", "owner", "editor", "patient", "diagnosis", "condition", "monitor"]) {
+      expect(text).not.toContain(banned);
+    }
+  });
+});
+
+describe("buildMailtoHref", () => {
+  it("addresses the mailto to the invited email and encodes the subject + body", () => {
+    const href = buildMailtoHref("carer@example.com", {
+      subject: "Join Ada's village on TIWANI",
+      body: "line one\nline two",
+    });
+    expect(href.startsWith("mailto:carer%40example.com?")).toBe(true);
+    expect(href).toContain("subject=Join+Ada");
+    expect(href).toContain("body=line+one");
+  });
+
+  it("opens with no recipient when the address is empty", () => {
+    const href = buildMailtoHref("", { subject: "Hi", body: "there" });
+    expect(href.startsWith("mailto:?")).toBe(true);
   });
 });
 
