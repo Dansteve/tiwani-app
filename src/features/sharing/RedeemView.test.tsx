@@ -137,6 +137,9 @@ describe("RedeemView", () => {
 
     renderRedeem("tok_bad");
     expect(await screen.findByRole("heading", { name: /can't be opened/i })).toBeInTheDocument();
+    // The settled error is TERMINAL: the loader must be gone, never left spinning behind/over the error
+    // (the reported bug, where a returned 400 still showed "Opening your invite...").
+    expect(screen.queryByText(/opening your invite/i)).not.toBeInTheDocument();
     // It never surfaces the raw reason (which would leak which links exist).
     expect(screen.queryByText(/bad token/i)).not.toBeInTheDocument();
   });
