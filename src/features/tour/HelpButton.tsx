@@ -15,19 +15,29 @@ import { cn } from "@/lib/utils";
 interface HelpButtonProps {
   onClick: () => void;
   className?: string;
+  /**
+   * Icon-only: render just the lifebuoy with an aria-label (no visible text), for tight spaces like the
+   * mobile top bar. Kept a 44x44 target (min-h-11 min-w-11) so it still meets WCAG 2.1 AA.
+   */
+  iconOnly?: boolean;
 }
 
-export function HelpButton({ onClick, className }: HelpButtonProps) {
+export function HelpButton({ onClick, className, iconOnly = false }: HelpButtonProps) {
   return (
     <Button
       type="button"
       variant="ghost"
       size="sm"
       onClick={onClick}
-      className={cn("min-h-11 text-muted-foreground hover:text-foreground", className)}
+      aria-label={iconOnly ? "Show me around" : undefined}
+      className={cn(
+        "min-h-11 text-muted-foreground hover:text-foreground",
+        iconOnly && "min-w-11 justify-center px-0",
+        className
+      )}
     >
       <LifeBuoy className="size-4" aria-hidden="true" />
-      Show me around
+      {iconOnly ? null : "Show me around"}
     </Button>
   );
 }
