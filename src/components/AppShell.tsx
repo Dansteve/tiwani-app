@@ -4,6 +4,7 @@
 // Docs/Brand.md). Mobile-first: the bottom tab bar is the default, the sidebar appears at lg and up.
 // Foundation-level navigation over the route-segment stubs; the destinations are real routes.
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,6 +17,7 @@ import {
   FileText,
   Share2,
   Users,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,7 +26,7 @@ import { useRecipient } from "@/state/RecipientProvider";
 import { Wordmark } from "@/components/Wordmark";
 import { LogoutButton } from "@/components/LogoutButton";
 import { RecipientSwitcher } from "@/components/RecipientSwitcher";
-import { PendingInviteBanner } from "@/features/sharing/PendingInviteBanner";
+import { readPendingInviteToken } from "@/features/sharing/pendingInvite";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 
@@ -63,6 +65,7 @@ const DESKTOP_PRIMARY_EXTRA: NavItem[] = [
 // Your plans / Card history). Your plans (re-open a prepared plan), Card history (a card's status +
 // revoke), and Village (post a need / claim one for the active recipient) are all reached this way.
 const SECONDARY_NAV: NavItem[] = [
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/village", label: "Village", icon: Users },
   { href: "/plans", label: "Your plans", icon: FileText },
   { href: "/card/history", label: "Card history", icon: History },
@@ -77,6 +80,7 @@ const SECONDARY_NAV: NavItem[] = [
 const VIEWER_NAV: NavItem[] = [
   { href: "/village", label: "Village", icon: Users },
   { href: "/sharing", label: "Shared", icon: Share2 },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -84,13 +88,35 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+// The "new" indicator on the Notifications nav item: a small CORAL dot. It is NEVER colour alone, the
+// sr-only "(new)" makes a screen reader announce it, so the signal carries to assistive tech too.
+function NavDot() {
+  return (
+    <>
+      <span className="size-2 shrink-0 rounded-full bg-tiwani-coral" aria-hidden="true" />
+      <span className="sr-only">(new)</span>
+    </>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { activeRole } = useRecipient();
 
+  // A pending invite to open (a token stashed before the sign-in bounce) puts a coral "new" dot on the
+  // Notifications nav item, where the notice itself now lives (it moved off the cramped dashboard
+  // greeting). Hydrated in an effect (not during render), deferred to the next frame, so the server and
+  // first client render agree under the static export (the app's hydrate-once pattern).
+  const [hasPendingInvite, setHasPendingInvite] = useState(false);
+  useEffect(() => {
+    if (!readPendingInviteToken()) return;
+    const frame = requestAnimationFrame(() => setHasPendingInvite(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
   // A viewer/editor (a recipient SHARED with the caller) is held to the viewer ceiling: the nav shows
-  // only the Village + the shared Card + their own Settings. An owner (or the null no-recipient-yet
-  // state) sees the full nav. The RoleRouteGuard enforces the same ceiling on the routes themselves.
+  // only the Village + the shared Card + Notifications + their own Settings. An owner (or the null
+  // no-recipient-yet state) sees the full nav. The RoleRouteGuard enforces the same ceiling on the routes.
   const restricted = activeRole === "viewer" || activeRole === "editor";
   const desktopPrimary = restricted ? VIEWER_NAV : [...NAV, ...DESKTOP_PRIMARY_EXTRA];
   const bottomTabs = restricted ? VIEWER_NAV : NAV;
@@ -131,7 +157,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <Icon className="size-5 shrink-0" aria-hidden="true" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {item.href === "/notifications" && hasPendingInvite ? <NavDot /> : null}
               </Link>
             );
           })}
@@ -164,7 +191,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <Icon className="size-5 shrink-0" aria-hidden="true" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {item.href === "/notifications" && hasPendingInvite ? <NavDot /> : null}
               </Link>
             );
           })}
@@ -185,14 +213,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               content (still only when there is more than one recipient). On desktop it lives in the
               sidebar above, so this copy is hidden there. */}
           <RecipientSwitcher surface="content" className="mb-6 max-w-xs lg:hidden" />
-          {/* A pending-invite reminder: shown only when someone arrived via an invite link, signed in,
-              and has not finished opening it yet (the token survived the sign-in bounce in sessionStorage).
-              It is invisible to everyone else and links back to the redeem page. */}
-          <PendingInviteBanner />
+          {/* A pending invite now lives on /notifications (it was cramped against the dashboard greeting):
+              the nav's Notifications item carries a coral "new" dot when one is waiting, rather than an
+              inline banner here. */}
           {/* The secondary destinations (Village / Your plans / Card history) as a compact, scrollable
               strip on mobile only (the desktop sidebar carries them above). Keeps the bottom tab bar at
               five while still letting a phone reach them. Empty (so it renders nothing) for a viewer. */}
-          <SecondaryNavStrip pathname={pathname} items={secondaryNav} />
+          <SecondaryNavStrip
+            pathname={pathname}
+            items={secondaryNav}
+            hasPendingInvite={hasPendingInvite}
+          />
           {children}
         </main>
       </div>
@@ -217,7 +248,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 active ? "text-primary font-medium" : "text-muted-foreground"
               )}
             >
-              <Icon className="size-5" aria-hidden="true" />
+              <span className="relative">
+                <Icon className="size-5" aria-hidden="true" />
+                {item.href === "/notifications" && hasPendingInvite ? (
+                  <span className="absolute -right-1 -top-0.5">
+                    <NavDot />
+                  </span>
+                ) : null}
+              </span>
               {item.label}
             </Link>
           );
@@ -232,7 +270,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 // <main> clips overflow), so it never causes horizontal page overflow; each pill is a 44px-min tap target
 // with colour + label, and the active one is the filled primary state (not colour alone). This is how a
 // phone reaches Village / Your plans / Card history without crowding the five-item bottom bar.
-function SecondaryNavStrip({ pathname, items }: { pathname: string; items: NavItem[] }) {
+function SecondaryNavStrip({
+  pathname,
+  items,
+  hasPendingInvite,
+}: {
+  pathname: string;
+  items: NavItem[];
+  hasPendingInvite: boolean;
+}) {
   // Nothing to show (a viewer under the ceiling): render no strip at all.
   if (items.length === 0) return null;
   return (
@@ -257,6 +303,7 @@ function SecondaryNavStrip({ pathname, items }: { pathname: string; items: NavIt
           >
             <Icon className="size-4 shrink-0" aria-hidden="true" />
             {item.label}
+            {item.href === "/notifications" && hasPendingInvite ? <NavDot /> : null}
           </Link>
         );
       })}

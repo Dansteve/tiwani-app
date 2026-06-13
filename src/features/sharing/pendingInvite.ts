@@ -2,8 +2,9 @@
 // (Docs/FeatureDecisions.md 2026-06-12 "Shared Child / Co-Coordinator access"). A person who receives an
 // invite link is usually signed out (or has no account yet). The redeem page lives outside the (app)
 // onboarding guard so it is not silently bounced, but redeem REQUIRES auth: so the page stashes the token
-// here first, sends the visitor to sign in / sign up, and once they are back in the app a small banner
-// (PendingInviteBanner) picks the token up and routes them to /link to finish.
+// here first, sends the visitor to sign in / sign up, and once they are back in the app the Notifications
+// page (NotificationsScreen) picks the token up, and the nav's Notifications item shows a "new" dot, so
+// they can route to /link to finish.
 //
 // sessionStorage (not localStorage): an invite is a single in-flight intent for THIS tab/session, never a
 // standing record; it is cleared the moment it is consumed or the session ends. Storage access is guarded
