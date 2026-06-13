@@ -518,16 +518,26 @@ export const api = {
 
   /**
    * Generate a Continuity Card for one of the caller's prepared activities (Product.md §4.6). AUTH
-   * REQUIRED: the bearer is attached by http(). Body is { activity_id } (mirrors the api's
+   * REQUIRED: the bearer is attached by http(). Body is { activity_id, public_name? } (mirrors the api's
    * CreateCardRequest); the api verifies the activity belongs to the caller (RLS-scoped, a foreign or
    * unknown id is a 404), assembles the SAFE non-clinical content, stores the card with a hard-to-guess
    * share token and a 30-day expiry, and returns { content, token, expires_at }. The app previews
    * `content` and builds the public share link from `token` (it appends no profile detail to the link).
+   *
+   * `publicName` (Docs/FeatureDecisions.md 2026-06-13, the card-name-privacy safe-default-first): the
+   * OPTIONAL label the PUBLIC token card shows. The api strips the recipient name from the unauthenticated
+   * read by DEFAULT (safe default), so omitting this (or passing null) means the public card shows NO name;
+   * a non-empty string opts in to that exact label (the first name, or an initial/nickname the Coordinator
+   * chose). Sent only when provided, so an existing caller that passes no value behaves exactly as before
+   * (back-compat). The owner + member-shared paths keep the first name; this governs only the public link.
    */
-  generateCard(activityId: string): Promise<CardCreated> {
+  generateCard(activityId: string, publicName?: string | null): Promise<CardCreated> {
     return http<CardCreated>("/api/v1/cards", {
       method: "POST",
-      body: { activity_id: activityId },
+      body: {
+        activity_id: activityId,
+        ...(publicName !== undefined ? { public_name: publicName } : {}),
+      },
     });
   },
 

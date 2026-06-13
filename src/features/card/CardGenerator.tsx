@@ -9,7 +9,7 @@
 // public link (ShareLinkBar, built from the returned token). The app renders the api's safe content and
 // authors no card wording (App SETUP). The link carries the opaque token only, no PII.
 
-import { useMemo, useRef } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import { CalendarClock, FileText, History } from "lucide-react";
@@ -17,11 +17,22 @@ import { CalendarClock, FileText, History } from "lucide-react";
 import { api, ApiError } from "@/lib/api/client";
 import { buttonVariants } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ChoiceCard } from "@/components/ChoiceCard";
 import { cn } from "@/lib/utils";
 import { formatCardExpiry } from "@/lib/format";
+import { useRecipient } from "@/state/RecipientProvider";
 import { CardContentView } from "@/features/card/CardContentView";
 import { ShareLinkBar } from "@/features/card/ShareLinkBar";
 import { buildCardShareUrl } from "@/features/card/shareUrl";
+import {
+  DEFAULT_PUBLIC_NAME_MODE,
+  PUBLIC_NAME_MAX_LENGTH,
+  clampPublicName,
+  resolvePublicName,
+  type PublicNameMode,
+} from "@/features/card/publicCardName";
 import { PageTour } from "@/features/tour/PageTour";
 
 interface CardGeneratorProps {
@@ -56,16 +67,27 @@ function MissingActivity() {
 }
 
 function GenerateForActivity({ activityId }: { activityId: string }) {
+  // The active recipient supplies the first name the "First name" option offers (and only that, no other
+  // profile detail). null for a fresh/loading recipient, in which case "First name" resolves to the safe
+  // default (no name) rather than an empty label.
+  const { activeRecipient } = useRecipient();
+  const recipientFirstName = activeRecipient?.first_name ?? null;
+
+  // The public-card name choice (Docs/FeatureDecisions.md 2026-06-13): the DEFAULT is the safe one (no
+  // name on the shared link). The value is resolved at mutate time so the chosen public_name is whatever
+  // the chooser holds when the Coordinator presses Generate.
+  const [nameMode, setNameMode] = useState<PublicNameMode>(DEFAULT_PUBLIC_NAME_MODE);
+  const [customName, setCustomName] = useState("");
+
   const mutation = useMutation({
-    mutationFn: () => api.generateCard(activityId),
+    mutationFn: () =>
+      api.generateCard(
+        activityId,
+        resolvePublicName(nameMode, recipientFirstName, customName)
+      ),
   });
 
   const card = mutation.data;
-
-  // The card <article> node, captured to a PNG when the Coordinator shares or downloads the card image
-  // (ShareLinkBar -> captureCardImage). Capturing this node means the image is the CARD ONLY, never the
-  // page chrome around it.
-  const cardRef = useRef<HTMLElement>(null);
 
   // Build the share URL from the app's own origin at render time (the page is client-rendered). useMemo
   // keeps it stable per token; on the server / first paint origin is "" and the helper returns a
@@ -89,13 +111,16 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
           </p>
         </header>
 
-        <CardContentView content={card.content} cardRef={cardRef} />
+        {/* The owner's PREVIEW keeps the first name (their own authenticated view). The SHARED/DOWNLOADED
+            PNG is captured from the public content instead (ShareLinkBar fetches it by token), so the
+            image a helper receives matches the name-free live link. */}
+        <CardContentView content={card.content} />
 
         <div className="rounded-xl border border-border bg-card p-5">
           <ShareLinkBar
             url={shareUrl}
+            token={card.token}
             firstName={card.content.child_first_name}
-            cardRef={cardRef}
           />
 
           {/* The link's 30-day validity, stated at share time (Product.md §4.6). The expiry comes from
@@ -151,6 +176,14 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
         </Alert>
       ) : null}
 
+      <PublicNameChooser
+        mode={nameMode}
+        onModeChange={setNameMode}
+        customName={customName}
+        onCustomNameChange={setCustomName}
+        recipientFirstName={recipientFirstName}
+      />
+
       <button
         type="button"
         onClick={() => mutation.mutate()}
@@ -169,5 +202,81 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
         </Link>
       </p>
     </div>
+  );
+}
+
+// The OPTIONAL "show a name on the shared card?" control (Docs/FeatureDecisions.md 2026-06-13, the
+// card-name-privacy safe-default-first). Three calm choices, the DEFAULT being the safe one (no name on a
+// link anyone could open). The recipient's first name is offered only when there is one; the custom option
+// reveals a short, capped text input. The chosen value is resolved to `public_name` and sent at generate
+// time (resolvePublicName). Built from the shared ChoiceCard / Input / Label primitives (one look, 44px
+// targets, brand tokens), and from radios so a screen reader hears a single-choice group.
+function PublicNameChooser({
+  mode,
+  onModeChange,
+  customName,
+  onCustomNameChange,
+  recipientFirstName,
+}: {
+  mode: PublicNameMode;
+  onModeChange: (mode: PublicNameMode) => void;
+  customName: string;
+  onCustomNameChange: (value: string) => void;
+  recipientFirstName: string | null;
+}) {
+  const firstName = (recipientFirstName ?? "").trim();
+  const hasFirstName = firstName.length > 0;
+
+  return (
+    <fieldset className="space-y-3 rounded-xl border border-border bg-card p-4 sm:p-5">
+      <legend className="px-1 text-base font-semibold text-foreground">
+        Show a name on the shared card?
+      </legend>
+      <p className="text-sm text-muted-foreground">
+        The default keeps the child&apos;s name off a link anyone could open. You can add an initial or
+        nickname if you&apos;d like.
+      </p>
+
+      <div className="space-y-2" role="radiogroup" aria-label="Show a name on the shared card?">
+        <ChoiceCard
+          title="No name"
+          description="The shared card shows what helps, with no name on it."
+          selected={mode === "none"}
+          onSelect={() => onModeChange("none")}
+        />
+        {hasFirstName ? (
+          <ChoiceCard
+            title="First name"
+            description={`The shared card shows ${firstName}.`}
+            selected={mode === "first"}
+            onSelect={() => onModeChange("first")}
+          />
+        ) : null}
+        <ChoiceCard
+          title="An initial or nickname"
+          description="Add a short label the helper will recognise."
+          selected={mode === "custom"}
+          onSelect={() => onModeChange("custom")}
+        />
+      </div>
+
+      {mode === "custom" ? (
+        <div className="flex flex-col gap-1.5 pt-1">
+          <Label htmlFor="card-public-name">Initial or nickname</Label>
+          <Input
+            id="card-public-name"
+            type="text"
+            value={customName}
+            onChange={(e) => onCustomNameChange(clampPublicName(e.target.value))}
+            maxLength={PUBLIC_NAME_MAX_LENGTH}
+            placeholder="e.g. A. or Bee"
+            autoComplete="off"
+          />
+          <p className="text-xs text-muted-foreground">
+            Kept short (up to {PUBLIC_NAME_MAX_LENGTH} characters). Leave it blank to share with no name.
+          </p>
+        </div>
+      ) : null}
+    </fieldset>
   );
 }

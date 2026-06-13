@@ -33,6 +33,7 @@ const CREATED: CardCreated = {
 };
 
 const generateCard = vi.fn();
+const getCard = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   ApiError: class ApiError extends Error {
@@ -44,9 +45,19 @@ vi.mock("@/lib/api/client", () => ({
   },
   api: {
     generateCard: (...args: unknown[]) => generateCard(...args),
+    // ShareLinkBar (rendered on success) fetches the PUBLIC content by token for the shared PNG.
+    getCard: (...args: unknown[]) => getCard(...args),
   },
 }));
 
+// The chooser reads the active recipient's first name from RecipientProvider; mock the hook so the test
+// controls it without the recipients query. The default active recipient has a first name ("Ada").
+const activeRecipient = { value: { id: "r1", first_name: "Ada", role: "owner" } as ActiveRecipient | null };
+vi.mock("@/state/RecipientProvider", () => ({
+  useRecipient: () => ({ activeRecipient: activeRecipient.value }),
+}));
+
+import type { ActiveRecipient } from "@/lib/api/types";
 import { ApiError } from "@/lib/api/client";
 import { CardGenerator } from "@/features/card/CardGenerator";
 
@@ -59,8 +70,21 @@ function renderGen(activityParam: string | null) {
   );
 }
 
+// The PUBLIC content the hidden capture node renders (name-stripped by the api). Distinct copy from the
+// owner preview so the two CardContentViews on success do not collide in the assertions: the owner sees
+// "Ada" / "Take it at their pace", the hidden public node reads "this child" / a different tier label.
+const PUBLIC_CONTENT: CardContent = {
+  ...CONTENT,
+  child_first_name: "this child",
+  tier_label: "Take part with support",
+  strategies: [{ title: "Keep things calm", detail: "A predictable start helps." }],
+};
+
 beforeEach(() => {
   generateCard.mockReset();
+  getCard.mockReset();
+  getCard.mockResolvedValue(PUBLIC_CONTENT);
+  activeRecipient.value = { id: "r1", first_name: "Ada", role: "owner" };
 });
 
 describe("CardGenerator", () => {
@@ -78,8 +102,9 @@ describe("CardGenerator", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /generate continuity card/i }));
 
-    // Sent the right request: the activity id only (no include_contact, matching the api).
-    await waitFor(() => expect(generateCard).toHaveBeenCalledWith("act_99"));
+    // Sent the right request: the activity id + the SAFE-default public_name (null = no name on the
+    // shared card), matching the pinned contract.
+    await waitFor(() => expect(generateCard).toHaveBeenCalledWith("act_99", null));
 
     // Renders the api's safe content (the preview).
     expect(await screen.findByRole("heading", { level: 1, name: "Ada" })).toBeInTheDocument();
@@ -89,6 +114,52 @@ describe("CardGenerator", () => {
     // Renders the shareable link built from the returned token (<origin>/c?t=<token>).
     const link = screen.getByLabelText("Shareable link") as HTMLInputElement;
     expect(link.value).toContain("/c?t=tok_abc123");
+  });
+
+  it("defaults the name chooser to 'No name' (the safe default sends public_name null)", async () => {
+    generateCard.mockResolvedValue(CREATED);
+    renderGen("act_99");
+
+    // The "No name" option is the pre-selected one (the safe default).
+    expect(screen.getByRole("button", { name: /no name/i })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: /generate continuity card/i }));
+    await waitFor(() => expect(generateCard).toHaveBeenCalledWith("act_99", null));
+  });
+
+  it("sends the recipient's first name when 'First name' is chosen", async () => {
+    generateCard.mockResolvedValue(CREATED);
+    renderGen("act_99");
+
+    // Only the "First name" choice's accessible name contains "first name" (the others are "No name" /
+    // "An initial or nickname"), so this uniquely selects it.
+    fireEvent.click(screen.getByRole("button", { name: /first name/i }));
+    fireEvent.click(screen.getByRole("button", { name: /generate continuity card/i }));
+
+    await waitFor(() => expect(generateCard).toHaveBeenCalledWith("act_99", "Ada"));
+  });
+
+  it("sends a trimmed initial/nickname when 'An initial or nickname' is chosen", async () => {
+    generateCard.mockResolvedValue(CREATED);
+    renderGen("act_99");
+
+    fireEvent.click(screen.getByRole("button", { name: /an initial or nickname/i }));
+    fireEvent.change(screen.getByLabelText(/initial or nickname/i), {
+      target: { value: "  Bee  " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /generate continuity card/i }));
+
+    await waitFor(() => expect(generateCard).toHaveBeenCalledWith("act_99", "Bee"));
+  });
+
+  it("hides the 'First name' option when there is no active recipient name", () => {
+    activeRecipient.value = null;
+    renderGen("act_99");
+
+    // The safe + custom options are always offered; the first-name option needs a name to offer.
+    expect(screen.getByRole("button", { name: /no name/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /an initial or nickname/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /first name/i })).not.toBeInTheDocument();
   });
 
   it("surfaces a friendly error when the api 404s the activity", async () => {
