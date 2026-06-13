@@ -44,7 +44,7 @@ const VILLAGE_TABS = [
   // is absent from the viewer set below); "help" is reachable by everyone.
   { value: "post", label: "Post & track", tour: "village-post-tab" },
   { value: "help", label: "Ways to help", tour: "village-help-tab" },
-  { value: "village", label: "Members" },
+  { value: "village", label: "Members", tour: "village-members-tab" },
 ] as const satisfies readonly TabItem[];
 
 // The VIEWER tab set (Docs/FeatureDecisions.md "Helper Village ACCESS", refinement 1): a viewer reaches
@@ -53,7 +53,7 @@ const VILLAGE_TABS = [
 // points at a real tab.
 const VIEWER_VILLAGE_TABS = [
   { value: "help", label: "Ways to help", tour: "village-help-tab" },
-  { value: "village", label: "Members" },
+  { value: "village", label: "Members", tour: "village-members-tab" },
 ] as const satisfies readonly TabItem[];
 
 type VillageTab = (typeof VILLAGE_TABS)[number]["value"];
@@ -88,6 +88,7 @@ export function VillageScreen() {
           {!restricted && activeChildId ? (
             <Link
               href="/sharing"
+              data-tour="village-invite"
               className={cn(buttonVariants({ variant: "default", size: "sm" }))}
             >
               <UserPlus className="size-4 shrink-0" aria-hidden="true" />

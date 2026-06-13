@@ -241,7 +241,10 @@ function PublicNameChooser({
   const hasFirstName = firstName.length > 0;
 
   return (
-    <div className="space-y-3 rounded-xl border border-border bg-card p-4 sm:p-5">
+    <div
+      data-tour="card-name-chooser"
+      className="space-y-3 rounded-xl border border-border bg-card p-4 sm:p-5"
+    >
       <h2 className="text-base font-semibold text-foreground">
         Show a name on the shared card?
       </h2>
