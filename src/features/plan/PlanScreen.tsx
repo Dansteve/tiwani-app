@@ -7,8 +7,15 @@
 // useQuery); the Coordinator picks an activity + optional "today" flags; "Generate plan" runs the LCE
 // server-side (api.preparePlan, useMutation) and the screen renders the returned plan. The app sends
 // activity_code + today_flags and NEVER applies a score or a flag effect (App SETUP: render the engine).
+//
+// DUPLICATE-PLANS GUARD (the demo fix): re-preparing the SAME activity always inserts a new
+// activity_record api-side (POST /plans), so to stop the Coordinator creating a duplicate by accident,
+// the screen reads the caller's existing plans for this chapter (api.listPlans) and, when the picked
+// activity is already prepared, shows the ExistingPlanNotice steer instead of the bare Generate button:
+// OPEN the existing plan (a pure READ via api.getPlan, no new record) or deliberately PREPARE A FRESH
+// plan (the engine run, a new record on purpose). Picking an un-prepared activity is unchanged.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { UserPlus } from "lucide-react";
@@ -23,6 +30,8 @@ import { CHAPTERS } from "@/lib/format";
 import { useRecipient } from "@/state/RecipientProvider";
 import { PrepareFlow } from "@/features/plan/PrepareFlow";
 import { PreparationPlanView } from "@/features/plan/PreparationPlanView";
+import { ExistingPlanNotice } from "@/features/plan/ExistingPlanNotice";
+import { matchExistingPlan } from "@/features/plan/existingPlanMatch";
 import { PageTour } from "@/features/tour/PageTour";
 
 interface PlanScreenProps {
@@ -63,6 +72,9 @@ function MissingChapter() {
 function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
   const [selectedFlags, setSelectedFlags] = useState<TodayFlagCode[]>([]);
+  // The Coordinator has SEEN the "you already have a plan" steer for the picked activity and chose to
+  // prepare a fresh one anyway: keyed by activity_code so picking a different activity re-arms the steer.
+  const [prepareFreshFor, setPrepareFreshFor] = useState<string | null>(null);
 
   // The plan is prepared for the ACTIVE recipient (the switcher's selection): the POST carries this
   // child_id so the activity_record belongs to the recipient currently being viewed (single-recipient
@@ -73,6 +85,15 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   const activitiesQuery = useQuery({
     queryKey: ["chapter-activities", chapter],
     queryFn: ({ signal }) => api.getChapterActivities(chapter, signal),
+  });
+
+  // The caller's already-prepared plans for THIS chapter + recipient, so the screen can warn before a
+  // re-prepare creates a duplicate. Scoped by activeChildId in the key (the list reads the caller's own
+  // plans under RLS); the chapter narrows it. A failure here never blocks preparing: the steer just does
+  // not show (isError leaves existingPlan undefined), so the prepare flow degrades to its prior behaviour.
+  const existingPlansQuery = useQuery({
+    queryKey: ["plans", chapter, activeChildId],
+    queryFn: ({ signal }) => api.listPlans(chapter, signal),
   });
 
   const planMutation = useMutation({
@@ -87,15 +108,39 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
       ),
   });
 
+  // The existing plan that matches the picked activity (by activity_name, within this chapter), or null.
+  // When present and the Coordinator has not chosen "prepare a fresh plan" for it, the screen shows the
+  // ExistingPlanNotice steer instead of the bare Generate button (the duplicate-plans guard).
+  const matchedExistingPlan = useMemo(
+    () =>
+      matchExistingPlan(selectedActivity, activitiesQuery.data, existingPlansQuery.data ?? undefined),
+    [selectedActivity, activitiesQuery.data, existingPlansQuery.data]
+  );
+  const showExistingSteer =
+    matchedExistingPlan !== null && prepareFreshFor !== selectedActivity;
+
   function toggleFlag(code: TodayFlagCode) {
     setSelectedFlags((prev) =>
       prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
     );
   }
 
+  function selectActivity(code: string) {
+    setSelectedActivity(code);
+    // A new pick re-arms the steer (the previous "prepare fresh" choice was for the old activity).
+    setPrepareFreshFor(null);
+  }
+
   function generate() {
     if (selectedActivity === null) return;
     planMutation.mutate();
+  }
+
+  function prepareFresh() {
+    // The Coordinator deliberately chose to prepare a fresh plan for the matched activity: dismiss the
+    // steer for it (so the Generate button shows) and kick off the engine run that creates a new record.
+    setPrepareFreshFor(selectedActivity);
+    if (selectedActivity !== null) planMutation.mutate();
   }
 
   function prepareAnother() {
@@ -126,12 +171,20 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
         isLoadingActivities={activitiesQuery.isLoading}
         isActivitiesError={activitiesQuery.isError}
         selectedActivity={selectedActivity}
-        onSelectActivity={setSelectedActivity}
+        onSelectActivity={selectActivity}
         selectedFlags={selectedFlags}
         onToggleFlag={toggleFlag}
         onGenerate={generate}
         isGenerating={planMutation.isPending}
+        hideGenerate={showExistingSteer}
       />
+
+      {/* The duplicate-plans steer: the picked activity is already prepared. OPEN it (a pure read, no
+          new record) or deliberately PREPARE A FRESH plan. Shown in place of the Generate button until
+          the Coordinator chooses "prepare a fresh plan". */}
+      {showExistingSteer && matchedExistingPlan ? (
+        <ExistingPlanNotice existingPlan={matchedExistingPlan} onPrepareFresh={prepareFresh} />
+      ) : null}
 
       {planMutation.isError ? (
         planMutation.error instanceof ApiError && planMutation.error.status === 409 ? (
