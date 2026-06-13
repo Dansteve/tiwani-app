@@ -166,6 +166,50 @@ describe("CardGenerator", () => {
     expect(screen.queryByRole("button", { name: /first name/i })).not.toBeInTheDocument();
   });
 
+  // De-child the share surface (Decisions.md D8: the platform spans the lifespan; the Continuity Card
+  // share copy must read for an adult/elder recipient, not just a child). The generate screen is the
+  // card-share surface (it hosts ShareLinkBar + the public-name chooser), so its copy must be
+  // recipient-neutral, reusing the recipient name the chooser already has.
+  describe("recipient-neutral share copy (no hard-coded 'child')", () => {
+    it("describes the shared card without the word 'child' on the generate screen", () => {
+      // An ADULT recipient (the case the old "your child" copy read wrong for).
+      activeRecipient.value = { id: "r2", first_name: "Margaret", role: "owner" };
+      const { container } = renderGen("act_99");
+
+      // The intro states what the card shows in neutral terms, not "your child's first name".
+      expect(
+        screen.getByText(/it shows only their first name, what helps/i)
+      ).toBeInTheDocument();
+      // The chooser body steers on the recipient's name, not "the child's name".
+      expect(
+        screen.getByText(/the default keeps their name off a link anyone could open/i)
+      ).toBeInTheDocument();
+      // No "child" framing anywhere on the generate-screen copy for an adult recipient.
+      expect(container.textContent ?? "").not.toMatch(/child/i);
+    });
+
+    it("names the recipient (not 'your child') on the 'First name' option description", () => {
+      activeRecipient.value = { id: "r2", first_name: "Margaret", role: "owner" };
+      renderGen("act_99");
+
+      // The "First name" choice describes itself with the recipient's actual name.
+      expect(
+        screen.getByText(/the shared card shows margaret's first name/i)
+      ).toBeInTheDocument();
+    });
+
+    it("stays child-free even when there is no recipient name", () => {
+      activeRecipient.value = null;
+      const { container } = renderGen("act_99");
+
+      // The neutral intro still reads without "child", and the chooser body too.
+      expect(
+        screen.getByText(/it shows only their first name, what helps/i)
+      ).toBeInTheDocument();
+      expect(container.textContent ?? "").not.toMatch(/child/i);
+    });
+  });
+
   it("surfaces a friendly error when the api 404s the activity", async () => {
     generateCard.mockRejectedValue(new ApiError(404, "Activity not found"));
     renderGen("act_missing");
