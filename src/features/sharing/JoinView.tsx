@@ -13,7 +13,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Info } from "lucide-react";
+import { ArrowLeft, ArrowRight, Info } from "lucide-react";
 
 import { env } from "@/lib/env";
 import { Wordmark } from "@/components/Wordmark";
@@ -44,6 +44,16 @@ export function JoinView() {
 
   return (
     <main className="mx-auto w-full max-w-md px-6 py-10">
+      {/* Back out of the join screen (e.g. an owner who tapped "Join their village" to look). Returns to
+          the previous page; harmless if there is no history (a helper who opened the link directly). */}
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="mb-6 -ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <ArrowLeft className="size-4 shrink-0" aria-hidden="true" />
+        Back
+      </button>
       <Wordmark className="text-xl" />
 
       <div className="mt-8 space-y-6">
