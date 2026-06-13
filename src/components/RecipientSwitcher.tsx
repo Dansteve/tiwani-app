@@ -1,14 +1,16 @@
 "use client";
 
-// The care-recipient switcher in the app shell: an accessible selector of the Coordinator's recipients
-// (by first name) with the active one selected; choosing one updates the active child_id (RecipientProvider),
-// which re-scopes and refetches every per-recipient read (dashboard / LCI / alerts) for that recipient.
+// The care-recipient switcher in the app shell: it ALWAYS shows who the Coordinator is caring for, so the
+// "Caring for [name]" context is constant and the surface never silently disappears. With SEVERAL
+// recipients it is an accessible <select> (choosing one updates the active child_id in RecipientProvider,
+// which re-scopes + refetches every per-recipient read: dashboard / LCI / alerts). With exactly ONE
+// recipient there is no choice to make, so it shows the single recipient as a calm static field instead of
+// a one-option dropdown (the owner asked to always show the recipient, even when there is only one). With
+// NO recipient yet (a fresh user mid-onboarding) it renders nothing, there being no one to show.
 //
-// It renders NOTHING when there is one recipient or none: a single-recipient user sees no clutter, while
-// the active-child plumbing still works (the sole recipient is the active one). A native <select> is used
-// deliberately: it is keyboard- and screen-reader-accessible for free, the 44px target (h-11) meets WCAG
-// 2.1 AA, and it stays out of the way on the mobile bar. Colours are tokens (no hardcoded hex); the chevron
-// is a token-coloured icon. The `surface` prop tints it for the sidebar vs the mobile content strip.
+// A native <select> is used deliberately for the multi case: keyboard- and screen-reader-accessible for
+// free, and the 44px target (h-11) meets WCAG 2.1 AA. Colours are tokens (no hardcoded hex); the `surface`
+// prop tints it for the sidebar vs the mobile content header.
 
 import { ChevronsUpDown } from "lucide-react";
 
@@ -19,27 +21,45 @@ export function RecipientSwitcher({
   surface = "content",
   className,
 }: {
-  /** "sidebar" tints onto the --sidebar surface; "content" onto the card surface (the mobile strip). */
+  /** "sidebar" tints onto the --sidebar surface; "content" onto the card surface (the mobile header). */
   surface?: "sidebar" | "content";
   className?: string;
 }) {
   const { recipients, activeChildId, setActiveChildId } = useRecipient();
 
-  // One recipient (or none) means no choice to make: render nothing so a single-recipient user sees no
-  // switcher. The plumbing still resolves that sole recipient as active elsewhere.
-  if (recipients.length <= 1) return null;
+  // No recipient yet (a fresh user mid-onboarding): nothing to show. The sole/active recipient is still
+  // resolved by the plumbing elsewhere.
+  if (recipients.length === 0) return null;
 
   const onSurface = surface === "sidebar";
+  const labelClass = cn(
+    "text-xs font-semibold uppercase tracking-wide",
+    onSurface ? "text-sidebar-foreground/70" : "text-muted-foreground"
+  );
+
+  // Exactly one recipient: no choice to make, so show who is being cared for as a calm static field (still
+  // labelled "Caring for", still the 44px height) rather than a pointless one-option dropdown.
+  if (recipients.length === 1) {
+    return (
+      <div className={cn("flex flex-col gap-1.5", className)}>
+        <span className={labelClass}>Caring for</span>
+        <div
+          className={cn(
+            "flex h-11 items-center rounded-md border px-3 text-sm font-medium shadow-sm",
+            onSurface
+              ? "border-sidebar-border bg-sidebar text-sidebar-foreground"
+              : "border-border bg-card text-foreground"
+          )}
+        >
+          {recipients[0].first_name || "Recipient"}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <label
-        htmlFor="recipient-switcher"
-        className={cn(
-          "text-xs font-semibold uppercase tracking-wide",
-          onSurface ? "text-sidebar-foreground/70" : "text-muted-foreground"
-        )}
-      >
+      <label htmlFor="recipient-switcher" className={labelClass}>
         Caring for
       </label>
       <div className="relative">
