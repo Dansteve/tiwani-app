@@ -30,6 +30,7 @@ import { OfflineBanner } from "@/components/OfflineBanner";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { isActive, NavDot, type NavItem } from "@/components/appNav";
 import { SecondaryNavMenu } from "@/components/SecondaryNavMenu";
+import { ShellPageTour } from "@/features/tour/ShellPageTour";
 
 // "Plan" is intentionally NOT a nav entry: it pointed back to the dashboard's chapters and duplicated
 // "Your plans" (the history, in SECONDARY_NAV) plus each dashboard chapter's own "Prepare" link. The
@@ -189,31 +190,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Offline awareness (PWA): the app loads from cache offline, but the engine is server-side,
               so this says preparing a plan needs a connection. Renders nothing while online. */}
           <OfflineBanner />
-          {/* Mobile top bar (below lg): the TIWANI mark links HOME to the dashboard (the desktop sidebar
-              carries the mark + the secondary nav, so on mobile there was no brand / home affordance), and
-              the compact "More" menu sits at the TOP RIGHT, mirroring the website header (logo left, action
-              right). The menu holds the secondary destinations (Notifications / Village / Your plans / Card
-              history), keeping the bottom tab bar at five; it renders nothing for a viewer (secondaryNav is
-              empty under the ceiling), leaving just the mark. A pending invite shows a coral "new" dot on
-              the menu trigger (and on /notifications), not an inline banner here.
-              It is STICKY (top-0): the mark + More stay put as the page scrolls (the owner's ask), so home
-              and the secondary nav are always one tap away. Full-bleed (-mx-4 px-4) with an opaque
-              background + a bottom divider so content scrolls cleanly beneath it. z-30 sits above content
-              and matches the fixed bottom tab bar; the open More panel (z-40) still layers above it. */}
-          <div className="sticky top-0 z-30 -mx-4 mb-6 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-2.5 lg:hidden">
-            <Link href="/dashboard" aria-label="TIWANI dashboard">
-              <Wordmark className="text-xl" />
+          {/* Mobile top bar (below lg), STICKY (top-0) so it stays put as the page scrolls. A compact
+              utility bar that frees content space: the small TIWANI mark (T + dot) links HOME to the
+              dashboard; the "Caring for" recipient switcher rides the middle; then the route-aware
+              "Show me around" tour and the "More" menu (the secondary destinations: Notifications /
+              Village / Your plans / Card history, which stay off the five-item bottom bar). For a viewer
+              the More menu renders nothing (the ceiling). A pending invite shows a coral "new" dot on the
+              More trigger (and on /notifications). Full-bleed (-mx-4 px-4) with an opaque background + a
+              bottom divider so content scrolls cleanly beneath it; the open More panel (z-40) layers above.
+              The desktop sidebar carries the full mark + switcher + nav, and each screen keeps its own
+              "Show me around" there (PageTour is desktopOnly), so this whole bar is lg:hidden. */}
+          <div className="sticky top-0 z-30 -mx-4 mb-6 flex items-center gap-2 border-b border-border bg-background px-4 py-2.5 lg:hidden">
+            <Link href="/dashboard" aria-label="TIWANI dashboard" className="shrink-0">
+              <Wordmark mark className="text-xl" />
             </Link>
-            <SecondaryNavMenu
-              pathname={pathname}
-              items={secondaryNav}
-              hasPendingInvite={hasPendingInvite}
-            />
+            <RecipientSwitcher surface="content" compact className="min-w-0 flex-1" />
+            <div className="flex shrink-0 items-center gap-1">
+              <ShellPageTour pathname={pathname} />
+              <SecondaryNavMenu
+                pathname={pathname}
+                items={secondaryNav}
+                hasPendingInvite={hasPendingInvite}
+              />
+            </div>
           </div>
-          {/* On mobile / tablet the sidebar is hidden, so the recipient switcher rides at the top of the
-              content. It ALWAYS shows now, so "Caring for [name]" is constant (one recipient renders as a
-              static field, several as the switcher). On desktop it lives in the sidebar above, hidden here. */}
-          <RecipientSwitcher surface="content" className="mb-6 max-w-xs lg:hidden" />
           {children}
         </main>
       </div>

@@ -102,4 +102,21 @@ describe("RecipientSwitcher", () => {
     const select = await screen.findByRole("combobox");
     expect(select.className).toContain("h-11");
   });
+
+  it("uses a distinct id and an sr-only label in compact (bar) mode, so it never collides with the sidebar", async () => {
+    getRecipients.mockResolvedValue([child("c_ada", "Ada Lovelace"), child("c_ben", "Ben Carter")]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <RecipientProvider>
+          <RecipientSwitcher compact />
+        </RecipientProvider>
+      </QueryClientProvider>
+    );
+    const select = (await screen.findByRole("combobox")) as HTMLSelectElement;
+    // Distinct id (the sidebar switcher keeps "recipient-switcher"), so two instances never duplicate an id.
+    expect(select).toHaveAttribute("id", "recipient-switcher-bar");
+    // The "Caring for" label is still announced to a screen reader (sr-only), not dropped.
+    expect(select).toHaveAccessibleName(/caring for/i);
+  });
 });

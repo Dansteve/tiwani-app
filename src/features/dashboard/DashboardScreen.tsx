@@ -130,8 +130,10 @@ export function DashboardScreen() {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1 self-start sm:mt-1">
-          {/* Re-open the coach-marks any time (the auto-open is once-per-first-visit). */}
-          <HelpButton onClick={tour.start} />
+          {/* Re-open the coach-marks any time (the auto-open is once-per-first-visit). Desktop-only: on
+              mobile the shell's sticky-bar "Show me around" (ShellPageTour) re-opens the dashboard tour, so
+              this button is hidden below lg to avoid a duplicate. The first-visit auto-open is unaffected. */}
+          <HelpButton onClick={tour.start} className="max-lg:hidden" />
           <a
             href="https://www.instagram.com/tiwanilife/reels/"
             target="_blank"
