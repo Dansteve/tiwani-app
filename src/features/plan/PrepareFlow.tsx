@@ -25,6 +25,12 @@ interface PrepareFlowProps {
   onToggleFlag: (code: TodayFlagCode) => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  /**
+   * Hide the "Generate plan" button: the parent is showing the ExistingPlanNotice steer instead (the
+   * picked activity is already prepared), so the prepare/open choice lives there, not on a bare Generate
+   * button. The picker + today-flags stay visible so the Coordinator can pick a different activity.
+   */
+  hideGenerate?: boolean;
 }
 
 export function PrepareFlow({
@@ -38,6 +44,7 @@ export function PrepareFlow({
   onToggleFlag,
   onGenerate,
   isGenerating,
+  hideGenerate = false,
 }: PrepareFlowProps) {
   return (
     <div className="space-y-8">
@@ -136,23 +143,26 @@ export function PrepareFlow({
       </section>
 
       {/* The coach-marks anchor for the "build the plan" step (on the wrapper, which is always laid out
-          even while the button is disabled until an activity is chosen). */}
-      <div className="space-y-2" data-tour="plan-generate">
-        <Button
-          type="button"
-          size="lg"
-          className="w-full"
-          onClick={onGenerate}
-          disabled={selectedActivity === null || isGenerating}
-        >
-          {isGenerating ? "Building your plan..." : "Generate plan"}
-        </Button>
-        {selectedActivity === null ? (
-          <p className="text-center text-xs text-muted-foreground">
-            Choose an activity above to continue.
-          </p>
-        ) : null}
-      </div>
+          even while the button is disabled until an activity is chosen). Hidden when the parent shows the
+          ExistingPlanNotice steer for an already-prepared activity (the open/prepare choice lives there). */}
+      {hideGenerate ? null : (
+        <div className="space-y-2" data-tour="plan-generate">
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            onClick={onGenerate}
+            disabled={selectedActivity === null || isGenerating}
+          >
+            {isGenerating ? "Building your plan..." : "Generate plan"}
+          </Button>
+          {selectedActivity === null ? (
+            <p className="text-center text-xs text-muted-foreground">
+              Choose an activity above to continue.
+            </p>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
