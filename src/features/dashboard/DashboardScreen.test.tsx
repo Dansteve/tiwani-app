@@ -154,6 +154,25 @@ describe("DashboardScreen", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows a chapter with a plan but no LCI reading as neutral 'No reading yet', not green 'Stable'", async () => {
+    // The owner's honest-signal scenario: a plan has been prepared (activity_count > 0) but there is no
+    // check-in / LCI yet. The badge must NOT read "Stable"; it reads the neutral "No reading yet". The
+    // app renders only what the api returned (lci: null) and never invents a Stable reading.
+    getChapters.mockResolvedValue([
+      { ...GREY_CHAPTERS[0], lci: null, activity_count: 1, last_prepared_at: "2025-06-03T10:00:00Z" },
+      ...GREY_CHAPTERS.slice(1),
+    ]);
+    renderScreen();
+
+    const schoolCard = (await screen.findByRole("heading", { name: "School" })).closest("div")!;
+    expect(within(schoolCard).getByText("No reading yet")).toBeInTheDocument();
+    expect(within(schoolCard).queryByText("Stable")).not.toBeInTheDocument();
+    // A plan exists, so the new-user empty-state prompt is gone.
+    expect(
+      screen.queryByText(/start by preparing for something/i)
+    ).not.toBeInTheDocument();
+  });
+
   it("surfaces an inline error when the chapters request fails (never swallowed)", async () => {
     getChapters.mockRejectedValue(new Error("boom"));
     renderScreen();

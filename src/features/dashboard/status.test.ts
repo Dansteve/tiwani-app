@@ -1,6 +1,8 @@
 // Exhaustive test of the chapter status mapping (Product.md §4.3). The mapping is the only piece of
 // "logic" on the dashboard, so every band and every LCI/alert/activity combination is pinned here,
-// including the boundary values (30, 60) and the precedence rule (a live alert outranks a calm LCI).
+// including the boundary values (30, 60), the precedence rule (a live alert outranks a calm LCI), and
+// the honest-signal rule (a plan with no LCI reading yet is the NEUTRAL "awaiting_reading", never the
+// green "stable"; "stable" needs a real LCI >= 60).
 
 import { describe, it, expect } from "vitest";
 
@@ -18,9 +20,28 @@ describe("chapterStatus (Product.md §4.3)", () => {
     );
   });
 
-  it("is stable when an activity exists but no pulse yet (LCI null, activity > 0)", () => {
-    expect(chapterStatus(input({ lci: null, activity_count: 1 }))).toBe("stable");
-    expect(chapterStatus(input({ lci: null, activity_count: 5 }))).toBe("stable");
+  it("is awaiting_reading (NOT stable) when an activity exists but no LCI reading yet (the honest signal)", () => {
+    // The owner's honest-signal rule: a plan prepared with no check-in / LCI yet must NOT read green
+    // "Stable". It is a distinct neutral state ("No reading yet"), so the badge never overstates.
+    expect(chapterStatus(input({ lci: null, activity_count: 1 }))).toBe("awaiting_reading");
+    expect(chapterStatus(input({ lci: null, activity_count: 5 }))).toBe("awaiting_reading");
+  });
+
+  it("awaiting_reading outranks not_started (a chapter with a plan is never grey/'Not started')", () => {
+    // not_started is reserved for no plan AND no reading; once an activity exists the chapter is at
+    // least awaiting_reading, so the empty-state ("start by preparing") prompt drops away.
+    expect(chapterStatus(input({ lci: null, activity_count: 1 }))).not.toBe("not_started");
+  });
+
+  it("never reaches 'stable' without a REAL LCI reading in the stable band", () => {
+    // The ONLY route to green/'Stable' is a real LCI >= 60. A null LCI (no reading) can only be
+    // not_started (no plan) or awaiting_reading (a plan), never stable.
+    expect(chapterStatus(input({ lci: null, activity_count: 0 }))).toBe("not_started");
+    expect(chapterStatus(input({ lci: null, activity_count: 9 }))).toBe("awaiting_reading");
+    expect(chapterStatus(input({ lci: null, alert_level: 1, activity_count: 3 }))).toBe(
+      "under_pressure"
+    );
+    expect(chapterStatus(input({ lci: 60, activity_count: 1 }))).toBe("stable");
   });
 
   describe("LCI bands", () => {
@@ -59,6 +80,20 @@ describe("chapterStatus (Product.md §4.3)", () => {
 
     it("is needs_attention for Alert L3 (no LCI yet)", () => {
       expect(chapterStatus(input({ alert_level: 3, activity_count: 1 }))).toBe("needs_attention");
+    });
+
+    it("a live alert still surfaces over a no-reading chapter (alert outranks awaiting_reading)", () => {
+      // A plan exists (no LCI yet) so the LCI band is awaiting_reading; a live L1/L2/L3 alert must not
+      // be hidden behind the neutral no-reading state, it surfaces as pressure / needs attention.
+      expect(chapterStatus(input({ lci: null, alert_level: 1, activity_count: 2 }))).toBe(
+        "under_pressure"
+      );
+      expect(chapterStatus(input({ lci: null, alert_level: 2, activity_count: 2 }))).toBe(
+        "under_pressure"
+      );
+      expect(chapterStatus(input({ lci: null, alert_level: 3, activity_count: 2 }))).toBe(
+        "needs_attention"
+      );
     });
   });
 

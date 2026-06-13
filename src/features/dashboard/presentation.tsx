@@ -4,9 +4,20 @@
 // + icon, never colour alone (accessibility, CLAUDE.md UI scrutiny / WCAG 2.1 AA).
 //
 // Colours come from the status tokens in styles/theme.css (--status-stable teal-mid, --status-pressure
-// amber, --status-critical coral; muted-foreground for not-started). No hardcoded hex.
+// amber, --status-critical coral; muted-foreground for not-started AND for awaiting_reading). No
+// hardcoded hex. awaiting_reading (a plan exists but no LCI reading yet) is deliberately NEUTRAL/grey,
+// never green: the dashboard does not claim a chapter is Stable on no data (the honest-signal promise).
+// It carries a distinct icon (Clock, "a reading is pending") and the label "No reading yet" so it reads
+// apart from not_started; both still satisfy colour + label + icon (never colour alone).
 
-import { CircleDashed, CircleCheck, TriangleAlert, CircleAlert, type LucideIcon } from "lucide-react";
+import {
+  CircleDashed,
+  Clock,
+  CircleCheck,
+  TriangleAlert,
+  CircleAlert,
+  type LucideIcon,
+} from "lucide-react";
 
 import type { ChapterStatusKind } from "@/features/dashboard/status";
 
@@ -24,6 +35,14 @@ export const STATUS_PRESENTATION: Record<ChapterStatusKind, StatusPresentation> 
   not_started: {
     label: "Not started",
     icon: CircleDashed,
+    textClass: "text-muted-foreground",
+    pillClass: "bg-muted text-muted-foreground",
+  },
+  awaiting_reading: {
+    // A plan has been prepared but there is no check-in / LCI reading yet. Neutral grey (NOT green): we
+    // never claim Stable on no data. A Clock icon + "No reading yet" sets it apart from not_started.
+    label: "No reading yet",
+    icon: Clock,
     textClass: "text-muted-foreground",
     pillClass: "bg-muted text-muted-foreground",
   },
