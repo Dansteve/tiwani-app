@@ -23,6 +23,7 @@ import { CHAPTERS } from "@/lib/format";
 import { useRecipient } from "@/state/RecipientProvider";
 import { PrepareFlow } from "@/features/plan/PrepareFlow";
 import { PreparationPlanView } from "@/features/plan/PreparationPlanView";
+import { EngineReveal } from "@/features/plan/EngineReveal";
 import { PageTour } from "@/features/tour/PageTour";
 
 interface PlanScreenProps {
@@ -100,6 +101,17 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
 
   function prepareAnother() {
     planMutation.reset();
+  }
+
+  // Phase 1b: the LCE is running. Show the engine "working": a first-run step-by-step reveal of the REAL
+  // §4.4 sequence (EngineReveal), a quick spinner on later runs. It narrates the api's process while the
+  // request is in flight; the app computes nothing.
+  if (planMutation.isPending) {
+    return (
+      <div className="mx-auto w-full max-w-2xl">
+        <EngineReveal chapterLabel={chapterLabel(chapter)} />
+      </div>
+    );
   }
 
   // Phase 2: the plan came back, render it.

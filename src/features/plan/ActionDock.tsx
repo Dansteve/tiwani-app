@@ -1,0 +1,44 @@
+"use client";
+
+// The ACTION DOCK footer (the owner's mockup): the two onward actions for a prepared plan.
+//   - Export Continuity Card -> the existing Continuity Card flow (/card?activity=<id>, Product.md §4.6),
+//     reused unchanged (this is the same link the old "Generate Continuity Card" button used).
+//   - Delegate Logistics -> the Village "post a need" flow for THIS recipient (/village, Product.md §6).
+//     The Village screen opens on the owner's "post a need" tab and is already scoped to the active
+//     recipient (RecipientProvider), so this reuses the existing delegation surface rather than inventing
+//     a new one. For a viewer (a SHARED recipient) the Village's own ceiling coerces them to the help tab.
+//
+// Both are real <Link> targets (the typed routes already exist); the app routes, it does not duplicate a
+// flow. Icons are decorative; the labels carry the meaning.
+
+import Link from "next/link";
+import { FileDown, Users } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+
+interface ActionDockProps {
+  /** The prepared plan's activity id, for the Continuity Card route. */
+  activityId: string;
+}
+
+export function ActionDock({ activityId }: ActionDockProps) {
+  return (
+    <section aria-label="Plan actions" className="flex flex-col gap-3 sm:flex-row">
+      <Link
+        href={`/card?activity=${encodeURIComponent(activityId)}`}
+        className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full gap-2 sm:flex-1")}
+      >
+        <FileDown className="size-4 shrink-0" aria-hidden="true" />
+        Export Continuity Card
+      </Link>
+      <Link
+        href="/village"
+        className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full gap-2 sm:flex-1")}
+      >
+        <Users className="size-4 shrink-0" aria-hidden="true" />
+        Delegate Logistics
+      </Link>
+    </section>
+  );
+}

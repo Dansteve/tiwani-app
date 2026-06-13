@@ -1,47 +1,41 @@
 "use client";
 
-// The Preparation Plan screen (Product.md §4.5): it RENDERS the LCE output the api returned and
-// recomputes nothing (App SETUP). Sections, in order:
-//   - PRESSURE SUMMARY by total: green (4 to 8) / amber (9 to 13) / red (14 to 20), colour + label +
-//     icon + the verbatim §4.5 copy (never colour alone, accessibility).
-//   - PARTICIPATION TIER, prominent, with a plain-English explanation of what it means.
-//   - STRATEGY LIST: title + one line each; tap to expand the detail; a remove control (the
-//     suppress-after-3 behaviour is a Task 9 api hook, not implemented here).
-//   - DIMENSION BREAKDOWN: collapsible; one api-authored sentence per dimension + its score. This
-//     section is OMITTED when dimension_explanations is null (a stored plan re-read from the "your
-//     prepared plans" list has no explanations: they are an engine derivation, not stored). A freshly
-//     prepared plan always carries them, so this only ever drops the breakdown on a re-opened plan.
-//   - GENERATE CONTINUITY CARD: routes to the card route (Task 8 stub; the card itself is not built).
+// The Preparation Plan RESULT screen (Product.md §4.5), redesigned to the owner's mockup. It RENDERS the
+// LCE output the api returned and recomputes NOTHING (App SETUP: render the engine, never compute it).
+// Composed from small, single-purpose components so the layout is the mockup and the logic stays
+// elsewhere:
+//   - PlanResultHeader: a back control, the chapter label, a Share action, and "Today's activity: <name>".
+//   - TotalPressureCard: the total big ("11 / 20") + the four dimensions as 1-to-5 bars (the highest in
+//     amber), so the personalized score is broken down AND located (the owner's "why this score" ask).
+//   - RecommendedApproach: a lightning icon + the participation tier + its plain-English gloss.
+//   - StrategyList: the top 3 ranked strategies (the api's order) led up front, the rest under "Show more"
+//     (collapsed, never dropped), each a numbered StrategyCard with a check-off and a remove control.
+//   - StrategyRemovedUndo: an OBVIOUS inline undo the moment a strategy is removed (re-allow).
+//   - RemovedStrategies: the persistent "Removed strategies" re-allow section (the fallback path).
+//   - "Why this score": the api-authored per-dimension sentences (collapsible; OMITTED when null, a stored
+//     re-read carries no explanations: they are an engine derivation, not stored).
+//   - ActionDock: Export Continuity Card + Delegate Logistics (the Village post-a-need flow).
 //
-// Expand/collapse use native <details>/<summary> so they are keyboard-usable with no extra dependency.
-//
-// The STRATEGY LIST carries the Task 9 (Strategy Library) interactions: a strategy with a
-// library_item_id can be REMOVED (swipe-to-remove on touch + an accessible remove button everywhere),
-// which suppresses it api-side and records it so the "Removed strategies" section can re-allow it; a
-// strategy that also worked in another chapter shows the dismissible "Also worked in [chapter]" label.
-// A legacy strategy with no library_item_id (a stored re-read) still hides locally from the view but is
-// not suppressed api-side. The api owns the suppression rule (suppress-after-3, reversible); the app
-// renders the affordances and never decides suppression itself.
+// The STRATEGY removal is the Strategy Library suppress (Task 9): scenario-scoped + reversible, owned by
+// the api (suppress-after-3, cross-context surfacing). The app renders the affordances and fires the api;
+// it never decides suppression. A strategy with no library_item_id (a legacy stored plan) hides locally
+// only (it cannot be suppressed api-side) and has no undo snackbar (nothing to re-allow). Expand/collapse
+// use native <details>/<summary> so they are keyboard-usable with no extra dependency.
 
 import { useState } from "react";
-import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
-import { chapterLabel, formatScore, tierLabel } from "@/lib/format";
+import { formatScore } from "@/lib/format";
 import type { ChapterCode, PlanStrategy, PreparationPlan, PressureDimension } from "@/lib/api/types";
-import {
-  pressureBand,
-  pressureCopy,
-  tierExplanation,
-} from "@/features/plan/bands";
-import { PRESSURE_PRESENTATION } from "@/features/plan/pressurePresentation";
 import { useStrategyActions } from "@/features/plan/useStrategyActions";
-import { SwipeToRemove } from "@/features/plan/SwipeToRemove";
-import { AlsoWorkedInLabel } from "@/features/plan/AlsoWorkedInLabel";
 import { RemovedStrategies } from "@/features/plan/RemovedStrategies";
+import { PlanResultHeader } from "@/features/plan/PlanResultHeader";
+import { TotalPressureCard } from "@/features/plan/TotalPressureCard";
+import { RecommendedApproach } from "@/features/plan/RecommendedApproach";
+import { StrategyList, type RankedStrategy } from "@/features/plan/StrategyList";
+import { StrategyRemovedUndo } from "@/features/plan/StrategyRemovedUndo";
+import { ActionDock } from "@/features/plan/ActionDock";
 
 interface PreparationPlanViewProps {
   plan: PreparationPlan;
@@ -49,7 +43,8 @@ interface PreparationPlanViewProps {
   onPrepareAnother: () => void;
 }
 
-// The four dimensions in a stable display order, with the human label for each.
+// The four dimensions in a stable display order, with the human label for each (the "Why this score"
+// breakdown).
 const DIMENSION_ORDER: { key: PressureDimension; label: string }[] = [
   { key: "temporal", label: "Timing" },
   { key: "sensory", label: "Sensory" },
@@ -58,35 +53,43 @@ const DIMENSION_ORDER: { key: PressureDimension; label: string }[] = [
 ];
 
 export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanViewProps) {
-  const band = pressureBand(plan.total);
-  const presentation = PRESSURE_PRESENTATION[band];
-  const BandIcon = presentation.icon;
-
-  // The Strategy Library actions (Task 9): suppress (remove) + allow (re-allow), the optimistic
-  // hidden-set keyed by library_item_id, and the session record that feeds the re-allow section. The api
-  // owns the persistent suppression; this hook is the in-view layer (suppress fires the api + invalidates
-  // the plan reads). A strategy with no library_item_id is hidden locally only (locallyHidden below).
+  // The Strategy Library actions (Task 9): suppress (remove) + allow (re-allow), the optimistic hidden-set
+  // keyed by library_item_id, and the session record that feeds the re-allow section. The api owns the
+  // persistent suppression; this hook is the in-view layer. A strategy with no library_item_id is hidden
+  // locally only (locallyHidden below).
   const { suppressedIds, removed, suppress, allow, allowingId, isError } = useStrategyActions();
 
   // Strategies with no library_item_id (a legacy stored plan) carry no api key, so they are hidden from
   // the view locally, keyed by index. Strategies WITH an id are hidden via suppressedIds (api-backed).
   const [locallyHidden, setLocallyHidden] = useState<Set<number>>(() => new Set());
 
-  // The "Also worked in [chapter]" labels dismissed in this view, keyed `index::chapter` (local dismiss
-  // is fine for the MVP, the App spec). Dismissing one chapter's label leaves the others on a strategy.
+  // The "Also worked in [chapter]" labels dismissed in this view, keyed `index::chapter` (local dismiss is
+  // fine for the MVP). Dismissing one chapter's label leaves the others on a strategy.
   const [dismissedLabels, setDismissedLabels] = useState<Set<string>>(() => new Set());
 
-  const visibleStrategies = plan.strategies
+  // The strategy just removed (for the OBVIOUS undo snackbar, Task 14). Only api-backed removals (with a
+  // library_item_id) get an undo, since undo re-allows api-side; a local-only hide has nothing to re-allow.
+  const [justRemoved, setJustRemoved] = useState<{ id: string; title: string } | null>(null);
+
+  const visibleStrategies: RankedStrategy[] = plan.strategies
     .map((strategy, index) => ({ strategy, index }))
     .filter(({ strategy, index }) =>
       strategy.library_item_id
         ? !suppressedIds.has(strategy.library_item_id)
         : !locallyHidden.has(index)
-    );
+    )
+    .map(({ strategy, index }) => ({
+      strategy,
+      index,
+      // The cross-context chapters still showing (not locally dismissed), one label each.
+      alsoWorkedIn: (strategy.also_worked_in ?? [])
+        .map((entry) => entry.chapter)
+        .filter((chapter) => !dismissedLabels.has(`${index}::${chapter}`)),
+    }));
 
-  // Remove a strategy: suppress it api-side when it has a library_item_id (and record it for re-allow),
-  // else hide it locally (a legacy line the api cannot suppress). The api decides the suppress-after-3
-  // outcome; the app only sends the removal.
+  // Remove a strategy: suppress it api-side when it has a library_item_id (and record it for re-allow +
+  // raise the undo snackbar), else hide it locally (a legacy line the api cannot suppress). The api decides
+  // the suppress-after-3 outcome; the app only sends the removal.
   function removeStrategy(strategy: PlanStrategy, index: number) {
     if (strategy.library_item_id) {
       suppress({
@@ -94,9 +97,16 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
         title: strategy.title,
         chapter: plan.chapter,
       });
+      setJustRemoved({ id: strategy.library_item_id, title: strategy.title });
     } else {
       setLocallyHidden((prev) => new Set(prev).add(index));
     }
+  }
+
+  function undoRemove() {
+    if (!justRemoved) return;
+    allow(justRemoved.id);
+    setJustRemoved(null);
   }
 
   function dismissLabel(index: number, chapter: ChapterCode) {
@@ -109,122 +119,50 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {chapterLabel(plan.chapter)}
-        </p>
-        <h2 className="text-xl font-semibold md:text-2xl">{plan.activity_name}</h2>
-      </header>
+      <PlanResultHeader
+        chapter={plan.chapter}
+        activityName={plan.activity_name}
+        activityId={plan.activity_id}
+        onBack={onPrepareAnother}
+      />
 
-      {/* PRESSURE SUMMARY */}
-      <section
-        aria-labelledby="pressure-summary-label"
-        className={cn(
-          "rounded-xl border p-5",
-          presentation.surfaceClass,
-          presentation.borderClass
-        )}
-      >
-        <div className={cn("flex items-center gap-2", presentation.textClass)}>
-          <BandIcon className="size-5 shrink-0" aria-hidden="true" />
-          <span className="text-xs font-semibold uppercase tracking-wide">
-            {presentation.label}
-          </span>
-        </div>
-        <h3
-          id="pressure-summary-label"
-          className={cn("mt-2 text-lg font-semibold", presentation.textClass)}
-        >
-          {pressureCopy(band)}
-        </h3>
-        <p className="mt-1 text-sm text-foreground/80">
-          Overall pressure score{" "}
-          <span className="font-semibold tabular-nums">{formatScore(plan.total)}</span> out of 20.
-        </p>
-      </section>
+      {/* TOTAL PRESSURE SCORE + the four dimensions broken out (the highest in amber). */}
+      <TotalPressureCard total={plan.total} scores={plan.scores} />
 
-      {/* PARTICIPATION TIER */}
-      <section
-        aria-labelledby="tier-label"
-        className="rounded-xl border border-border bg-card p-5"
-      >
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Recommended approach
-        </p>
-        <h3 id="tier-label" className="mt-1 text-lg font-semibold text-foreground">
-          {tierLabel(plan.tier)}
-        </h3>
-        <p className="mt-1 text-sm text-muted-foreground">{tierExplanation(plan.tier)}</p>
-      </section>
+      {/* RECOMMENDED APPROACH: the tier + a plain gloss. */}
+      <RecommendedApproach tier={plan.tier} />
 
-      {/* STRATEGY LIST */}
-      <section aria-labelledby="strategies-label" className="space-y-3">
-        <h3 id="strategies-label" className="text-base font-semibold">
-          What helps
-        </h3>
+      {/* STRATEGIES: the top 3 led, the rest under "Show more". */}
+      <StrategyList
+        strategies={visibleStrategies}
+        onRemove={removeStrategy}
+        onDismissLabel={dismissLabel}
+      />
 
-        {visibleStrategies.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">
-            No strategies to show for this plan.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {visibleStrategies.map(({ strategy, index }) => {
-              // The cross-context chapters still showing (not locally dismissed), one label each.
-              const alsoWorkedIn = (strategy.also_worked_in ?? []).filter(
-                (entry) => !dismissedLabels.has(`${index}::${entry.chapter}`)
-              );
-              return (
-                <li key={index}>
-                  <SwipeToRemove
-                    removeLabel={strategy.title}
-                    onRemove={() => removeStrategy(strategy, index)}
-                  >
-                    <details className="group">
-                      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-md px-2.5 py-2 text-sm font-medium text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&::-webkit-details-marker]:hidden">
-                        <span className="min-w-0">{strategy.title}</span>
-                        <ChevronDown
-                          className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
-                          aria-hidden="true"
-                        />
-                      </summary>
-                      <p className="px-2.5 pb-2 pt-1 text-sm text-muted-foreground">
-                        {strategy.detail}
-                      </p>
-                    </details>
-                    {alsoWorkedIn.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5 px-2.5 pb-1.5">
-                        {alsoWorkedIn.map((entry) => (
-                          <AlsoWorkedInLabel
-                            key={entry.chapter}
-                            chapter={entry.chapter}
-                            strategyTitle={strategy.title}
-                            onDismiss={() => dismissLabel(index, entry.chapter)}
-                          />
-                        ))}
-                      </div>
-                    ) : null}
-                  </SwipeToRemove>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+      {/* The OBVIOUS undo after a removal (Task 14): re-allow the just-removed strategy. The persistent
+          "Removed strategies" section below remains the fallback once this has gone. */}
+      {justRemoved ? (
+        <StrategyRemovedUndo
+          key={justRemoved.id}
+          title={justRemoved.title}
+          onUndo={undoRemove}
+          onDismiss={() => setJustRemoved(null)}
+        />
+      ) : null}
 
-        {isError ? (
-          <Alert variant="destructive">
-            We could not update that strategy just now. Please try again.
-          </Alert>
-        ) : null}
-      </section>
+      {isError ? (
+        <Alert variant="destructive">
+          We could not update that strategy just now. Please try again.
+        </Alert>
+      ) : null}
 
       {/* REMOVED STRATEGIES (re-allow): renders only once something has been removed this session. */}
       <RemovedStrategies removed={removed} onAllow={allow} allowingId={allowingId} />
 
-      {/* DIMENSION BREAKDOWN (omitted on a stored re-read, where dimension_explanations is null). */}
+      {/* WHY THIS SCORE (omitted on a stored re-read, where dimension_explanations is null). */}
       {explanations ? (
         <section aria-labelledby="dimensions-label">
-          <details className="group rounded-xl border border-border bg-card">
+          <details className="group rounded-2xl border border-border bg-card">
             <summary
               id="dimensions-label"
               className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-base font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&::-webkit-details-marker]:hidden"
@@ -252,9 +190,7 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
                         score {formatScore(plan.scores[key])} out of 5
                       </span>
                     </span>
-                    <span className="block text-sm text-muted-foreground">
-                      {explanations[key]}
-                    </span>
+                    <span className="block text-sm text-muted-foreground">{explanations[key]}</span>
                   </span>
                 </li>
               ))}
@@ -263,22 +199,8 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
         </section>
       ) : null}
 
-      {/* ACTIONS */}
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Link
-          href={`/card?activity=${encodeURIComponent(plan.activity_id)}`}
-          className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full sm:flex-1")}
-        >
-          Generate Continuity Card
-        </Link>
-        <button
-          type="button"
-          onClick={onPrepareAnother}
-          className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto")}
-        >
-          Prepare something else
-        </button>
-      </div>
+      {/* ACTION DOCK: Export Continuity Card + Delegate Logistics. */}
+      <ActionDock activityId={plan.activity_id} />
     </div>
   );
 }
