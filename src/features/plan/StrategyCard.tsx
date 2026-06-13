@@ -94,21 +94,21 @@ export function StrategyCard({
             aria-pressed={done}
             onClick={() => setDone((value) => !value)}
             className={cn(
-              "mt-2 inline-flex min-h-11 items-center gap-2 rounded-md px-2.5 text-sm font-medium",
+              "mt-2 inline-flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               done
-                ? "bg-status-stable/15 text-status-stable"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "border-status-stable/40 bg-status-stable/15 text-status-stable"
+                : "border-border bg-card text-foreground hover:bg-secondary"
             )}
           >
             <span
               aria-hidden="true"
               className={cn(
-                "flex size-5 items-center justify-center rounded-[0.3rem] border",
-                done ? "border-status-stable bg-status-stable text-white" : "border-input"
+                "flex size-5 items-center justify-center rounded-[0.3rem] border-2",
+                done ? "border-status-stable bg-status-stable text-white" : "border-muted-foreground"
               )}
             >
-              {done ? <Check className="size-3.5" /> : null}
+              {done ? <Check className="size-3.5" strokeWidth={3} /> : null}
             </span>
             {done ? "Done" : "Mark done"}
           </button>
