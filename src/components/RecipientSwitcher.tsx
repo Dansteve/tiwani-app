@@ -47,17 +47,31 @@ export function RecipientSwitcher({
         onSurface ? "text-sidebar-foreground/70" : "text-muted-foreground"
       );
   // Compact rides inline in the bar (no stacked label gap); otherwise label-over-field.
-  const wrapperClass = compact ? cn("min-w-0", className) : cn("flex flex-col gap-1.5", className);
+  const wrapperClass = compact
+    ? cn("flex min-w-0 items-center gap-1.5", className)
+    : cn("flex flex-col gap-1.5", className);
+  // The compact (bar) variant prefixes a visible muted "For" so a sighted carer reads "For [name]", not a
+  // bare name (the board's comprehension fix); the sr-only "Caring for" label still carries the full phrase.
+  const compactPrefix = compact ? (
+    <span
+      aria-hidden="true"
+      className="shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+    >
+      For
+    </span>
+  ) : null;
 
   // Exactly one recipient: no choice to make, so show who is being cared for as a calm static field (still
   // labelled "Caring for", still the 44px height) rather than a pointless one-option dropdown.
   if (recipients.length === 1) {
     return (
       <div className={wrapperClass}>
+        {compactPrefix}
         <span className={labelClass}>Caring for</span>
         <div
           className={cn(
             "flex h-11 items-center truncate rounded-md border px-3 text-sm font-medium shadow-sm",
+            compact && "min-w-0 flex-1",
             onSurface
               ? "border-sidebar-border bg-sidebar text-sidebar-foreground"
               : "border-border bg-card text-foreground"
@@ -71,10 +85,11 @@ export function RecipientSwitcher({
 
   return (
     <div className={wrapperClass}>
+      {compactPrefix}
       <label htmlFor={selectId} className={labelClass}>
         Caring for
       </label>
-      <div className="relative">
+      <div className={cn("relative", compact && "min-w-0 flex-1")}>
         <select
           id={selectId}
           value={activeChildId ?? ""}

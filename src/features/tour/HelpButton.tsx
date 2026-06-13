@@ -30,9 +30,15 @@ export function HelpButton({ onClick, className, iconOnly = false }: HelpButtonP
       size="sm"
       onClick={onClick}
       aria-label={iconOnly ? "Show me around" : undefined}
+      // A native tooltip on the icon-only button (the bar), so a sighted carer who hovers / long-presses
+      // sees the words "Show me around" (the board's discoverability fix); the auto-tour still finds them.
+      title={iconOnly ? "Show me around" : undefined}
       className={cn(
-        "min-h-11 text-muted-foreground hover:text-foreground",
-        iconOnly && "min-w-11 justify-center px-0",
+        "min-h-11",
+        iconOnly
+          ? // Match the More button in the bar: a white (card) pill with a border, foreground icon.
+            "min-w-11 justify-center rounded-full border border-border bg-card px-0 text-foreground hover:bg-secondary"
+          : "text-muted-foreground hover:text-foreground",
         className
       )}
     >
