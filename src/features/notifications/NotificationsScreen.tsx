@@ -15,7 +15,7 @@ import Link from "next/link";
 import { BellOff, Mail } from "lucide-react";
 
 import { readPendingInviteToken } from "@/features/sharing/pendingInvite";
-import { REDEEM_PATH } from "@/features/sharing/shareLink";
+import { buildRedeemUrl } from "@/features/sharing/shareLink";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -40,13 +40,15 @@ export function NotificationsScreen() {
         </p>
       </header>
 
-      {token ? <InviteNotice /> : <EmptyState />}
+      {token ? <InviteNotice token={token} /> : <EmptyState />}
     </div>
   );
 }
 
 // The pending-invite notice as a well-spaced card (the cramped dashboard banner, given room to breathe).
-function InviteNotice() {
+// "Open the invite" carries the STASHED token in the link (/link?token=<token>), so the redeem page reads
+// it (it reads ?token=) and finishes the bounce; a bare /link shows "this link looks incomplete".
+function InviteNotice({ token }: { token: string }) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-primary/30 bg-accent p-5 sm:flex-row sm:items-start sm:p-6">
       <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -59,7 +61,7 @@ function InviteNotice() {
         </p>
         <div className="pt-2">
           <Link
-            href={REDEEM_PATH}
+            href={buildRedeemUrl(token, "")}
             className={cn(buttonVariants({ variant: "default" }), "w-full sm:w-auto")}
           >
             Open the invite

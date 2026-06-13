@@ -9,7 +9,7 @@ import { render, screen } from "@testing-library/react";
 import { axe } from "vitest-axe";
 
 import { NotificationsScreen } from "@/features/notifications/NotificationsScreen";
-import { REDEEM_PATH } from "@/features/sharing/shareLink";
+import { buildRedeemUrl } from "@/features/sharing/shareLink";
 import { setPendingInviteToken } from "@/features/sharing/pendingInvite";
 
 // Mirror the shared a11y net (components/accessibility.test.tsx): the "region" landmark rule is off for
@@ -36,7 +36,7 @@ afterEach(() => {
 });
 
 describe("NotificationsScreen", () => {
-  it("shows the invite card with a link to the redeem path when a token is stashed", async () => {
+  it("shows the invite card with an 'Open the invite' link CARRYING the stashed token", async () => {
     setPendingInviteToken("tok_pending");
 
     render(<NotificationsScreen />);
@@ -47,9 +47,10 @@ describe("NotificationsScreen", () => {
     expect(
       screen.getByText(/someone shared a continuity card with you\. finish opening it/i)
     ).toBeInTheDocument();
+    // The link MUST carry the token (/link?token=<token>); a bare /link shows "this link looks incomplete".
     expect(screen.getByRole("link", { name: /open the invite/i })).toHaveAttribute(
       "href",
-      REDEEM_PATH
+      buildRedeemUrl("tok_pending", "")
     );
     // The calm empty state is NOT shown when there is an invite.
     expect(screen.queryByText(/you're all caught up/i)).not.toBeInTheDocument();
