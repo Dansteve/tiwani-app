@@ -105,9 +105,9 @@ function CardHistoryRow({ card }: { card: CardSummary }) {
           >
             {card.activity_name}
           </h2>
+          {/* Just the chapter (no child name): the owner already knows whose cards these are, and keeping
+              the name off the row holds the name-minimal posture (owner request 2026-06-13). */}
           <p className="mt-0.5 truncate text-sm text-muted-foreground">
-            For {card.child_first_name}
-            <span aria-hidden="true"> &middot; </span>
             {chapterLabel(card.chapter)}
           </p>
         </div>

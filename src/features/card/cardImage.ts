@@ -7,8 +7,10 @@
 // (Decisions.md D10): the capture takes the DOM node explicitly and has no React dependency.
 //
 // Privacy (hard rule, mirrors ShareLinkBar): the shared `url` and `text` carry ONLY the opaque-token URL
-// and the care recipient's FIRST name, never any extra profile detail. The PNG carries the same content
-// as the public card (first name + the plan), which is the user's deliberate share, nothing more.
+// and the care recipient's FIRST name (the share-sheet title), never any extra profile detail. The PNG is
+// captured from the PUBLIC card the api serves for the token (name-stripped by default; ShareLinkBar
+// fetches it via api.getCard and renders a hidden CardContentView for the capture), so the image equals
+// the live link a helper opens, not the owner's named preview (Docs/FeatureDecisions.md 2026-06-13).
 
 import { toBlob } from "html-to-image";
 

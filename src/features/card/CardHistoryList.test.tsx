@@ -330,4 +330,18 @@ describe("CardHistoryList", () => {
     expect(within(row as HTMLElement).getByText(/school/i)).toBeInTheDocument();
     expect(within(row as HTMLElement).getByText(/prepared/i)).toBeInTheDocument();
   });
+
+  it("does not show the child's name on the row (name-minimal, owner request 2026-06-13)", async () => {
+    listCards.mockResolvedValue([
+      card({ id: "a", activity_name: "Swimming lesson", child_first_name: "Ada", chapter: "school" }),
+    ]);
+
+    renderList();
+
+    const row = (await screen.findByText("Swimming lesson")).closest("article") as HTMLElement;
+    // The old "For <name>" line is gone; the row shows just the chapter (and the activity heading).
+    expect(within(row).queryByText(/^for ada$/i)).not.toBeInTheDocument();
+    expect(within(row).queryByText("Ada")).not.toBeInTheDocument();
+    expect(within(row).getByText(/school/i)).toBeInTheDocument();
+  });
 });
