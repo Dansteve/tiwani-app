@@ -8,7 +8,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutGrid,
-  ClipboardList,
   IdCard,
   Activity,
   HeartPulse,
@@ -35,26 +34,30 @@ interface NavItem {
   icon: LucideIcon;
 }
 
+// "Plan" is intentionally NOT a nav entry: it pointed back to the dashboard's chapters and duplicated
+// "Your plans" (the history, in SECONDARY_NAV) plus each dashboard chapter's own "Prepare" link. The
+// /plan route and the prepare flow stay LIVE, reached from a chapter card's "Prepare" (/plan?chapter=).
+// "Pulse" is labelled "Check-in" everywhere user-facing (the one consistent word); the /pulse route,
+// the pulse-nav tour anchor, and the api/query identifiers keep the internal "pulse" name.
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { href: "/plan", label: "Plan", icon: ClipboardList },
   { href: "/card", label: "Card", icon: IdCard },
-  { href: "/pulse", label: "Pulse", icon: Activity },
+  { href: "/pulse", label: "Check-in", icon: Activity },
   { href: "/continuity", label: "Continuity", icon: HeartPulse },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-// Sharing is a primary destination on the DESKTOP sidebar (where a 7th vertical item fits comfortably),
-// but it is kept OFF the mobile bottom bar: that bar holds the six core tabs, and a 7th would crowd them
-// below the comfortable tap width at 375px (the responsive hard rule). On mobile Sharing is reached from
-// the desktop-style secondary section and from the in-app banner / Card flow, the same way Card history
-// and Your plans are secondary on mobile.
+// Sharing is a primary destination on the DESKTOP sidebar (where another vertical item fits comfortably),
+// but it is kept OFF the mobile bottom bar: that bar holds the five core tabs, and another would crowd
+// them below the comfortable tap width at 375px (the responsive hard rule). On mobile Sharing is reached
+// from the desktop-style secondary section and from the in-app banner / Card flow, the same way Card
+// history and Your plans are secondary on mobile.
 const DESKTOP_PRIMARY_EXTRA: NavItem[] = [
   { href: "/sharing", label: "Sharing", icon: Share2 },
 ];
 
 // Secondary destinations: surfaces that are not top-level tabs, so they stay off the mobile bottom bar
-// (the bar keeps the six primary destinations to avoid crowding / horizontal overflow). They live in the
+// (the bar keeps the five primary destinations to avoid crowding / horizontal overflow). They live in the
 // desktop sidebar's secondary section AND in a compact, scrollable strip at the top of the content on
 // mobile (SecondaryNavStrip), so a phone can still reach them (this also closes the prior mobile gap for
 // Your plans / Card history). Your plans (re-open a prepared plan), Card history (a card's status +
@@ -134,7 +137,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Secondary links: surfaces that are not top-level tabs (the mobile bar stays at the six
+        {/* Secondary links: surfaces that are not top-level tabs (the mobile bar stays at the five
             primary destinations). Your plans and Card history are reached here on desktop and from
             their own flows on mobile. The data-tour anchor lets the dashboard coach-marks point here
             (a desktop-only step; the mobile bottom bar has no secondary section). Hidden for a viewer
@@ -188,7 +191,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <PendingInviteBanner />
           {/* The secondary destinations (Village / Your plans / Card history) as a compact, scrollable
               strip on mobile only (the desktop sidebar carries them above). Keeps the bottom tab bar at
-              six while still letting a phone reach them. Empty (so it renders nothing) for a viewer. */}
+              five while still letting a phone reach them. Empty (so it renders nothing) for a viewer. */}
           <SecondaryNavStrip pathname={pathname} items={secondaryNav} />
           {children}
         </main>
@@ -228,7 +231,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 // (hidden at lg, where the sidebar carries them). It scrolls inside itself on a narrow phone (the app
 // <main> clips overflow), so it never causes horizontal page overflow; each pill is a 44px-min tap target
 // with colour + label, and the active one is the filled primary state (not colour alone). This is how a
-// phone reaches Village / Your plans / Card history without crowding the six-item bottom bar.
+// phone reaches Village / Your plans / Card history without crowding the five-item bottom bar.
 function SecondaryNavStrip({ pathname, items }: { pathname: string; items: NavItem[] }) {
   // Nothing to show (a viewer under the ceiling): render no strip at all.
   if (items.length === 0) return null;

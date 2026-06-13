@@ -44,7 +44,7 @@ export function LciPanel({ overall, chapters }: LciPanelProps) {
 
         {ordered.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">
-            No chapter has a check-in yet. Once you complete a Pulse, that chapter&apos;s score
+            No chapter has a check-in yet. Once you complete a check-in, that chapter&apos;s score
             appears here.
           </p>
         ) : (
