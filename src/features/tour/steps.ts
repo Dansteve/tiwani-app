@@ -61,7 +61,7 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
     id: "nav",
     target: "secondary-nav",
     title: "Find your way around",
-    body: "Your village, your saved plans, your shared cards, and your notifications all live here whenever you need them.",
+    body: "Your notifications, village, saved plans, and shared cards live here. On a phone, tap More to reach them.",
     placement: "right",
     // Anchored to the secondary nav, which renders as the sidebar section on desktop AND the mobile "More"
     // menu (both carry data-tour="secondary-nav"; the runtime picks the visible one). Still optional: a
