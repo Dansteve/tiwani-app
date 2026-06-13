@@ -125,6 +125,10 @@ const PLANS_TOUR_STEPS: TourStep[] = [
 ];
 
 // The Continuity Card screen (CardGenerator, the generate phase): what the card is and how to make one.
+// ALL THREE anchors live ONLY in the GENERATE phase (you arrive with ?activity=<id>). On the Card tab's
+// "prepare an activity first" state, and on the post-generate "ready" state, they are absent, so every step
+// is `optional`: the tour resolves to NOTHING there and the button no-ops (useCoachMarks guards against
+// opening an empty overlay), rather than flashing a scroll-locked overlay that finds no anchor.
 const CARD_TOUR_STEPS: TourStep[] = [
   {
     id: "name",
@@ -132,6 +136,7 @@ const CARD_TOUR_STEPS: TourStep[] = [
     title: "Choose what shows",
     body: "Decide whether the shared card shows a name. The safe default keeps it off a link anyone could open; you can add an initial or nickname instead.",
     placement: "bottom",
+    optional: true,
   },
   {
     id: "generate",
@@ -139,6 +144,7 @@ const CARD_TOUR_STEPS: TourStep[] = [
     title: "Make a Continuity Card",
     body: "This creates a one-page summary you can share with a babysitter, teacher, or respite carer.",
     placement: "top",
+    optional: true,
   },
   {
     id: "history",
@@ -146,10 +152,13 @@ const CARD_TOUR_STEPS: TourStep[] = [
     title: "Cards you have shared",
     body: "Every card you make is listed here, so you can check it or switch off its link any time.",
     placement: "top",
+    optional: true,
   },
 ];
 
-// The Card History screen (CardHistoryList): the list of generated cards, their status, and revoke.
+// The Card History screen (CardHistoryList): the list of generated cards, their status, and revoke. The
+// list anchor is absent on an empty history (no cards yet), so the single step is optional and the tour
+// no-ops there rather than pointing at nothing.
 const CARD_HISTORY_TOUR_STEPS: TourStep[] = [
   {
     id: "list",
@@ -157,6 +166,7 @@ const CARD_HISTORY_TOUR_STEPS: TourStep[] = [
     title: "Your shared cards",
     body: "Each card you have shared is here, newest first, with how old it is so a helper always sees current notes.",
     placement: "bottom",
+    optional: true,
   },
 ];
 
