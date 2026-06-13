@@ -18,7 +18,6 @@ import {
   Share2,
   Users,
   Bell,
-  type LucideIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -29,12 +28,8 @@ import { RecipientSwitcher } from "@/components/RecipientSwitcher";
 import { readPendingInviteToken } from "@/features/sharing/pendingInvite";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-}
+import { isActive, NavDot, type NavItem } from "@/components/appNav";
+import { SecondaryNavMenu } from "@/components/SecondaryNavMenu";
 
 // "Plan" is intentionally NOT a nav entry: it pointed back to the dashboard's chapters and duplicated
 // "Your plans" (the history, in SECONDARY_NAV) plus each dashboard chapter's own "Prepare" link. The
@@ -60,10 +55,10 @@ const DESKTOP_PRIMARY_EXTRA: NavItem[] = [
 
 // Secondary destinations: surfaces that are not top-level tabs, so they stay off the mobile bottom bar
 // (the bar keeps the five primary destinations to avoid crowding / horizontal overflow). They live in the
-// desktop sidebar's secondary section AND in a compact, scrollable strip at the top of the content on
-// mobile (SecondaryNavStrip), so a phone can still reach them (this also closes the prior mobile gap for
-// Your plans / Card history). Your plans (re-open a prepared plan), Card history (a card's status +
-// revoke), and Village (post a need / claim one for the active recipient) are all reached this way.
+// desktop sidebar's secondary section AND, on mobile, behind a single compact "More" menu at the top of
+// the content (SecondaryNavMenu), so a phone can reach them without an overflowing pill strip (which
+// clipped the last item). Notifications, Village, Your plans (re-open a prepared plan), and Card history
+// (a card's status + revoke) are all reached this way.
 const SECONDARY_NAV: NavItem[] = [
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/village", label: "Village", icon: Users },
@@ -83,21 +78,6 @@ const VIEWER_NAV: NavItem[] = [
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
-
-function isActive(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-// The "new" indicator on the Notifications nav item: a small CORAL dot. It is NEVER colour alone, the
-// sr-only "(new)" makes a screen reader announce it, so the signal carries to assistive tech too.
-function NavDot() {
-  return (
-    <>
-      <span className="size-2 shrink-0 rounded-full bg-tiwani-coral" aria-hidden="true" />
-      <span className="sr-only">(new)</span>
-    </>
-  );
-}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -216,10 +196,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* A pending invite now lives on /notifications (it was cramped against the dashboard greeting):
               the nav's Notifications item carries a coral "new" dot when one is waiting, rather than an
               inline banner here. */}
-          {/* The secondary destinations (Village / Your plans / Card history) as a compact, scrollable
-              strip on mobile only (the desktop sidebar carries them above). Keeps the bottom tab bar at
-              five while still letting a phone reach them. Empty (so it renders nothing) for a viewer. */}
-          <SecondaryNavStrip
+          {/* The secondary destinations (Notifications / Village / Your plans / Card history) behind a
+              single compact "More" menu on mobile only (the desktop sidebar carries them above). Keeps the
+              bottom tab bar at five and replaces the old overflowing pill strip. Renders nothing for a
+              viewer (secondaryNav is empty under the ceiling). */}
+          <SecondaryNavMenu
             pathname={pathname}
             items={secondaryNav}
             hasPendingInvite={hasPendingInvite}
@@ -262,51 +243,5 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         })}
       </nav>
     </div>
-  );
-}
-
-// The secondary destinations as a compact, horizontally-scrollable strip, shown on mobile / tablet only
-// (hidden at lg, where the sidebar carries them). It scrolls inside itself on a narrow phone (the app
-// <main> clips overflow), so it never causes horizontal page overflow; each pill is a 44px-min tap target
-// with colour + label, and the active one is the filled primary state (not colour alone). This is how a
-// phone reaches Village / Your plans / Card history without crowding the five-item bottom bar.
-function SecondaryNavStrip({
-  pathname,
-  items,
-  hasPendingInvite,
-}: {
-  pathname: string;
-  items: NavItem[];
-  hasPendingInvite: boolean;
-}) {
-  // Nothing to show (a viewer under the ceiling): render no strip at all.
-  if (items.length === 0) return null;
-  return (
-    <nav
-      aria-label="More"
-      className="mb-6 flex gap-2 overflow-x-auto lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    >
-      {items.map((item) => {
-        const active = isActive(pathname, item.href);
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors",
-              active
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-card text-foreground hover:bg-secondary"
-            )}
-          >
-            <Icon className="size-4 shrink-0" aria-hidden="true" />
-            {item.label}
-            {item.href === "/notifications" && hasPendingInvite ? <NavDot /> : null}
-          </Link>
-        );
-      })}
-    </nav>
   );
 }

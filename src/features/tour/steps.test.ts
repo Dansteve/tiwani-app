@@ -41,6 +41,7 @@ describe("the per-page tour registry", () => {
       new Set([
         "dashboard",
         "plan",
+        "plans",
         "card",
         "card-history",
         "pulse",
@@ -186,5 +187,22 @@ describe("the viewer ceiling (owner-only steps drop for a viewer)", () => {
   it("keeps the Settings tour intact (its anchor is present for everyone)", () => {
     const ids = resolveVisibleSteps(TOURS.settings, rootWith(["settings-tabs"])).map((s) => s.id);
     expect(ids).toEqual(["tabs"]);
+  });
+});
+
+describe("the Your Plans tour (the list step is data-conditional)", () => {
+  it("shows only the intro when there are no plans yet (the list anchor is absent)", () => {
+    // An empty / loading plans page renders the header but no list <ul>, so the optional 'list' step drops
+    // while the always-present 'intro' stays. The tour never points at a missing list.
+    const ids = resolveVisibleSteps(TOURS.plans, rootWith(["plans-header"])).map((s) => s.id);
+    expect(ids).toEqual(["intro"]);
+  });
+
+  it("adds the list step once there are plans to point at", () => {
+    const ids = resolveVisibleSteps(
+      TOURS.plans,
+      rootWith(["plans-header", "plans-list"])
+    ).map((s) => s.id);
+    expect(ids).toEqual(["intro", "list"]);
   });
 });
