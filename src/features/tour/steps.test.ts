@@ -151,21 +151,29 @@ describe("dashboard tour steps (the first-run, auto-opening tour)", () => {
 });
 
 describe("the viewer ceiling (owner-only steps drop for a viewer)", () => {
-  it("drops the Village 'post a need' step when its owner-only tab is absent", () => {
-    // A viewer sees the help + roster tabs only (village-post-tab is not rendered), so the owner-only
-    // 'post' step must drop while the everyone-step 'help' stays.
-    const viewerPresent = ["village-help-tab"]; // count chip + post tab absent for a viewer mid-load
+  it("drops the Village owner-only steps for a viewer (help + members remain)", () => {
+    // A viewer sees the help + members (roster) tabs only; the owner-only invite / post / count surfaces
+    // are not rendered, so their steps drop while the everyone-steps help + members stay.
+    const viewerPresent = ["village-help-tab", "village-members-tab"];
     const visible = resolveVisibleSteps(TOURS.village, rootWith(viewerPresent));
     const ids = visible.map((s) => s.id);
     expect(ids).toContain("help");
+    expect(ids).toContain("members");
     expect(ids).not.toContain("post");
+    expect(ids).not.toContain("invite");
     expect(ids).not.toContain("count");
   });
 
-  it("keeps the Village owner steps when the owner tabs ARE present", () => {
-    const ownerPresent = ["village-count", "village-post-tab", "village-help-tab"];
+  it("keeps the Village owner steps when the owner surfaces ARE present", () => {
+    const ownerPresent = [
+      "village-count",
+      "village-invite",
+      "village-post-tab",
+      "village-help-tab",
+      "village-members-tab",
+    ];
     const ids = resolveVisibleSteps(TOURS.village, rootWith(ownerPresent)).map((s) => s.id);
-    expect(ids).toEqual(["count", "post", "help"]);
+    expect(ids).toEqual(["count", "invite", "post", "help", "members"]);
   });
 
   it("drops the Sharing 'who you share with' step when its owner-only tab is absent", () => {

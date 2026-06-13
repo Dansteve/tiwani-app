@@ -61,7 +61,7 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
     id: "nav",
     target: "secondary-nav",
     title: "Find your way around",
-    body: "Your saved plans, your shared cards, and your settings live here whenever you need them.",
+    body: "Your village, your saved plans, your shared cards, and your notifications all live here whenever you need them.",
     placement: "right",
     // Desktop-only: the secondary links live in the sidebar (the mobile bottom bar keeps the primary
     // tabs). Hidden at the mobile breakpoint, so the tour skips this step there rather than point at a
@@ -105,6 +105,13 @@ const PLAN_TOUR_STEPS: TourStep[] = [
 
 // The Continuity Card screen (CardGenerator, the generate phase): what the card is and how to make one.
 const CARD_TOUR_STEPS: TourStep[] = [
+  {
+    id: "name",
+    target: "card-name-chooser",
+    title: "Choose what shows",
+    body: "Decide whether the shared card shows a name. The safe default keeps it off a link anyone could open; you can add an initial or nickname instead.",
+    placement: "bottom",
+  },
   {
     id: "generate",
     target: "card-generate",
@@ -177,6 +184,15 @@ const VILLAGE_TOUR_STEPS: TourStep[] = [
     optional: true,
   },
   {
+    id: "invite",
+    target: "village-invite",
+    title: "Bring people in",
+    body: "Invite the people you trust to lend a hand. They get a simple card of what helps, and you can take anyone out again any time.",
+    placement: "bottom",
+    // Owner-only: the "Invite to help" button is hidden for a viewer (the viewer ceiling), so this drops.
+    optional: true,
+  },
+  {
     id: "post",
     target: "village-post-tab",
     title: "Ask for a hand",
@@ -190,6 +206,13 @@ const VILLAGE_TOUR_STEPS: TourStep[] = [
     target: "village-help-tab",
     title: "Ways to help",
     body: "Open needs people can pick up are here, with just enough detail to lend a hand.",
+    placement: "bottom",
+  },
+  {
+    id: "members",
+    target: "village-members-tab",
+    title: "Who is in the village",
+    body: "Everyone with access is listed here, so it is always clear who can see this village. The Coordinator can take someone out whenever they like.",
     placement: "bottom",
   },
 ];
