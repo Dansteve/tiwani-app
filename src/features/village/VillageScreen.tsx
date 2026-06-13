@@ -36,6 +36,7 @@ import { PostNeedForm } from "@/features/village/PostNeedForm";
 import { OwnerNeedsList } from "@/features/village/OwnerNeedsList";
 import { OpenNeedsList } from "@/features/village/OpenNeedsList";
 import { RosterPanel } from "@/features/village/RosterPanel";
+import { ShareRoster } from "@/features/sharing/ShareRoster";
 import { PageTour } from "@/features/tour/PageTour";
 
 const VILLAGE_TABS = [
@@ -179,10 +180,17 @@ function VillageForRecipient({
         </TabPanel>
       ) : null}
 
-      {/* Members (the roster, tab value "village"): the visible "who is in the village" list, its own tab. */}
+      {/* Members (the roster, tab value "village"). The OWNER gets the full MANAGE roster (everyone with
+          access, active + pending invites, each with a Remove / Cancel that revokes instantly) so they can
+          take someone out from here; a viewer gets the read-only village roster (the owner-scoped share
+          roster 404s for them). Adding is the "Invite to help" button in the header (-> /sharing's invite). */}
       {tab === "village" ? (
         <TabPanel value="village" idBase={TABS_ID}>
-          <RosterPanel recipientId={recipientId} />
+          {restricted ? (
+            <RosterPanel recipientId={recipientId} />
+          ) : (
+            <ShareRoster recipientId={recipientId} firstName={recipientFirstName} />
+          )}
         </TabPanel>
       ) : null}
     </div>
