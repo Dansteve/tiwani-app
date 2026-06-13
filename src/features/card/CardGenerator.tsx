@@ -11,7 +11,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { CalendarClock, FileText, History } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
@@ -89,6 +89,15 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
 
   const card = mutation.data;
 
+  // The PUBLIC card content (api.getCard, name-stripped server-side) for the preview, so the owner sees
+  // exactly what a helper will see: picking "No name" shows no name here too, matching the live link
+  // rather than the owner's named record. Same query key as ShareLinkBar, so it is fetched once.
+  const publicContentQuery = useQuery({
+    queryKey: ["card", card?.token ?? "", "public"],
+    queryFn: ({ signal }) => api.getCard(card!.token, signal),
+    enabled: Boolean(card?.token),
+  });
+
   // Build the share URL from the app's own origin at render time (the page is client-rendered). useMemo
   // keeps it stable per token; on the server / first paint origin is "" and the helper returns a
   // relative path, which the effect-free render tolerates (the field shows the absolute URL on mount).
@@ -111,10 +120,14 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
           </p>
         </header>
 
-        {/* The owner's PREVIEW keeps the first name (their own authenticated view). The SHARED/DOWNLOADED
-            PNG is captured from the public content instead (ShareLinkBar fetches it by token), so the
-            image a helper receives matches the name-free live link. */}
-        <CardContentView content={card.content} />
+        {/* The preview is the PUBLIC card a helper will see (api.getCard, name-stripped or the owner's
+            chosen label), so picking "No name" shows no name here too and the preview matches the live
+            link, not the owner's named record. ShareLinkBar captures the same public content for the PNG. */}
+        {publicContentQuery.data ? (
+          <CardContentView content={publicContentQuery.data} />
+        ) : (
+          <div aria-hidden="true" className="h-72 animate-pulse rounded-3xl bg-secondary" />
+        )}
 
         <div className="rounded-xl border border-border bg-card p-5">
           <ShareLinkBar
@@ -228,10 +241,10 @@ function PublicNameChooser({
   const hasFirstName = firstName.length > 0;
 
   return (
-    <fieldset className="space-y-3 rounded-xl border border-border bg-card p-4 sm:p-5">
-      <legend className="px-1 text-base font-semibold text-foreground">
+    <div className="space-y-3 rounded-xl border border-border bg-card p-4 sm:p-5">
+      <h2 className="text-base font-semibold text-foreground">
         Show a name on the shared card?
-      </legend>
+      </h2>
       <p className="text-sm text-muted-foreground">
         The default keeps the child&apos;s name off a link anyone could open. You can add an initial or
         nickname if you&apos;d like.
@@ -247,7 +260,7 @@ function PublicNameChooser({
         {hasFirstName ? (
           <ChoiceCard
             title="First name"
-            description={`The shared card shows ${firstName}.`}
+            description="The shared card shows your child's first name."
             selected={mode === "first"}
             onSelect={() => onModeChange("first")}
           />
@@ -277,6 +290,6 @@ function PublicNameChooser({
           </p>
         </div>
       ) : null}
-    </fieldset>
+    </div>
   );
 }

@@ -106,10 +106,14 @@ describe("CardGenerator", () => {
     // shared card), matching the pinned contract.
     await waitFor(() => expect(generateCard).toHaveBeenCalledWith("act_99", null));
 
-    // Renders the api's safe content (the preview).
-    expect(await screen.findByRole("heading", { level: 1, name: "Ada" })).toBeInTheDocument();
-    expect(screen.getByText("Take it at their pace")).toBeInTheDocument();
-    expect(screen.getByText("Arrive a few minutes early")).toBeInTheDocument();
+    // The preview now renders the PUBLIC card a helper will see (name-stripped), so the visible heading
+    // is the public "this child", NOT the owner's "Ada" (the hidden capture node is aria-hidden, so the
+    // a11y query finds only the visible preview). This is what proves "No name" shows no name here too.
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "this child" })
+    ).toBeInTheDocument();
+    // The public tier label appears (in the visible preview, and again in the hidden capture node).
+    expect(screen.getAllByText("Take part with support").length).toBeGreaterThan(0);
 
     // Renders the shareable link built from the returned token (<origin>/c?t=<token>).
     const link = screen.getByLabelText("Shareable link") as HTMLInputElement;
