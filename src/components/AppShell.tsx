@@ -189,22 +189,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Offline awareness (PWA): the app loads from cache offline, but the engine is server-side,
               so this says preparing a plan needs a connection. Renders nothing while online. */}
           <OfflineBanner />
+          {/* Mobile top bar (below lg): the TIWANI mark links HOME to the dashboard (the desktop sidebar
+              carries the mark + the secondary nav, so on mobile there was no brand / home affordance), and
+              the compact "More" menu sits at the TOP RIGHT, mirroring the website header (logo left, action
+              right). The menu holds the secondary destinations (Notifications / Village / Your plans / Card
+              history), keeping the bottom tab bar at five; it renders nothing for a viewer (secondaryNav is
+              empty under the ceiling), leaving just the mark. A pending invite shows a coral "new" dot on
+              the menu trigger (and on /notifications), not an inline banner here. */}
+          <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
+            <Link href="/dashboard" aria-label="TIWANI dashboard">
+              <Wordmark className="text-xl" />
+            </Link>
+            <SecondaryNavMenu
+              pathname={pathname}
+              items={secondaryNav}
+              hasPendingInvite={hasPendingInvite}
+            />
+          </div>
           {/* On mobile / tablet the sidebar is hidden, so the recipient switcher rides at the top of the
-              content (still only when there is more than one recipient). On desktop it lives in the
-              sidebar above, so this copy is hidden there. */}
+              content. It ALWAYS shows now, so "Caring for [name]" is constant (one recipient renders as a
+              static field, several as the switcher). On desktop it lives in the sidebar above, hidden here. */}
           <RecipientSwitcher surface="content" className="mb-6 max-w-xs lg:hidden" />
-          {/* A pending invite now lives on /notifications (it was cramped against the dashboard greeting):
-              the nav's Notifications item carries a coral "new" dot when one is waiting, rather than an
-              inline banner here. */}
-          {/* The secondary destinations (Notifications / Village / Your plans / Card history) behind a
-              single compact "More" menu on mobile only (the desktop sidebar carries them above). Keeps the
-              bottom tab bar at five and replaces the old overflowing pill strip. Renders nothing for a
-              viewer (secondaryNav is empty under the ceiling). */}
-          <SecondaryNavMenu
-            pathname={pathname}
-            items={secondaryNav}
-            hasPendingInvite={hasPendingInvite}
-          />
           {children}
         </main>
       </div>

@@ -3,8 +3,9 @@
 // The secondary-destinations menu for MOBILE: a compact "More" disclosure that replaces the old
 // horizontally-scrolling pill strip, which clipped the last item (Card history) on a narrow phone. One
 // 44px tap target opens a small dropdown of the surfaces that are NOT bottom-tab destinations:
-// Notifications, Village, Your plans, Card history. The desktop sidebar lists these inline (no menu
-// needed there), so this whole component is lg:hidden.
+// Notifications, Village, Your plans, Card history. It sits at the TOP RIGHT of the mobile header (the
+// AppShell row that also carries the brand mark), so the dropdown is right-aligned; the parent header is
+// lg:hidden (the desktop sidebar lists these inline). The desktop sidebar needs no menu.
 //
 // Accessibility (a launch requirement, not optional): this is a DISCLOSURE, not an ARIA menu, because the
 // contents are navigation LINKS, not application commands, so it does not claim role="menu" / arrow-key
@@ -72,7 +73,7 @@ export function SecondaryNavMenu({
   if (items.length === 0) return null;
 
   return (
-    <div ref={containerRef} className="relative mb-6 lg:hidden">
+    <div ref={containerRef} className="relative">
       <button
         ref={triggerRef}
         type="button"
@@ -93,7 +94,7 @@ export function SecondaryNavMenu({
         <nav
           id={menuId}
           aria-label="More destinations"
-          className="absolute left-0 top-full z-40 mt-2 min-w-56 rounded-xl border border-border bg-card p-1.5 shadow-lg"
+          className="absolute right-0 top-full z-40 mt-2 min-w-56 rounded-xl border border-border bg-card p-1.5 shadow-lg"
         >
           <ul className="flex flex-col gap-0.5">
             {items.map((item) => {

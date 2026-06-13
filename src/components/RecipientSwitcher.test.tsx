@@ -6,11 +6,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ActiveRecipient } from "@/lib/api/types";
 import { SELECTED_RECIPIENT_STORAGE_KEY } from "@/state/selectedRecipient";
 
-// The switcher render test (client mocked): it shows only when there is MORE THAN ONE recipient, lists
-// them by first name with the active one selected, and switching updates the active id (persisted). A
-// single-recipient (or empty) user sees no switcher. Driven through the real RecipientProvider (which reads
-// GET /api/v1/recipients, role-tagged) so the component + state wiring is exercised end-to-end. The api
-// already returns the FIRST name only on each ActiveRecipient; the helper mirrors that (first token).
+// The switcher render test (client mocked): it ALWAYS shows the "Caring for [name]" context, an accessible
+// <select> when there are SEVERAL recipients (lists them by first name, active selected, switching updates
+// + persists the active id) and a calm STATIC field (no dropdown) when there is exactly one; an empty user
+// (no recipient yet) sees nothing. Driven through the real RecipientProvider (which reads GET
+// /api/v1/recipients, role-tagged) so the component + state wiring is exercised end-to-end. The api already
+// returns the FIRST name only on each ActiveRecipient; the helper mirrors that (first token).
 
 function child(id: string, name: string): ActiveRecipient {
   return { id, first_name: name.split(/\s+/)[0], role: "owner" };
@@ -48,13 +49,16 @@ afterEach(() => {
 });
 
 describe("RecipientSwitcher", () => {
-  it("renders nothing for a single-recipient user", async () => {
+  it("shows the single recipient as a static field (no dropdown) for a one-recipient user", async () => {
     getRecipients.mockResolvedValue([child("c_1", "Ada Lovelace")]);
     renderSwitcher();
 
-    // Give the children query time to resolve, then assert the control never appears.
-    await waitFor(() => expect(getRecipients).toHaveBeenCalled());
+    // Always visible now: the "Caring for" context shows the sole recipient by first name, but there is no
+    // dropdown (no choice to make), and never the full name.
+    expect(await screen.findByText("Ada")).toBeInTheDocument();
+    expect(screen.getByText(/caring for/i)).toBeInTheDocument();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ada Lovelace")).not.toBeInTheDocument();
   });
 
   it("renders nothing for a user with no recipients yet", async () => {
