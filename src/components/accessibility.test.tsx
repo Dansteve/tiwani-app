@@ -14,6 +14,11 @@ import { axe } from "vitest-axe";
 import { Wordmark } from "@/components/Wordmark";
 import { Button } from "@/components/ui/button";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { TagPill } from "@/components/TagPill";
+import { Stepper } from "@/components/Stepper";
 
 const AXE_OPTS = { rules: { region: { enabled: false } } };
 
@@ -45,6 +50,62 @@ describe("accessibility (axe) regression net", () => {
         <span aria-hidden="true">x</span>
       </Button>,
     );
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("Alert (composed title + description, warning variant) has no violations", async () => {
+    // The shared role="alert" notice. Standalone (only cn + cva), no provider/api/router.
+    const { container } = render(
+      <Alert variant="warning">
+        <AlertTitle>Out of date</AlertTitle>
+        <AlertDescription>Prepare the activity again for a fresh one.</AlertDescription>
+      </Alert>,
+    );
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("Card (header + title + description + content) has no violations", async () => {
+    // The card primitive composition used across the screens. Standalone (only cn).
+    const { container } = render(
+      <Card>
+        <CardHeader>
+          <CardTitle>Your continuity card</CardTitle>
+          <CardDescription>A snapshot you can hand to a carer.</CardDescription>
+        </CardHeader>
+        <CardContent>Activities the family knows how to support.</CardContent>
+      </Card>,
+    );
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("Field (labelled input) has no violations", async () => {
+    // The labelled <input> primitive: a <label> tied to its control by id. Standalone (Input + Label).
+    const { container } = render(<Field label="Email" type="email" />);
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("Field with an inline error keeps the aria-invalid wiring accessible (no violations)", async () => {
+    // Pins that the error path (aria-invalid + aria-describedby + role="alert") stays axe-clean.
+    const { container } = render(<Field label="Email" type="email" error="Enter a valid email" />);
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("TagPill (selected) carries an accessible name + aria-pressed (no violations)", async () => {
+    // A real <button> with a label and aria-pressed. Standalone (cn + a lucide icon); onToggle is a no-op.
+    const { container } = render(<TagPill label="Loud places" selected onToggle={() => {}} />);
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("TagPill (unselected) has no violations", async () => {
+    const { container } = render(
+      <TagPill label="Crowds" selected={false} onToggle={() => {}} />,
+    );
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("Stepper (onboarding progressbar) has no violations", async () => {
+    // role="progressbar" with an aria-label + an sr-only "Step N of M" line. Standalone (only cn).
+    const { container } = render(<Stepper current={2} total={3} stepLabel="A little about them" />);
     expect(await axeRuleViolations(container)).toEqual([]);
   });
 
