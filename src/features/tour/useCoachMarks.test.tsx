@@ -100,4 +100,16 @@ describe("useCoachMarks", () => {
     // The default page is the dashboard, so the dashboard key is the one set.
     expect(window.localStorage.getItem(DASHBOARD_KEY)).toBe("1");
   });
+
+  it("start() does NOT open when the page has nothing to tour right now (all anchors absent)", () => {
+    // The Card tour's anchors live ONLY in the generate phase; on the Card tab's 'prepare an activity
+    // first' state (and the post-generate 'ready' state) they are absent, so every Card step is optional
+    // and resolves to nothing. start() must NO-OP rather than open an empty overlay that locks body scroll
+    // and flashes through missing anchors (the reported 'breaks flow' bug). No anchors exist in jsdom, so
+    // the Card tour resolves empty here.
+    const { result } = renderHook(() => useCoachMarks("card", false));
+    expect(result.current.open).toBe(false);
+    act(() => result.current.start());
+    expect(result.current.open).toBe(false);
+  });
 });

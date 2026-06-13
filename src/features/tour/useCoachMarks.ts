@@ -20,6 +20,15 @@ import {
   localSeenStore,
   markTourSeen,
 } from "@/features/tour/seen";
+import { getTourSteps, resolveVisibleSteps } from "@/features/tour/steps";
+
+// Does this page have anything to tour RIGHT NOW (against the live DOM)? A tour with no visible step (every
+// optional anchor absent, e.g. the Card screen before an activity is chosen) must not open: an empty
+// overlay would lock body scroll and flash through missing anchors. Checked at open time, not render time,
+// so it reflects the page's current phase.
+function hasVisibleSteps(page: TourPageId): boolean {
+  return resolveVisibleSteps(getTourSteps(page)).length > 0;
+}
 
 export interface CoachMarksController {
   /** Whether the tour overlay should render. */
@@ -66,15 +75,20 @@ export function useCoachMarks(
     if (hasSeenTour(localSeenStore(), page)) return;
     const frame = requestAnimationFrame(() => {
       autoStarted.current = true;
+      // Never auto-open an empty tour (no anchors laid out for this page / phase).
+      if (!hasVisibleSteps(page)) return;
       setOpen(true);
     });
     return () => cancelAnimationFrame(frame);
   }, [autoStart, page]);
 
   const start = useCallback(() => {
-    // A manual re-trigger always opens, regardless of the seen flag.
+    // A manual re-trigger always opens, regardless of the seen flag, UNLESS there is nothing to tour on
+    // this page right now (e.g. the Card screen before an activity is chosen): opening an empty overlay
+    // would lock scroll and flash, so the button no-ops instead.
+    if (!hasVisibleSteps(page)) return;
     setOpen(true);
-  }, []);
+  }, [page]);
 
   const close = useCallback(() => {
     // Whether finished or skipped, the Coordinator has now seen it: record so it does not auto-open
