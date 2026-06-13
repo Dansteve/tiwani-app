@@ -97,7 +97,21 @@ function RedeemToken({ token }: { token: string }) {
     return () => clearTimeout(timer);
   }, [loading]);
 
-  // The timeout fired while still loading: show the generic retry path (NOT the bad-token copy), never blank.
+  // A SETTLED redeem is terminal: render it FIRST, before any loading branch. Once the redeem has actually
+  // returned, the answer (opened, or could-not-be-opened) must win over the spinner, so a fast 400 on a bad
+  // token shows the calm error immediately instead of leaving the page stuck on "Opening your invite...".
+  if (redeem.isError) {
+    // A 400 is the catch-all bad-token case (unknown / expired / used / revoked / wrong email); anything
+    // else is a generic retry. Either way, one calm page, never the raw reason.
+    const badToken = redeem.error instanceof ApiError && redeem.error.status === 400;
+    return <RedeemUnavailable badToken={badToken} />;
+  }
+
+  if (redeem.isSuccess) {
+    return <RedeemSuccess result={redeem.data} />;
+  }
+
+  // The timeout fired while still loading: the generic retry path (NOT the bad-token copy), never blank.
   if (timedOut && loading) {
     return <RedeemUnavailable badToken={false} />;
   }
@@ -107,21 +121,12 @@ function RedeemToken({ token }: { token: string }) {
     return <RedeemLoading />;
   }
 
-  // Signed out: prompt sign-in; the token is stashed so they return here after.
+  // Signed out (auth resolved, no session): prompt sign-in; the token is stashed so they return here after.
   if (!signedIn) {
     return <SignInPrompt />;
   }
 
-  if (redeem.isError) {
-    // A 400 is the catch-all bad-token case; anything else is a generic retry. Either way, one calm page.
-    const badToken = redeem.error instanceof ApiError && redeem.error.status === 400;
-    return <RedeemUnavailable badToken={badToken} />;
-  }
-
-  if (redeem.data) {
-    return <RedeemSuccess result={redeem.data} />;
-  }
-
+  // Resolved + signed in + not pending + no result: the brief idle gap before the effect fires the redeem.
   return <RedeemLoading />;
 }
 
