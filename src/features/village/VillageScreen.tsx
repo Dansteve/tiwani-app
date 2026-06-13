@@ -9,11 +9,12 @@
 // THREE tabs, the app's accessible tabs primitive (components/ui/tabs):
 //   - "Post & track" (the OWNER side): the post-a-need form + the owner's list (covered + who + confirm/cancel).
 //   - "Ways to help" (the MEMBER/board side): the open needs to claim + the claimer's done/drop.
-//   - "Village" (the ROSTER): the visible "who is in the village" list. It lives in its own tab now, BUT an
-//     always-on count chip ABOVE the tabs keeps the board's mandatory transparency (refinement 5: who can
-//     see [name]) at a glance, one tap from the full list, so promoting the roster to a tab never hides the
-//     fact that people have access. (Board decision 2026-06-12: the count is always visible; the detail is
-//     a tap away. See Modules/Village.md.)
+//   - "Members" (the ROSTER, tab value "village"): the visible "who is in the village" list. It lives in
+//     its own tab now, BUT an always-on count chip ABOVE the tabs keeps the board's mandatory transparency
+//     (refinement 5: who can see [name]) at a glance, one tap from the full list, so promoting the roster
+//     to a tab never hides the fact that people have access. (Board decision 2026-06-12: the count is
+//     always visible; the detail is a tap away. See Modules/Village.md.) The tab is labelled "Members"
+//     (the people in the village) for clarity; its value stays "village".
 //
 // The app does not know server-side whether the viewer is owner or member on this recipient (RLS decides
 // per request); it offers the tabs and lets the api gate the actions (403 -> a calm "only the Coordinator
@@ -42,7 +43,7 @@ const VILLAGE_TABS = [
   // is absent from the viewer set below); "help" is reachable by everyone.
   { value: "post", label: "Post & track", tour: "village-post-tab" },
   { value: "help", label: "Ways to help", tour: "village-help-tab" },
-  { value: "village", label: "Village" },
+  { value: "village", label: "Members" },
 ] as const satisfies readonly TabItem[];
 
 // The VIEWER tab set (Docs/FeatureDecisions.md "Helper Village ACCESS", refinement 1): a viewer reaches
@@ -51,7 +52,7 @@ const VILLAGE_TABS = [
 // points at a real tab.
 const VIEWER_VILLAGE_TABS = [
   { value: "help", label: "Ways to help", tour: "village-help-tab" },
-  { value: "village", label: "Village" },
+  { value: "village", label: "Members" },
 ] as const satisfies readonly TabItem[];
 
 type VillageTab = (typeof VILLAGE_TABS)[number]["value"];
@@ -151,7 +152,7 @@ function VillageForRecipient({
         </TabPanel>
       ) : null}
 
-      {/* Village (the roster): the visible "who is in the village" list, now its own tab. */}
+      {/* Members (the roster, tab value "village"): the visible "who is in the village" list, its own tab. */}
       {tab === "village" ? (
         <TabPanel value="village" idBase={TABS_ID}>
           <RosterPanel recipientId={recipientId} />

@@ -10,6 +10,7 @@
 // rather than being swallowed. For now every chapter returns grey ("not started"), and a new user (no
 // activity anywhere) also sees the "start by preparing" prompt.
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
@@ -27,6 +28,10 @@ import { useAlerts } from "@/features/alerts/useAlerts";
 import { CoachMarks } from "@/features/tour/CoachMarks";
 import { HelpButton } from "@/features/tour/HelpButton";
 import { useCoachMarks } from "@/features/tour/useCoachMarks";
+import {
+  consumeJustOnboarded,
+  sessionOneShotStore,
+} from "@/features/tour/justOnboarded";
 import { Alert } from "@/components/ui/alert";
 
 // The fixed display order is the canonical six (format.CHAPTERS); the api feed is ordered onto it so
@@ -89,11 +94,31 @@ export function DashboardScreen() {
     chapters !== null &&
     chapters.every((chapter) => chapterStatus(chapter) === "not_started");
 
-  // The onboarding coach-marks (the owner's skipper-style explainer): auto-open once on the first
-  // dashboard visit, re-openable from the "Show me around" button. Auto-open waits until the chapter
-  // grid has rendered (the first card is the tour's first anchor), so it never opens over skeletons. The
-  // dashboard is the one first-run, auto-opening tour; the other pages are on-demand (PageTour).
-  const tour = useCoachMarks("dashboard", chapters !== null);
+  // The onboarding coach-marks (the owner's skipper-style explainer): re-openable any time from the
+  // "Show me around" button. Its AUTO-open no longer keys off the resettable per-browser seen flag (that
+  // re-showed the tour after a localStorage / cache clear, which the owner asked to stop). Instead it
+  // fires from a ONE-SHOT signal armed at the post-onboarding transition (and by Settings "Replay the
+  // tour"); useCoachMarks is passed autoStart=false here, and the effect below consumes that signal to
+  // open the tour exactly once. So a fresh, just-onboarded user gets it once; a returning, already-
+  // onboarded user never auto-gets it. The other pages stay on-demand only (PageTour).
+  const tour = useCoachMarks("dashboard", false);
+
+  // Open the tour ONCE if the one-shot "just onboarded" (or "replay") signal is set, but only after the
+  // chapter grid has rendered (the first card is the tour's first anchor), so it never opens over
+  // skeletons. consumeJustOnboarded reads-and-clears, so it can fire at most once; the guard ref stops a
+  // re-render from re-checking after it has fired. Reading the signal in an effect (not during render)
+  // keeps the server/client first render identical (no hydration mismatch), the same lifecycle the seen
+  // flag used.
+  const tourAutoOpened = useRef(false);
+  const tourStart = tour.start;
+  useEffect(() => {
+    if (tourAutoOpened.current) return;
+    if (chapters === null) return; // wait for the grid (the first anchor) to render
+    if (consumeJustOnboarded(sessionOneShotStore())) {
+      tourAutoOpened.current = true;
+      tourStart();
+    }
+  }, [chapters, tourStart]);
 
   return (
     <div className="space-y-6">

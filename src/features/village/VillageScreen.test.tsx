@@ -68,7 +68,8 @@ describe("VillageScreen viewer ceiling", () => {
     renderVillage();
     expect(screen.getByRole("tab", { name: /post & track/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /ways to help/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /^village$/i })).toBeInTheDocument();
+    // The roster tab is labelled "Members" (its value stays "village"); the page heading is still "Village".
+    expect(screen.getByRole("tab", { name: /^members$/i })).toBeInTheDocument();
     // The owner default tab renders the posting surface.
     expect(screen.getByTestId("post-need-form")).toBeInTheDocument();
   });
@@ -81,9 +82,9 @@ describe("VillageScreen viewer ceiling", () => {
     // The owner posting tab + surface are gone (the ceiling), never shown-then-403.
     expect(screen.queryByRole("tab", { name: /post & track/i })).not.toBeInTheDocument();
     expect(screen.queryByTestId("post-need-form")).not.toBeInTheDocument();
-    // The viewer reaches the claim board + the roster.
+    // The viewer reaches the claim board + the roster ("Members" tab).
     expect(screen.getByRole("tab", { name: /ways to help/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /^village$/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /^members$/i })).toBeInTheDocument();
     expect(screen.getByTestId("open-needs-list")).toBeInTheDocument();
   });
 });

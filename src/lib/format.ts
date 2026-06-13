@@ -148,6 +148,60 @@ export function formatCardDate(iso: string | null | undefined): string {
 }
 
 /**
+ * The Continuity Card link expiry, surfaced beside the revoke action so "expiry, then revoke" is clear
+ * (Product.md §4.6: the share link is valid 30 days). The api supplies `expires_at` (a CardSummary
+ * field); this is display formatting of that timestamp, NOT a re-computation of the window (the api
+ * decides when a card is active/expired, the app only phrases the date it was given). Returns:
+ *   absolute  the explicit "Link expires on <date>" / "Link expired on <date>" line (always shown).
+ *   relative  a short, warm at-a-glance phrase ("Expires today" / "Expires tomorrow" / "Expires in N
+ *             days" while live; "Link expired" once past), or null when there is no parseable date.
+ *   isExpired true once the window has passed (the app tints the line and drops the relative urgency).
+ * `now` is injectable so the phrasing is deterministic in tests. "Today"/"tomorrow" are CALENDAR-day
+ * comparisons (start of day), so they read the way a user reads the date, independent of the time of day.
+ */
+export interface CardExpiry {
+  absolute: string;
+  relative: string | null;
+  isExpired: boolean;
+}
+
+export function formatCardExpiry(
+  expiresAt: string | null | undefined,
+  now: Date = new Date()
+): CardExpiry {
+  if (!expiresAt) {
+    return { absolute: "Expiry date unavailable", relative: null, isExpired: false };
+  }
+  const expiry = new Date(expiresAt);
+  if (Number.isNaN(expiry.getTime())) {
+    return { absolute: "Expiry date unavailable", relative: null, isExpired: false };
+  }
+
+  const date = expiry.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  // Past the instant of expiry: the link is dead (the api would also report it expired/revoked).
+  if (expiry.getTime() <= now.getTime()) {
+    return { absolute: `Link expired on ${date}`, relative: "Link expired", isExpired: true };
+  }
+
+  // Whole calendar days from today to the expiry date (start-of-day to start-of-day), so the phrasing
+  // tracks the displayed date rather than a rolling 24h bucket.
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const dayDiff = Math.round((startOfDay(expiry) - startOfDay(now)) / (24 * 60 * 60 * 1000));
+  const relative =
+    dayDiff <= 0
+      ? "Expires today"
+      : dayDiff === 1
+        ? "Expires tomorrow"
+        : `Expires in ${dayDiff} days`;
+  return { absolute: `Link expires on ${date}`, relative, isExpired: false };
+}
+
+/**
  * Format a Village need's time window for display (Product.md §6 Village Hub). A need is TIME-bounded, so
  * unlike the date-only card/plan formatters this carries date + time (a helper needs to know when to show
  * up). Handles the three shapes the api can send: both ends -> "Sat 14 Jun, 2:00 to 4:00 PM" (the end

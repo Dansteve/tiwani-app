@@ -1,6 +1,7 @@
-// Pin the Settings "Replay the tour" button: clicking it clears the durable "seen" flag and routes to
-// the dashboard (where the coach-marks auto-open because the flag is now unset). The Next router is
-// mocked; localStorage is jsdom's real one, so this exercises clearTourSeen end to end.
+// Pin the Settings "Replay the tour" button: clicking it ARMS the one-shot dashboard-tour signal (the
+// same one-shot the post-onboarding transition sets) and routes to the dashboard, where the dashboard
+// consumes the signal and auto-opens the coach-marks. The Next router is mocked; sessionStorage is
+// jsdom's real one, so this exercises signalJustOnboarded end to end.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -12,12 +13,11 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { ReplayTourButton } from "@/features/tour/ReplayTourButton";
-
-const SEEN_KEY = "tiwani.tour.dashboard.seen.v1";
+import { JUST_ONBOARDED_KEY } from "@/features/tour/justOnboarded";
 
 beforeEach(() => {
   push.mockReset();
-  window.localStorage.clear();
+  window.sessionStorage.clear();
 });
 
 describe("ReplayTourButton", () => {
@@ -26,16 +26,14 @@ describe("ReplayTourButton", () => {
     expect(screen.getByRole("button", { name: /replay the tour/i })).toBeInTheDocument();
   });
 
-  it("clears the seen flag and routes to the dashboard on click", async () => {
+  it("arms the one-shot tour signal and routes to the dashboard on click", async () => {
     const user = userEvent.setup();
-    // Simulate a Coordinator who has already seen (or skipped) the tour.
-    window.localStorage.setItem(SEEN_KEY, "1");
 
     render(<ReplayTourButton />);
     await user.click(screen.getByRole("button", { name: /replay the tour/i }));
 
-    // The flag is cleared so the dashboard's useCoachMarks reads "not seen" and auto-opens ...
-    expect(window.localStorage.getItem(SEEN_KEY)).toBeNull();
+    // The one-shot signal is set so the dashboard consumes it and auto-opens the tour once ...
+    expect(window.sessionStorage.getItem(JUST_ONBOARDED_KEY)).toBe("1");
     // ... and the user is sent to the dashboard where the tour lives.
     expect(push).toHaveBeenCalledWith("/dashboard");
   });

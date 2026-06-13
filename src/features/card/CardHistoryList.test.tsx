@@ -124,6 +124,42 @@ describe("CardHistoryList", () => {
     expect(await screen.findByText("Take it at their pace")).toBeInTheDocument();
   });
 
+  it("surfaces the link expiry next to revoke on an active card (expiry, then revoke)", async () => {
+    // A clearly-future expiry so the relative phrase reads as days remaining, not expired.
+    const future = new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString();
+    listCards.mockResolvedValue([
+      card({ id: "card_1", activity_name: "Swimming lesson", status: "active", expires_at: future }),
+    ]);
+
+    renderList();
+    const row = (await screen.findByText("Swimming lesson")).closest("article")!;
+
+    // The explicit expiry line is shown ...
+    expect(within(row).getByText(/link expires on/i)).toBeInTheDocument();
+    // ... with the at-a-glance days-remaining hint ...
+    expect(within(row).getByText(/expires in \d+ days/i)).toBeInTheDocument();
+    // ... and the Revoke action is present on the same active row (the "then revoke" step).
+    expect(within(row).getByRole("button", { name: /^revoke$/i })).toBeInTheDocument();
+  });
+
+  it("states the lapsed date on an expired card and shows no expiry on a revoked card", async () => {
+    const past = "2025-01-01T00:00:00Z";
+    listCards.mockResolvedValue([
+      card({ id: "e", activity_name: "Expired one", status: "expired", expires_at: past }),
+      card({ id: "r", activity_name: "Revoked one", status: "revoked", expires_at: past }),
+    ]);
+
+    renderList();
+    await screen.findByText("Expired one");
+
+    const expiredRow = screen.getByText("Expired one").closest("article")!;
+    expect(within(expiredRow).getByText(/link expired on/i)).toBeInTheDocument();
+
+    // A revoked card was switched off early: no expiry line (the status badge says "Revoked").
+    const revokedRow = screen.getByText("Revoked one").closest("article")!;
+    expect(within(revokedRow).queryByText(/link expire(s|d) on/i)).not.toBeInTheDocument();
+  });
+
   it("shows the helper-safety staleness cue only on an is_stale card", async () => {
     listCards.mockResolvedValue([
       card({ id: "fresh", activity_name: "Swimming lesson", is_stale: false }),

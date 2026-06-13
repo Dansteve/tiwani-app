@@ -19,7 +19,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, FileDown, FilePlus2, Loader2, ShieldX } from "lucide-react";
+import { CalendarClock, Eye, FileDown, FilePlus2, Loader2, ShieldX } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import type { CardSummary } from "@/lib/api/types";
@@ -27,7 +27,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { downloadBlob } from "@/lib/download";
-import { chapterLabel, formatCardDate } from "@/lib/format";
+import { chapterLabel, formatCardDate, formatCardExpiry } from "@/lib/format";
 import { cardStatusPresentation } from "@/features/card/cardStatusPresentation";
 import { CardContentView } from "@/features/card/CardContentView";
 import { PageTour } from "@/features/tour/PageTour";
@@ -138,6 +138,13 @@ function CardHistoryRow({ card }: { card: CardSummary }) {
         </p>
       ) : null}
 
+      {/* The link EXPIRY, surfaced explicitly (Product.md §4.6: the share link is valid 30 days). On an
+          active card it leads straight into Revoke below, so "expiry, then revoke" reads clearly; on an
+          expired card it states the date the link lapsed. A revoked card was switched off early, so its
+          expiry is not shown (the status badge already says "Revoked"). The api decides the status; this
+          only phrases the api's expires_at (never recomputes the window). */}
+      {card.status !== "revoked" ? <CardExpiryLine card={card} /> : null}
+
       {/*
         The default action buttons sit side by side in a flex row that wraps to stacked on narrow
         widths (no horizontal overflow at ~375px). View is offered on every status; Revoke only on an
@@ -156,6 +163,34 @@ function CardHistoryRow({ card }: { card: CardSummary }) {
         {isActive ? <RevokeControl card={card} /> : null}
       </div>
     </article>
+  );
+}
+
+// The explicit link-expiry line shown on active + expired cards (never recomputed: the api supplies
+// expires_at and the status; this phrases the date). On an active card it sits directly above Revoke so
+// the owner reads "the link expires on <date>" right before the switch-off action; the relative "Expires
+// in N days" is appended as a quiet at-a-glance hint. An expired card reads "Link expired on <date>" on
+// the warning token (colour + the CalendarClock icon + the word "expired", never colour alone).
+function CardExpiryLine({ card }: { card: CardSummary }) {
+  const expiry = formatCardExpiry(card.expires_at);
+  return (
+    <p
+      className={cn(
+        "mt-1 flex items-center gap-1.5 text-sm",
+        expiry.isExpired ? "text-warning" : "text-muted-foreground"
+      )}
+    >
+      <CalendarClock className="size-3.5 shrink-0" aria-hidden="true" />
+      <span>
+        {expiry.absolute}
+        {!expiry.isExpired && expiry.relative ? (
+          <span className="text-muted-foreground">
+            {" "}
+            <span aria-hidden="true">&middot;</span> {expiry.relative}
+          </span>
+        ) : null}
+      </span>
+    </p>
   );
 }
 

@@ -51,6 +51,7 @@ vi.mock("@/lib/api/client", () => ({
 
 import { DashboardScreen } from "@/features/dashboard/DashboardScreen";
 import { RecipientProvider } from "@/state/RecipientProvider";
+import { JUST_ONBOARDED_KEY } from "@/features/tour/justOnboarded";
 
 function renderScreen() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -64,12 +65,12 @@ function renderScreen() {
 }
 
 beforeEach(() => {
+  // The dashboard tour auto-opens ONLY from the one-shot sessionStorage signal (armed at the
+  // post-onboarding transition); clearing sessionStorage means it does not auto-open (a dialog) over the
+  // assertions below. localStorage is cleared too so the recipient state starts clean (the single mocked
+  // recipient resolves to the default active id). The seen flag no longer drives the dashboard auto-open.
   window.sessionStorage.clear();
   window.localStorage.clear();
-  // Mark the dashboard coach-marks tour as already seen so it does not auto-open (a dialog) over the
-  // assertions below. The recipient state (also localStorage) starts clean, so the single mocked
-  // recipient resolves to the default active id.
-  window.localStorage.setItem("tiwani.tour.dashboard.seen.v1", "1");
   me.mockReset();
   getChapters.mockReset();
   getOverallLci.mockReset();
@@ -160,5 +161,31 @@ describe("DashboardScreen", () => {
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(/could not load your chapters/i)
     );
+  });
+});
+
+// The dashboard tour's auto-open is tied to the ONE-SHOT "just onboarded" signal (set at the
+// post-onboarding transition / by Settings "Replay the tour"), NOT a resettable per-browser seen flag.
+// So a just-onboarded user gets it once, and a returning user (no signal) never auto-gets it.
+describe("DashboardScreen tour auto-open", () => {
+  it("does NOT auto-open the tour for a returning user (no one-shot signal)", async () => {
+    // No signal armed (sessionStorage cleared in beforeEach): the tour stays closed.
+    renderScreen();
+    // Wait for the grid to render (the auto-open effect runs only once chapters !== null).
+    await screen.findByRole("heading", { name: "School" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // The on-demand control is always available regardless.
+    expect(screen.getByRole("button", { name: /show me around/i })).toBeInTheDocument();
+  });
+
+  it("auto-opens the tour ONCE when the one-shot 'just onboarded' signal is armed, then clears it", async () => {
+    // Arm the signal as the onboarding completion / replay path does.
+    window.sessionStorage.setItem(JUST_ONBOARDED_KEY, "1");
+    renderScreen();
+
+    // Once the grid has rendered, the effect consumes the signal and opens the coach-marks dialog.
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+    // The signal is consumed (read-and-cleared), so it cannot fire again on a later visit.
+    expect(window.sessionStorage.getItem(JUST_ONBOARDED_KEY)).toBeNull();
   });
 });
