@@ -195,8 +195,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               right). The menu holds the secondary destinations (Notifications / Village / Your plans / Card
               history), keeping the bottom tab bar at five; it renders nothing for a viewer (secondaryNav is
               empty under the ceiling), leaving just the mark. A pending invite shows a coral "new" dot on
-              the menu trigger (and on /notifications), not an inline banner here. */}
-          <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
+              the menu trigger (and on /notifications), not an inline banner here.
+              It is STICKY (top-0): the mark + More stay put as the page scrolls (the owner's ask), so home
+              and the secondary nav are always one tap away. Full-bleed (-mx-4 px-4) with an opaque
+              background + a bottom divider so content scrolls cleanly beneath it. z-30 sits above content
+              and matches the fixed bottom tab bar; the open More panel (z-40) still layers above it. */}
+          <div className="sticky top-0 z-30 -mx-4 mb-6 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-2.5 lg:hidden">
             <Link href="/dashboard" aria-label="TIWANI dashboard">
               <Wordmark className="text-xl" />
             </Link>
