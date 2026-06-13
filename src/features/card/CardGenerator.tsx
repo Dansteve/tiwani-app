@@ -12,12 +12,13 @@
 import { useMemo, useRef } from "react";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
-import { FileText, History } from "lucide-react";
+import { CalendarClock, FileText, History } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import { buttonVariants } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { formatCardExpiry } from "@/lib/format";
 import { CardContentView } from "@/features/card/CardContentView";
 import { ShareLinkBar } from "@/features/card/ShareLinkBar";
 import { buildCardShareUrl } from "@/features/card/shareUrl";
@@ -96,6 +97,20 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
             firstName={card.content.child_first_name}
             cardRef={cardRef}
           />
+
+          {/* The link's 30-day validity, stated at share time (Product.md §4.6). The expiry comes from
+              the api's expires_at; this only phrases it. The owner switches a link off early from Card
+              History (Revoke), where the same expiry line sits beside the revoke action. */}
+          <p className="mt-4 flex items-center gap-1.5 border-t border-border pt-4 text-sm text-muted-foreground">
+            <CalendarClock className="size-4 shrink-0" aria-hidden="true" />
+            <span>
+              {formatCardExpiry(card.expires_at).absolute}. You can switch it off sooner from{" "}
+              <Link href="/card/history" className="font-medium text-primary underline-offset-4 hover:underline">
+                your cards
+              </Link>
+              .
+            </span>
+          </p>
         </div>
 
         <Link

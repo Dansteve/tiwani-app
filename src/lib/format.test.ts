@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 
 import {
+  formatCardExpiry,
   formatLci,
   formatPence,
   formatNeedWindow,
@@ -125,5 +126,47 @@ describe("formatNeedWindow", () => {
 
   it("ignores an unparseable value rather than crashing", () => {
     expect(formatNeedWindow("not-a-date", null)).toBe("Time to be arranged");
+  });
+});
+
+describe("formatCardExpiry", () => {
+  // A fixed "now" at local noon, with expiry timestamps also at local noon, so the start-of-day calendar
+  // comparison is deterministic regardless of the test runner's timezone (the absolute date string itself
+  // is locale-dependent, so the relative phrase + isExpired flag are what we pin).
+  const now = new Date(2025, 5, 1, 12, 0, 0); // 1 Jun 2025, local noon
+  const atNoon = (y: number, m: number, d: number) => new Date(y, m, d, 12, 0, 0).toISOString();
+
+  it("reports the window unavailable for a missing or unparseable date (never crashes)", () => {
+    expect(formatCardExpiry(null, now)).toEqual({
+      absolute: "Expiry date unavailable",
+      relative: null,
+      isExpired: false,
+    });
+    expect(formatCardExpiry(undefined, now)).toMatchObject({ relative: null, isExpired: false });
+    expect(formatCardExpiry("not-a-date", now)).toMatchObject({ relative: null, isExpired: false });
+  });
+
+  it("phrases an active window with 'Link expires on ...' and a relative day count", () => {
+    // 30 days out (the §4.6 share window): a future date, not expired, with the days-remaining hint.
+    const result = formatCardExpiry(atNoon(2025, 6, 1), now); // 1 Jul 2025
+    expect(result.isExpired).toBe(false);
+    expect(result.absolute).toMatch(/^Link expires on /);
+    expect(result.relative).toBe("Expires in 30 days");
+  });
+
+  it("says 'Expires today' on the expiry calendar day and 'Expires tomorrow' the day before", () => {
+    // Later the same calendar day (8pm today) is still active and reads "today".
+    expect(formatCardExpiry(new Date(2025, 5, 1, 20, 0, 0).toISOString(), now).relative).toBe(
+      "Expires today"
+    );
+    // The next calendar day reads "tomorrow".
+    expect(formatCardExpiry(atNoon(2025, 5, 2), now).relative).toBe("Expires tomorrow");
+  });
+
+  it("marks a past window expired with 'Link expired on ...' and isExpired true", () => {
+    const result = formatCardExpiry(atNoon(2025, 4, 30), now); // 30 May 2025, already gone
+    expect(result.isExpired).toBe(true);
+    expect(result.absolute).toMatch(/^Link expired on /);
+    expect(result.relative).toBe("Link expired");
   });
 });

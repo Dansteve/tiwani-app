@@ -31,6 +31,10 @@ import {
   clearSavedOnboarding,
   useOnboardingMachine,
 } from "@/features/onboarding/useOnboardingPersistence";
+import {
+  signalJustOnboarded,
+  sessionOneShotStore,
+} from "@/features/tour/justOnboarded";
 
 interface StepMeta {
   title: string;
@@ -68,6 +72,10 @@ export function OnboardingFlow() {
       api.completeOnboarding(buildPayload(finalState)),
     onSuccess: () => {
       clearSavedOnboarding();
+      // Onboarding just completed: arm the one-shot signal so the dashboard opens the "Show me around"
+      // tour exactly once on arrival (the tour anchors live on the dashboard, reached after the first
+      // plan). It auto-opens once, then clears; a returning, already-onboarded user is never re-shown it.
+      signalJustOnboarded(sessionOneShotStore());
       router.push("/plan");
     },
   });
@@ -88,11 +96,15 @@ export function OnboardingFlow() {
       submit.mutate(state, {
         onSuccess: () => {
           clearSavedOnboarding();
+          // The basics were saved (a care recipient now exists): treat this as onboarding completed and
+          // arm the one-shot dashboard-tour signal, so the tour opens once on the dashboard.
+          signalJustOnboarded(sessionOneShotStore());
           router.push("/dashboard");
         },
       });
       return;
     }
+    // A plain skip with no basics created nothing: do NOT arm the tour signal (nothing was onboarded).
     clearSavedOnboarding();
     router.push("/dashboard");
   }
