@@ -40,7 +40,7 @@ describe("per-page tour seen flag", () => {
     expect(seenKey("village")).toBe("tiwani.tour.village.seen.v1");
     // No two pages share a key.
     const keys = (
-      ["dashboard", "plan", "card", "card-history", "pulse", "continuity", "village", "sharing", "settings"] as const
+      ["dashboard", "plan", "plans", "card", "card-history", "pulse", "continuity", "village", "sharing", "settings"] as const
     ).map(seenKey);
     expect(new Set(keys).size).toBe(keys.length);
   });

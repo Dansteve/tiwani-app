@@ -63,9 +63,9 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
     title: "Find your way around",
     body: "Your village, your saved plans, your shared cards, and your notifications all live here whenever you need them.",
     placement: "right",
-    // Desktop-only: the secondary links live in the sidebar (the mobile bottom bar keeps the primary
-    // tabs). Hidden at the mobile breakpoint, so the tour skips this step there rather than point at a
-    // display:none element.
+    // Anchored to the secondary nav, which renders as the sidebar section on desktop AND the mobile "More"
+    // menu (both carry data-tour="secondary-nav"; the runtime picks the visible one). Still optional: a
+    // viewer has neither (the secondary nav is empty under the ceiling), so the step drops for them.
     optional: true,
   },
   {
@@ -100,6 +100,27 @@ const PLAN_TOUR_STEPS: TourStep[] = [
     title: "Build the plan",
     body: "TIWANI puts together a calm, practical plan in a few seconds, with the strategies most likely to help.",
     placement: "top",
+  },
+];
+
+// The Your Prepared Plans screen (PlansList): re-open a plan you already made. The header intro is always
+// present; the list of plans is conditional (it is replaced by a loading skeleton or an empty state), so
+// its step is optional and drops until there are plans to point at.
+const PLANS_TOUR_STEPS: TourStep[] = [
+  {
+    id: "intro",
+    target: "plans-header",
+    title: "Your prepared plans",
+    body: "Every plan you make is kept here, so you can open any of them again without preparing it afresh.",
+    placement: "bottom",
+  },
+  {
+    id: "list",
+    target: "plans-list",
+    title: "Pick up where you left off",
+    body: "Your plans are listed newest first. Tap View plan on any of them to re-open it exactly as before.",
+    placement: "top",
+    optional: true,
   },
 ];
 
@@ -258,6 +279,7 @@ const SETTINGS_TOUR_STEPS: TourStep[] = [
 export const TOURS: Record<TourPageId, TourStep[]> = {
   dashboard: DASHBOARD_TOUR_STEPS,
   plan: PLAN_TOUR_STEPS,
+  plans: PLANS_TOUR_STEPS,
   card: CARD_TOUR_STEPS,
   "card-history": CARD_HISTORY_TOUR_STEPS,
   pulse: PULSE_TOUR_STEPS,

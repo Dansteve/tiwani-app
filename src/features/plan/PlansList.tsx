@@ -28,6 +28,7 @@ import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { chapterLabel, CHAPTERS, formatCardDate, tierLabel } from "@/lib/format";
 import { PreparationPlanView } from "@/features/plan/PreparationPlanView";
+import { PageTour } from "@/features/tour/PageTour";
 
 export function PlansList() {
   // The chapter filter is local UI state (not a URL param): "All chapters" or one of the six. It keys
@@ -42,7 +43,13 @@ export function PlansList() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold md:text-3xl">Your prepared plans</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 data-tour="plans-header" className="text-2xl font-semibold md:text-3xl">
+            Your prepared plans
+          </h1>
+          {/* On-demand "Show me around" for this screen (the intro + the list of prepared plans). */}
+          <PageTour page="plans" buttonClassName="-mt-1" />
+        </div>
         <p className="text-base text-muted-foreground">
           The plans you have already prepared. Open one again any time, without preparing it afresh.
         </p>
@@ -70,7 +77,7 @@ export function PlansList() {
 
       {!query.isLoading && !query.isError ? (
         query.data && query.data.length > 0 ? (
-          <ul className="space-y-3">
+          <ul data-tour="plans-list" className="space-y-3">
             {query.data.map((plan) => (
               <li key={plan.activity_id}>
                 <PlanRow plan={plan} />

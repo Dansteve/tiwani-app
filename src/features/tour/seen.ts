@@ -13,6 +13,7 @@
 export type TourPageId =
   | "dashboard"
   | "plan"
+  | "plans"
   | "card"
   | "card-history"
   | "pulse"
