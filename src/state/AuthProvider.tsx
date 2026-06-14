@@ -22,7 +22,7 @@ import { env } from "@/lib/env";
 import { setAuthTokenProvider } from "@/lib/api/client";
 import { getAccessToken, getSupabaseClient } from "@/lib/supabaseClient";
 
-interface AuthContextValue {
+export interface AuthContextValue {
   session: Session | null;
   /** True while the initial session is being resolved. */
   loading: boolean;
@@ -79,4 +79,12 @@ export function useAuth(): AuthContextValue {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
+}
+
+// The NON-throwing reader, for providers that sit ABOVE the auth-gated screens and so may render
+// without an AuthProvider above them (e.g. in isolated component tests). It returns null instead of
+// throwing, so a consumer can degrade to "no session" rather than crash. Screens that genuinely
+// require the provider keep using useAuth (the loud version).
+export function useOptionalAuth(): AuthContextValue | null {
+  return useContext(AuthContext) ?? null;
 }

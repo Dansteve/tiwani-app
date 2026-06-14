@@ -32,8 +32,11 @@ const authState: { session: Session | null; loading: boolean; configured: boolea
   loading: false,
   configured: true,
 };
+// useAuth feeds RedeemView; useOptionalAuth feeds the wrapping RecipientProvider's session gate. Both read
+// the same controllable authState so the signed-in/out branch and the gated recipients read stay consistent.
 vi.mock("@/state/AuthProvider", () => ({
   useAuth: () => authState,
+  useOptionalAuth: () => authState,
 }));
 
 import { ApiError } from "@/lib/api/client";

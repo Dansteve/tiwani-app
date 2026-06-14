@@ -49,6 +49,9 @@ vi.mock("@/lib/api/client", () => ({
   },
 }));
 
+// RecipientProvider gates its recipients read on an authenticated session; give it one (shared helper).
+vi.mock("@/state/AuthProvider", async () => (await import("@/test/authMock")).authProviderSessionMock());
+
 import { DashboardScreen } from "@/features/dashboard/DashboardScreen";
 import { RecipientProvider } from "@/state/RecipientProvider";
 import { JUST_ONBOARDED_KEY } from "@/features/tour/justOnboarded";

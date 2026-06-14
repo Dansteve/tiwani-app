@@ -89,6 +89,9 @@ vi.mock("@/features/settings/PlansBillingSection", () => ({
   PlansBillingSection: () => <div data-testid="plans-billing-section" />,
 }));
 
+// RecipientProvider gates its recipients read on an authenticated session; give it one (shared helper).
+vi.mock("@/state/AuthProvider", async () => (await import("@/test/authMock")).authProviderSessionMock());
+
 import { SettingsScreen } from "@/features/settings/SettingsScreen";
 import { ThemeProvider } from "@/state/ThemeProvider";
 import { RecipientProvider } from "@/state/RecipientProvider";
