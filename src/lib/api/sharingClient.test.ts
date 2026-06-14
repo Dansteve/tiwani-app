@@ -75,6 +75,13 @@ describe("sharing api client", () => {
     expect(JSON.parse(String(lastInit?.body))).toEqual({ token: "tok" });
   });
 
+  it("redeemShareByCode POSTs to /sharing/redeem-by-code with the join_code", async () => {
+    await api.redeemShareByCode({ join_code: "ABCDEFGHJK" });
+    expect(pathOf(lastUrl)).toBe("/api/v1/sharing/redeem-by-code");
+    expect(lastInit?.method).toBe("POST");
+    expect(JSON.parse(String(lastInit?.body))).toEqual({ join_code: "ABCDEFGHJK" });
+  });
+
   it("getShareRoster GETs the recipient roster", async () => {
     await api.getShareRoster("rec_1");
     expect(pathOf(lastUrl)).toBe("/api/v1/sharing/recipients/rec_1/roster");

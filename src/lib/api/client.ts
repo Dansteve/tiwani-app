@@ -51,6 +51,7 @@ import type {
   ShareConsentRecorded,
   ShareInviteCreate,
   ShareInviteCreated,
+  ShareRedeemByCodeRequest,
   ShareRedeemRequest,
   ShareRedeemResult,
   ShareRevokeResult,
@@ -789,6 +790,24 @@ export const api = {
    */
   redeemShare(payload: ShareRedeemRequest): Promise<ShareRedeemResult> {
     return http<ShareRedeemResult>("/api/v1/sharing/redeem", {
+      method: "POST",
+      body: payload,
+    });
+  },
+
+  /**
+   * Redeem an invite by TYPING the short join code (POST /api/v1/sharing/redeem-by-code, the 2026-06-13
+   * board verdict). The typable-code analogue of redeemShare: AUTH REQUIRED, and the api funnels it into
+   * the SAME email-bound, single-use redeem core (the signed-in account's email must match the invited
+   * email), returning the SAME 200 ShareRedeemResult. Body is { join_code }; the app sends the value as
+   * typed (any case / dashes / spaces, the Crockford aliases I/L -> 1 and O -> 0), because the api
+   * normalizes it. A 400 (ApiError.status === 400) is the ONE generic failure for every reason (unknown /
+   * expired / used / revoked / wrong-email / malformed, an identical body, no oracle): the caller shows the
+   * same calm "this code isn't valid" state as the link path. A 429 (ApiError.status === 429) is the
+   * throttle (a short code MUST be rate-limited): the caller shows a calm "too many tries, wait a moment".
+   */
+  redeemShareByCode(payload: ShareRedeemByCodeRequest): Promise<ShareRedeemResult> {
+    return http<ShareRedeemResult>("/api/v1/sharing/redeem-by-code", {
       method: "POST",
       body: payload,
     });
