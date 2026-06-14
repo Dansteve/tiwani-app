@@ -176,8 +176,8 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
         <h1 className="text-2xl font-semibold md:text-3xl">Create a Continuity Card</h1>
         <p className="text-base text-muted-foreground">
           A one-page support summary you can share with a babysitter, teacher, or respite carer. It
-          shows only your child&apos;s first name, what helps, and what to do if things get difficult,
-          no account needed to open it.
+          shows only their first name, what helps, and what to do if things get difficult, no account
+          needed to open it.
         </p>
       </header>
 
@@ -249,8 +249,8 @@ function PublicNameChooser({
         Show a name on the shared card?
       </h2>
       <p className="text-sm text-muted-foreground">
-        The default keeps the child&apos;s name off a link anyone could open. You can add an initial or
-        nickname if you&apos;d like.
+        The default keeps their name off a link anyone could open. You can add an initial or nickname
+        if you&apos;d like.
       </p>
 
       <div className="space-y-2" role="radiogroup" aria-label="Show a name on the shared card?">
@@ -263,7 +263,7 @@ function PublicNameChooser({
         {hasFirstName ? (
           <ChoiceCard
             title="First name"
-            description="The shared card shows your child's first name."
+            description={`The shared card shows ${firstName}'s first name.`}
             selected={mode === "first"}
             onSelect={() => onModeChange("first")}
           />
