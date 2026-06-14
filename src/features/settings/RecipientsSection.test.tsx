@@ -41,6 +41,9 @@ vi.mock("@/lib/api/client", async () => {
   };
 });
 
+// RecipientProvider gates its recipients read on an authenticated session; give it one (shared helper).
+vi.mock("@/state/AuthProvider", async () => (await import("@/test/authMock")).authProviderSessionMock());
+
 import { ApiError } from "@/lib/api/client";
 import { RecipientsSection } from "@/features/settings/RecipientsSection";
 import { RecipientProvider } from "@/state/RecipientProvider";

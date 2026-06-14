@@ -3,6 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import type { Session } from "@supabase/supabase-js";
+
 import type { ActiveRecipient, ShareRole } from "@/lib/api/types";
 import { SELECTED_RECIPIENT_STORAGE_KEY } from "@/state/selectedRecipient";
 
@@ -11,6 +13,16 @@ import { SELECTED_RECIPIENT_STORAGE_KEY } from "@/state/selectedRecipient";
 // default, a valid stored choice kept), persists a switch, and exposes it (plus the active role) through the
 // hook. Drives the provider through the public useRecipient hook, the probe-component approach
 // ThemeProvider.test.tsx uses. The active ROLE is what the shell ceiling reads (Helper Village ACCESS).
+//
+// AUTH GATE: the provider reads the session via useOptionalAuth and only fetches /recipients when one is
+// present (no pre-auth 401). A module-level session ref drives that read: beforeEach restores a present
+// session so the resolution tests run as before; the gate test below flips it to null and asserts the
+// fetch never fires. (No real AuthProvider in the tree, so the mock IS the session source here.)
+let mockSession: Session | null = { access_token: "t", user: { id: "u_test" } } as unknown as Session;
+
+vi.mock("@/state/AuthProvider", () => ({
+  useOptionalAuth: () => (mockSession ? { session: mockSession, loading: false, configured: true } : null),
+}));
 
 function recipient(id: string, firstName: string, role: ShareRole = "owner"): ActiveRecipient {
   return { id, first_name: firstName, role };
@@ -55,6 +67,8 @@ function renderProvider() {
 beforeEach(() => {
   window.localStorage.clear();
   getRecipients.mockReset();
+  // Default: an authenticated session, so the resolution tests below exercise the live read path.
+  mockSession = { access_token: "t", user: { id: "u_test" } } as unknown as Session;
 });
 
 afterEach(() => {
@@ -130,5 +144,27 @@ describe("RecipientProvider", () => {
 
     await waitFor(() => expect(screen.getByTestId("active-id")).toHaveTextContent("none"));
     expect(screen.getByTestId("count")).toHaveTextContent("0");
+  });
+
+  describe("the auth gate (no pre-auth /recipients call)", () => {
+    it("does NOT fetch /recipients when there is no session (the 401-on-load regression)", async () => {
+      mockSession = null; // unauthenticated: mounted in the root layout above the (app) sign-in gate
+      getRecipients.mockResolvedValue(TWO);
+      renderProvider();
+
+      // The query is disabled, so the fetch never fires and the active id stays null (no recipient).
+      await waitFor(() => expect(screen.getByTestId("active-id")).toHaveTextContent("none"));
+      expect(getRecipients).not.toHaveBeenCalled();
+    });
+
+    it("DOES fetch /recipients once a session is present", async () => {
+      mockSession = { access_token: "t", user: { id: "u_test" } } as unknown as Session;
+      getRecipients.mockResolvedValue(TWO);
+      renderProvider();
+
+      await waitFor(() => expect(getRecipients).toHaveBeenCalledTimes(1));
+      // and the fetched list resolves the active id (first recipient) once the data lands.
+      await waitFor(() => expect(screen.getByTestId("active-id")).toHaveTextContent("c_ada"));
+    });
   });
 });

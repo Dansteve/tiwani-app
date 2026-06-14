@@ -32,6 +32,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
 import type { ActiveRecipient, ShareRole } from "@/lib/api/types";
+import { useOptionalAuth } from "@/state/AuthProvider";
 import {
   localRecipientStore,
   readStoredRecipientId,
@@ -70,12 +71,20 @@ interface RecipientContextValue {
 const RecipientContext = createContext<RecipientContextValue | null>(null);
 
 export function RecipientProvider({ children }: { children: ReactNode }) {
-  // The recipients drive the switcher and the active-id resolution. AUTH REQUIRED on the api; the bearer is
-  // attached by the client. The read is resilient: on error the provider leaves activeChildId null and the
-  // app falls back to the api's default recipient, so a transient failure never blanks the dashboard.
+  // The session, read non-throwing because this provider sits in the ROOT layout (it wraps the auth
+  // screens too, above the (app) OnboardingGuard). useOptionalAuth returns null when there is no
+  // AuthProvider above (isolated tests) rather than throwing.
+  const session = useOptionalAuth()?.session ?? null;
+
+  // The recipients drive the switcher and the active-id resolution. AUTH REQUIRED on the api, so the read is
+  // GATED on an authenticated session: with no session the query stays disabled and never fires, so the app
+  // makes no pre-auth GET /api/v1/recipients (which the api correctly 401s) while rendering /sign-in. The
+  // bearer is attached by the client. The read is resilient: on error the provider leaves activeChildId null
+  // and the app falls back to the api's default recipient, so a transient failure never blanks the dashboard.
   const childrenQuery = useQuery({
     queryKey: ["recipients"],
     queryFn: ({ signal }) => api.getRecipients(signal),
+    enabled: Boolean(session),
   });
 
   // The user's explicit choice this session. Seeded from storage on mount (an effect, not during render,
