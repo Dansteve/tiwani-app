@@ -1,25 +1,29 @@
 "use client";
 
-// The "Join a village" front door (Docs/FeatureDecisions.md "Helper Village ACCESS"). A helper who was
-// sent a join LINK or a village CODE but has no account yet lands here, pastes either one, and is routed
-// into the EXISTING redeem flow (/link?token=<token> -> RedeemView), where they sign in with their invited
-// email and join. This screen owns NO redeem logic of its own: it only extracts the token from whatever was
-// pasted (a full URL or a bare token, both resolving to the same email-bound invite) and forwards it to
-// /link, which already handles sign-in, the email-bound redeem, and the land-in-the-Village success.
+// The "Join a village" front door (Docs/FeatureDecisions.md "Helper Village ACCESS"). A helper given a way
+// to join lands here. There are TWO entries, because the owner can hand over EITHER a link OR a short typed
+// code (the 2026-06-13 board verdict, the short typed join code):
+//   1. TYPE THE SHORT CODE: the helper TYPES the short XXXXX-XXXXX code (JoinCodeRedeem), which redeems by
+//      code in place (POST /sharing/redeem-by-code) and funnels into the SAME success handling as the link.
+//   2. PASTE A LINK: the helper pastes the join LINK (or the long village token). This screen extracts the
+//      token (a full URL or a bare token) and forwards it to the EXISTING redeem flow (/link?token=<token>
+//      -> RedeemView), which handles sign-in, the email-bound redeem, and the land-in-the-Village success.
+//      This entry owns no redeem logic of its own.
 //
 // It sits OUTSIDE the (app) onboarding guard (like /link and the public card /c), so a signed-out helper is
 // not silently bounced. The shell mirrors RedeemView (the wordmark, the centered max-w-md column, the same
-// footer) so the two account-less pages read as one.
+// footer) so the account-less pages read as one.
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Info } from "lucide-react";
+import { ArrowLeft, ArrowRight, Info, KeyRound, Link2 } from "lucide-react";
 
 import { env } from "@/lib/env";
 import { Wordmark } from "@/components/Wordmark";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { buildRedeemUrl, extractInviteToken } from "@/features/sharing/shareLink";
+import { JoinCodeRedeem } from "@/features/sharing/JoinCodeRedeem";
 
 export function JoinView() {
   const router = useRouter();
@@ -60,35 +64,71 @@ export function JoinView() {
         <div>
           <h1 className="text-2xl font-semibold md:text-3xl">Join a village</h1>
           <p className="mt-2 text-base text-muted-foreground">
-            A family has asked you to help. Paste the join link or the code they sent you, and we will take
-            you to the next step.
+            A family has asked you to help. Type the code they sent you, or paste the join link, and we will
+            take you to the next step.
           </p>
         </div>
 
-        <form onSubmit={onSubmit} noValidate className="space-y-4">
-          <Field
-            label="Paste your join link or code"
-            name="joinInput"
-            type="text"
-            inputMode="text"
-            autoComplete="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            placeholder="Paste the link or code here"
-            value={value}
-            onChange={(e) => {
-              setValue(e.target.value);
-              if (error) setError(null);
-            }}
-            error={error ?? undefined}
-            hint="It looks like a web link, or a short code on its own."
-          />
+        {/* Entry 1: TYPE THE SHORT CODE (the 2026-06-13 board verdict). Redeems by code in place and lands
+            in the Village via the SAME success path as the link. */}
+        <section
+          aria-labelledby="join-code-heading"
+          className="space-y-4 rounded-2xl border border-border bg-card px-5 py-5"
+        >
+          <h2
+            id="join-code-heading"
+            className="flex items-center gap-2 text-base font-semibold text-foreground"
+          >
+            <KeyRound className="size-4 shrink-0 text-primary" aria-hidden="true" />
+            Have a code? Type it
+          </h2>
+          <JoinCodeRedeem />
+        </section>
 
-          <Button type="submit" size="lg" className="w-full">
-            Continue
-            <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
-          </Button>
-        </form>
+        {/* A clear divider between the two entries, with an accessible label. */}
+        <div className="flex items-center gap-3" role="separator" aria-label="or">
+          <span className="h-px flex-1 bg-border" aria-hidden="true" />
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">or</span>
+          <span className="h-px flex-1 bg-border" aria-hidden="true" />
+        </div>
+
+        {/* Entry 2: PASTE A LINK (or the long token). Forwards into the existing /link redeem flow. */}
+        <section
+          aria-labelledby="join-link-heading"
+          className="space-y-4 rounded-2xl border border-border bg-card px-5 py-5"
+        >
+          <h2
+            id="join-link-heading"
+            className="flex items-center gap-2 text-base font-semibold text-foreground"
+          >
+            <Link2 className="size-4 shrink-0 text-primary" aria-hidden="true" />
+            Have a link? Paste it
+          </h2>
+          <form onSubmit={onSubmit} noValidate className="space-y-4">
+            <Field
+              label="Paste your join link"
+              name="joinInput"
+              type="text"
+              inputMode="text"
+              autoComplete="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              placeholder="Paste the link here"
+              value={value}
+              onChange={(e) => {
+                setValue(e.target.value);
+                if (error) setError(null);
+              }}
+              error={error ?? undefined}
+              hint="It looks like a web link. You can paste the long code here too."
+            />
+
+            <Button type="submit" size="lg" className="w-full">
+              Continue
+              <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+            </Button>
+          </form>
+        </section>
 
         <p className="flex items-start gap-2 text-sm text-muted-foreground">
           <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />

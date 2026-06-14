@@ -139,12 +139,13 @@ export function ShareInvitePanel({
           </div>
         </div>
 
-        {/* Three ways to send the SAME email-bound invite: the link, the code (the token, to paste into the
-            Join front door), and a pre-filled email to the invited address (Docs/FeatureDecisions.md
-            "Helper Village ACCESS"). */}
+        {/* Three ways to hand over the SAME email-bound invite: the link, the short TYPABLE private code
+            (the 2026-06-13 board verdict, shown large), and a pre-filled email to the invited address
+            carrying both (Docs/FeatureDecisions.md "Helper Village ACCESS"). */}
         <ShareLinkRow
           url={redeemUrl}
-          token={created.token}
+          joinCode={created.join_code}
+          joinCodeCopyKey={created.join_code_copy_key}
           inviteEmail={email.trim()}
           recipientFirstName={firstName}
         />

@@ -57,6 +57,14 @@ const SHARING_COPY: Record<ShareCopyKey, CopyEntry> = {
   // The calm, capacity-framed copy for the 409 (an adult share with no recorded consent yet).
   "sharing.adult_blocked": (firstName) =>
     `To share ${firstName}'s card, please confirm ${firstName} has agreed first. Once that is recorded, you can send the invite.`,
+
+  // The honest "private code" line shown beside a generated short join code (the 2026-06-13 board
+  // verdict). It MUST match the api's governed string verbatim (app/engines/sharing/copy.py
+  // _JOIN_CODE_INTRO): the api returns this key, the app renders the string. HONEST framing only, it
+  // NEVER claims the code is "secure"/"safe" (a short code is not a strong secret on its own; the
+  // email-bind is the real wall). `firstName` is the api's _first_name(recipient_name).
+  "sharing.join_code.intro": (firstName) =>
+    `This is a private code for the person you are inviting. Share it with them directly, along with the email address you used. They type the code in to see ${firstName}'s support card. It is just for them and it expires soon, so generate a new one whenever you need.`,
 };
 
 /**

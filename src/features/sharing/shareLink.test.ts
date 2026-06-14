@@ -9,6 +9,7 @@ import {
   buildMailtoHref,
   buildRedeemUrl,
   extractInviteToken,
+  formatJoinCodeInput,
   REDEEM_PATH,
   REDEEM_TOKEN_PARAM,
 } from "@/features/sharing/shareLink";
@@ -155,5 +156,35 @@ describe("pendingInvite stash", () => {
 
   it("returns null when nothing is stashed", () => {
     expect(readPendingInviteToken()).toBeNull();
+  });
+});
+
+describe("formatJoinCodeInput", () => {
+  it("uppercases and groups a typed code as XXXXX-XXXXX", () => {
+    expect(formatJoinCodeInput("abcdefghjk")).toBe("ABCDE-FGHJK");
+  });
+
+  it("is forgiving of stray dashes and spaces (cosmetic only)", () => {
+    expect(formatJoinCodeInput("ab cd-ef gh jk")).toBe("ABCDE-FGHJK");
+  });
+
+  it("groups a partial code without a trailing dash", () => {
+    expect(formatJoinCodeInput("abc")).toBe("ABC");
+    expect(formatJoinCodeInput("abcde")).toBe("ABCDE");
+    expect(formatJoinCodeInput("abcdef")).toBe("ABCDE-F");
+  });
+
+  it("caps at ten significant characters (a long pasted token is trimmed)", () => {
+    expect(formatJoinCodeInput("ABCDEFGHJKMNPQ")).toBe("ABCDE-FGHJK");
+  });
+
+  it("does NOT map the Crockford input aliases (the api normalizes those on redeem)", () => {
+    // Display is cosmetic: an I stays an I here; the api maps I/L -> 1 and O -> 0 when it normalizes.
+    expect(formatJoinCodeInput("iloabcdef")).toBe("ILOAB-CDEF");
+  });
+
+  it("returns an empty string for empty or all-separator input", () => {
+    expect(formatJoinCodeInput("")).toBe("");
+    expect(formatJoinCodeInput("  --  ")).toBe("");
   });
 });

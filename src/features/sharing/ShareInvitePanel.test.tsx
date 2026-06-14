@@ -76,6 +76,8 @@ describe("ShareInvitePanel", () => {
     createShareInvite.mockResolvedValue({
       invite_id: "inv_1",
       token: "tok_redeem",
+      join_code: "ABCDE-FGHJK",
+      join_code_copy_key: "sharing.join_code.intro",
       role: "viewer",
       expires_at: "2026-07-01T00:00:00Z",
       copy_key: "sharing.invite.intro",
@@ -99,11 +101,13 @@ describe("ShareInvitePanel", () => {
     expect(screen.getByText(/carer@example.com/)).toBeInTheDocument();
   });
 
-  it("offers all three ways to send the same invite on success: link, code, and email", async () => {
+  it("offers all three ways to hand over the same invite on success: link, private code, and email", async () => {
     const user = userEvent.setup();
     createShareInvite.mockResolvedValue({
       invite_id: "inv_3",
       token: "tok_threeway",
+      join_code: "MNPQR-STVWX",
+      join_code_copy_key: "sharing.join_code.intro",
       role: "viewer",
       expires_at: "2026-07-01T00:00:00Z",
       copy_key: "sharing.invite.intro",
@@ -115,21 +119,24 @@ describe("ShareInvitePanel", () => {
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: /create invite link/i }));
 
-    // 1) The LINK field.
+    // 1) The LINK field (the long token rides in the URL, never shown on its own).
     const link = (await screen.findByLabelText(/join link/i)) as HTMLInputElement;
     expect(link.value).toContain("/link?token=tok_threeway");
 
-    // 2) The CODE field shows the raw token (the same invite token, to paste into the Join front door).
-    const code = screen.getByLabelText(/village code/i) as HTMLInputElement;
-    expect(code.value).toBe("tok_threeway");
+    // 2) The short PRIVATE CODE shown LARGE (the formatted join_code the helper types), with a Copy action
+    //    and the HONEST governed "private code" copy (never the long token, never the word "secure").
+    const code = screen.getByLabelText(/private join code/i) as HTMLInputElement;
+    expect(code.value).toBe("MNPQR-STVWX");
     expect(screen.getByRole("button", { name: /copy code/i })).toBeInTheDocument();
+    expect(screen.getByText(/this is a private code for the person you are inviting/i)).toBeInTheDocument();
+    expect(screen.queryByText(/secure|safe/i)).not.toBeInTheDocument();
 
-    // 3) The "Send by email" mailto, pre-filled to the invited address, carrying the link and the code.
+    // 3) The "Send by email" mailto, pre-filled to the invited address, carrying the link and the SHORT code.
     const mailto = screen.getByRole("link", { name: /send by email/i });
     const href = mailto.getAttribute("href") ?? "";
     expect(href.startsWith("mailto:carer%40example.com?")).toBe(true);
     expect(decodeURIComponent(href)).toContain("/link?token=tok_threeway");
-    expect(decodeURIComponent(href)).toContain("tok_threeway");
+    expect(decodeURIComponent(href)).toContain("MNPQR-STVWX");
   });
 
   it("records consent first for an adult share before minting the invite", async () => {
@@ -142,6 +149,8 @@ describe("ShareInvitePanel", () => {
     createShareInvite.mockResolvedValue({
       invite_id: "inv_2",
       token: "tok_adult",
+      join_code: "ADULT-CODE1",
+      join_code_copy_key: "sharing.join_code.intro",
       role: "viewer",
       expires_at: "2026-07-01T00:00:00Z",
       copy_key: "sharing.invite.intro",

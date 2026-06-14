@@ -18,6 +18,7 @@ const ALL_KEYS: ShareCopyKey[] = [
   "sharing.roster.empty",
   "sharing.revoked.confirm",
   "sharing.adult_blocked",
+  "sharing.join_code.intro",
 ];
 
 describe("sharingCopy", () => {
@@ -67,6 +68,18 @@ describe("sharingCopy", () => {
     // No alarming / urgency words.
     expect(text.toLowerCase()).not.toContain("error");
     expect(text.toLowerCase()).not.toContain("denied");
+  });
+
+  it("renders the join-code intro with HONEST 'private code' framing, never 'secure'/'safe'", () => {
+    // The api returns this verbatim; it must match (the app authors no wording) AND never overclaim a short
+    // code as secure/safe (the board bar: the email-bind is the real wall).
+    const text = sharingCopy("sharing.join_code.intro", "Ada");
+    expect(text).toBe(
+      "This is a private code for the person you are inviting. Share it with them directly, along with the email address you used. They type the code in to see Ada's support card. It is just for them and it expires soon, so generate a new one whenever you need."
+    );
+    expect(text.toLowerCase()).toContain("private");
+    expect(text.toLowerCase()).not.toContain("secure");
+    expect(text.toLowerCase()).not.toContain("safe");
   });
 
   it("returns an empty string for an unknown key rather than throwing (forward-compatible)", () => {

@@ -113,3 +113,30 @@ export function buildMailtoHref(to: string, email: JoinEmail): string {
   const address = to.trim();
   return `mailto:${encodeURIComponent(address)}?${params.toString()}`;
 }
+
+/** The number of significant characters in a short join code (the api's JOIN_CODE_LENGTH). */
+export const JOIN_CODE_LENGTH = 10;
+const JOIN_CODE_GROUP = 5;
+
+/**
+ * Format a TYPED short join code for nice DISPLAY in the input as the helper types: uppercase, drop any
+ * non-alphanumeric character (spaces, stray dashes), cap at JOIN_CODE_LENGTH significant characters, and
+ * re-group as XXXXX-XXXXX (a single cosmetic dash). This is COSMETIC ONLY (the 2026-06-13 board verdict's
+ * app side): it never maps the Crockford input aliases (I/L -> 1, O -> 0) or validates the alphabet, because
+ * the API normalizes and validates the code on redeem (case- + dash-insensitive, alias-forgiving). So the
+ * input stays forgiving (a lowercase paste, extra dashes/spaces, or the long pasted token are all accepted
+ * and tidied), and the raw typed value is what the caller SENDS (the api does the real normalization). Pure +
+ * framework-agnostic (Decisions.md D10), so it is unit-testable with no window dependency.
+ */
+export function formatJoinCodeInput(typed: string): string {
+  const cleaned = typed
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, JOIN_CODE_LENGTH);
+  if (!cleaned) return "";
+  const groups: string[] = [];
+  for (let i = 0; i < cleaned.length; i += JOIN_CODE_GROUP) {
+    groups.push(cleaned.slice(i, i + JOIN_CODE_GROUP));
+  }
+  return groups.join("-");
+}

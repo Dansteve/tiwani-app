@@ -15,7 +15,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Heart, Info, Loader2, LogIn } from "lucide-react";
+import { Info, Loader2, LogIn } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import type { ShareRedeemResult } from "@/lib/api/types";
@@ -25,11 +25,12 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/state/AuthProvider";
 import { useRecipient } from "@/state/RecipientProvider";
-import { sharingCopy } from "@/features/sharing/copy";
+import { setPendingInviteToken } from "@/features/sharing/pendingInvite";
 import {
-  clearPendingInviteToken,
-  setPendingInviteToken,
-} from "@/features/sharing/pendingInvite";
+  onRedeemSuccess,
+  RedeemSuccess,
+  RedeemUnavailable,
+} from "@/features/sharing/redeemShared";
 
 // The safety-timeout window for the loading state: long enough to clear a cold-start of the api (which
 // can take ~30 to 60s after idle), short enough that a genuinely stuck request resolves to a calm "try
@@ -55,16 +56,9 @@ function RedeemToken({ token }: { token: string }) {
 
   const redeem = useMutation<ShareRedeemResult, unknown, void>({
     mutationFn: () => api.redeemShare({ token }),
-    onSuccess: (data) => {
-      // The intent is consumed: drop the stashed token so the in-app banner stops offering it.
-      clearPendingInviteToken();
-      // Land the helper IN the just-shared recipient's Village (Docs/FeatureDecisions.md "Helper Village
-      // ACCESS", refinement 2): make the redeemed recipient the active one and refetch the switcher list
-      // so it includes the new membership, so /village opens scoped to them (and the shell flips to the
-      // viewer ceiling). The success screen routes there.
-      setActiveChildId(data.recipient_id);
-      queryClient.invalidateQueries({ queryKey: ["recipients"] });
-    },
+    // The SHARED success side-effect (the same one the typed-code path runs): drop the stashed token, make
+    // the redeemed recipient active, and refetch the switcher so /village opens scoped to them.
+    onSuccess: (data) => onRedeemSuccess(data, { setActiveChildId, queryClient }),
   });
 
   // Fire the redeem exactly once, only when auth has resolved AND there is a session (the bearer is
@@ -104,7 +98,7 @@ function RedeemToken({ token }: { token: string }) {
     // A 400 is the catch-all bad-token case (unknown / expired / used / revoked / wrong email); anything
     // else is a generic retry. Either way, one calm page, never the raw reason.
     const badToken = redeem.error instanceof ApiError && redeem.error.status === 400;
-    return <RedeemUnavailable badToken={badToken} />;
+    return <RedeemUnavailable reason={badToken ? "bad-credential" : "retry"} kind="link" />;
   }
 
   if (redeem.isSuccess) {
@@ -113,7 +107,7 @@ function RedeemToken({ token }: { token: string }) {
 
   // The timeout fired while still loading: the generic retry path (NOT the bad-token copy), never blank.
   if (timedOut && loading) {
-    return <RedeemUnavailable badToken={false} />;
+    return <RedeemUnavailable reason="retry" kind="link" />;
   }
 
   // Still resolving auth, or redeeming for a signed-in user: a calm loading state.
@@ -128,42 +122,6 @@ function RedeemToken({ token }: { token: string }) {
 
   // Resolved + signed in + not pending + no result: the brief idle gap before the effect fires the redeem.
   return <RedeemLoading />;
-}
-
-function RedeemSuccess({ result }: { result: ShareRedeemResult }) {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-start gap-3 rounded-2xl border border-success/30 bg-success/10 px-5 py-4">
-        <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-success" aria-hidden="true" />
-        <div className="min-w-0 space-y-1">
-          <h1 className="text-xl font-semibold text-foreground">You are connected</h1>
-          <p className="text-sm text-muted-foreground">
-            {sharingCopy(result.copy_key, result.recipient_first_name)}
-          </p>
-        </div>
-      </div>
-
-      {/* First-time orientation (refinement 2): the Village is where a helper picks up a hand. */}
-      <p className="flex items-start gap-2 text-sm text-muted-foreground">
-        <Heart className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-        <span>
-          {result.recipient_first_name}&apos;s village is where you can pick up a hand, a specific way to
-          help when you have the time. You can open their Continuity Card any time too.
-        </span>
-      </p>
-
-      <div className="flex flex-col gap-3">
-        {/* Primary: land in the Village (the redeem destination), not just the card. */}
-        <Link href="/village" className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full")}>
-          Go to {result.recipient_first_name}&apos;s village
-        </Link>
-        {/* Secondary: the shared Continuity Card. */}
-        <Link href="/sharing" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full")}>
-          See {result.recipient_first_name}&apos;s Continuity Card
-        </Link>
-      </div>
-    </div>
-  );
 }
 
 function SignInPrompt() {
@@ -194,27 +152,6 @@ function SignInPrompt() {
       <p className="text-sm text-muted-foreground">
         Use the email address the invite was sent to, so it opens for you.
       </p>
-    </div>
-  );
-}
-
-function RedeemUnavailable({ badToken }: { badToken: boolean }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card px-6 py-10 text-center">
-      <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-secondary text-muted-foreground">
-        <Info className="size-6" aria-hidden="true" />
-      </div>
-      <h1 className="mt-4 text-xl font-semibold text-foreground">
-        {badToken ? "This invite can't be opened" : "Something went wrong"}
-      </h1>
-      <p className="mx-auto mt-2 max-w-sm text-base text-muted-foreground">
-        {badToken
-          ? "This invite link may have expired, already been used, or been sent to a different email. Ask the family who shared it to send you a new one."
-          : "Please try opening the link again in a moment. If it keeps happening, ask the family who shared it."}
-      </p>
-      <Link href="/sharing" className={cn(buttonVariants({ variant: "outline" }), "mt-6")}>
-        Go to sharing
-      </Link>
     </div>
   );
 }

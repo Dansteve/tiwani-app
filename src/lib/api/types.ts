@@ -693,6 +693,9 @@ export type ShareSubjectKind = "child" | "adult";
  *   sharing.roster.empty     the calm empty-roster line (no one has access yet).
  *   sharing.revoked.confirm  the confirmation shown after a link is revoked.
  *   sharing.adult_blocked    the calm capacity-framed copy for the 409 (adult share, no recorded consent).
+ *   sharing.join_code.intro  the honest "private code" line shown beside a generated short join code (the
+ *                            2026-06-13 board verdict): names what the code is + that it expires, and
+ *                            NEVER claims it is "secure"/"safe" (the email-bind is the real wall).
  */
 export type ShareCopyKey =
   | "sharing.invite.intro"
@@ -702,24 +705,36 @@ export type ShareCopyKey =
   | "sharing.roster.title"
   | "sharing.roster.empty"
   | "sharing.revoked.confirm"
-  | "sharing.adult_blocked";
+  | "sharing.adult_blocked"
+  | "sharing.join_code.intro";
 
 /**
  * The POST /api/v1/sharing/invites response (201 InviteCreated). The Coordinator minted an email-bound,
  * single-use, expiring invite for ONE recipient. Mirrors the api field-for-field:
  *   invite_id     the invite row id (the key the roster revokes a PENDING invite by).
- *   token         the opaque redeem secret; the app builds the redeem link from it (and appends no PII).
- *                 Unlike a card token this link needs an ACCOUNT to redeem (the recipient signs in first).
- *   role          the granted role (the invitable subset, viewer for the MVP); a wire value, never shown.
- *   expires_at    when the invite link stops working (ISO).
- *   copy_key      the governed copy key for the intro (sharing.invite.intro); the app renders its string.
- *   consent_text  the BUILT consent string that was recorded for this share (verbatim, as stored in
- *                 share_consent.consent_text). The app shows it back so the Coordinator sees exactly what
- *                 they confirmed; it is the responsible-adult / recorded-recipient consent text.
+ *   token              the opaque redeem secret; the app builds the redeem link from it (and appends no
+ *                      PII). Unlike a card token this link needs an ACCOUNT to redeem (the recipient signs
+ *                      in first).
+ *   join_code          the SHORT, human-typable code for the SAME email-bound invite (the 2026-06-13 board
+ *                      verdict), already in its display form (XXXXX-XXXXX, a single cosmetic dash). The
+ *                      owner can hand over the link OR this code; the helper TYPES it on /join instead of
+ *                      pasting the long token. The app shows it verbatim and never reformats the value.
+ *   join_code_copy_key the governed copy key for the honest "private code" line (sharing.join_code.intro);
+ *                      the app renders its string and authors no wording.
+ *   role               the granted role (the invitable subset, viewer for the MVP); a wire value, never
+ *                      shown.
+ *   expires_at         when the invite link stops working (ISO).
+ *   copy_key           the governed copy key for the intro (sharing.invite.intro); the app renders its
+ *                      string.
+ *   consent_text       the BUILT consent string that was recorded for this share (verbatim, as stored in
+ *                      share_consent.consent_text). The app shows it back so the Coordinator sees exactly
+ *                      what they confirmed; it is the responsible-adult / recorded-recipient consent text.
  */
 export interface ShareInviteCreated {
   invite_id: string;
   token: string;
+  join_code: string;
+  join_code_copy_key: ShareCopyKey;
   role: ShareRole;
   expires_at: string;
   copy_key: ShareCopyKey;
@@ -887,6 +902,19 @@ export interface ShareConsentCreate {
  */
 export interface ShareRedeemRequest {
   token: string;
+}
+
+/**
+ * The POST /api/v1/sharing/redeem-by-code body: the recipient redeems by TYPING the short `join_code`
+ * (the 2026-06-13 board verdict) instead of pasting the long token. AUTH REQUIRED, and it funnels into the
+ * SAME email-bound, single-use redeem core as the token path (the signed-in account's email must match the
+ * invited email). The api normalizes the code (case- + dash-insensitive, the Crockford aliases I/L -> 1,
+ * O -> 0 forgiven), so the app can send what was typed; it sends the raw typed value. ANY failure (unknown
+ * / expired / used / revoked / wrong-email / malformed) is ONE generic 400 with an identical body (no
+ * oracle), surfaced as the same calm "this code isn't valid" state.
+ */
+export interface ShareRedeemByCodeRequest {
+  join_code: string;
 }
 
 // --- The Village Hub (Product.md §6 / FeatureDecisions.md 2026-06-12 "Village Delegation Hub") ---
