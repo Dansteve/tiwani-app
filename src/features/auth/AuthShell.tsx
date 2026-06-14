@@ -4,8 +4,8 @@
 // identical to each other and to the rest of the product (parity, Docs/Brand.md).
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 
-import { HomeLink } from "@/components/HomeLink";
 import { Wordmark } from "@/components/Wordmark";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 
@@ -20,13 +20,18 @@ interface AuthShellProps {
 export function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-10">
-      {/* Top row: the "back to home" link and the quick theme toggle (unobtrusive, top-right),
-          the same icon control the app shell header and Settings use. */}
+      {/* Top row: the "back" link to the app welcome page (the index, NOT the marketing site) and
+          the quick theme toggle (unobtrusive, top-right), the same icon control the app shell
+          header and Settings use. */}
       <div className="mb-6 flex items-center justify-between gap-2">
-        <HomeLink className="inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground">
+        <Link
+          href="/"
+          aria-label="Back to start"
+          className="inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground"
+        >
           <span aria-hidden="true">&larr;</span>
-          Back to home
-        </HomeLink>
+          Back to start
+        </Link>
         <ThemeToggle variant="icon" className="-mr-2 ml-auto" />
       </div>
       <Wordmark className="text-xl" />
