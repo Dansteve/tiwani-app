@@ -45,6 +45,15 @@ const revokeCard = vi.fn();
 const viewCard = vi.fn();
 const downloadCardPdf = vi.fn();
 
+// listCards now returns a paginated CardPage ({ cards, next_cursor }). To keep the existing test cases
+// readable, the api mock COERCES a plain array result from the spy into a single full page (next_cursor
+// null = no more), while a test that wants pagination resolves a real { cards, next_cursor } object,
+// which passes through untouched. The spy still records the { limit, before } argument the list sends.
+function toPage(result: unknown): { cards: CardSummary[]; next_cursor: string | null } {
+  if (Array.isArray(result)) return { cards: result as CardSummary[], next_cursor: null };
+  return result as { cards: CardSummary[]; next_cursor: string | null };
+}
+
 vi.mock("@/lib/api/client", () => ({
   ApiError: class ApiError extends Error {
     status: number;
@@ -54,7 +63,7 @@ vi.mock("@/lib/api/client", () => ({
     }
   },
   api: {
-    listCards: (...args: unknown[]) => listCards(...args),
+    listCards: async (...args: unknown[]) => toPage(await listCards(...args)),
     revokeCard: (...args: unknown[]) => revokeCard(...args),
     viewCard: (...args: unknown[]) => viewCard(...args),
     downloadCardPdf: (...args: unknown[]) => downloadCardPdf(...args),
@@ -102,10 +111,14 @@ describe("CardHistoryList", () => {
     expect(screen.getByText("School trip")).toBeInTheDocument();
     expect(screen.getByText("Birthday party")).toBeInTheDocument();
 
-    // Status is shown as a word (label), not colour alone.
-    expect(screen.getByText("Active")).toBeInTheDocument();
-    expect(screen.getByText("Expired")).toBeInTheDocument();
-    expect(screen.getByText("Revoked")).toBeInTheDocument();
+    // Status is shown as a word (label), not colour alone, on each row's badge. (It also appears on the
+    // section heading now, so scope the check to the row to assert the per-card badge specifically.)
+    const activeRow = screen.getByText("Swimming lesson").closest("article") as HTMLElement;
+    expect(within(activeRow).getByText("Active")).toBeInTheDocument();
+    const expiredRow = screen.getByText("School trip").closest("article") as HTMLElement;
+    expect(within(expiredRow).getByText("Expired")).toBeInTheDocument();
+    const revokedRow = screen.getByText("Birthday party").closest("article") as HTMLElement;
+    expect(within(revokedRow).getByText("Revoked")).toBeInTheDocument();
   });
 
   it("views a card inline: fetches the content by id and renders it", async () => {
@@ -198,7 +211,9 @@ describe("CardHistoryList", () => {
     renderList();
 
     await screen.findByText("Swimming lesson");
-    expect(screen.getByText("Active")).toBeInTheDocument();
+    // The card starts in the Active section (the status word now appears on the section heading too, so
+    // assert the active region exists rather than a bare getByText that would match heading + badge).
+    expect(screen.getByRole("region", { name: /active cards/i })).toBeInTheDocument();
 
     // Step 1: reveal the confirm.
     fireEvent.click(screen.getByRole("button", { name: /^revoke$/i }));
@@ -208,9 +223,10 @@ describe("CardHistoryList", () => {
     fireEvent.click(screen.getByRole("button", { name: /yes, revoke it/i }));
     await waitFor(() => expect(revokeCard).toHaveBeenCalledWith("card_1"));
 
-    // The row flips to revoked (the list refetched) and the revoke control is gone.
-    expect(await screen.findByText("Revoked")).toBeInTheDocument();
-    expect(screen.queryByText("Active")).not.toBeInTheDocument();
+    // The row flips to revoked (the list refetched): it moves into the Revoked section, the Active section
+    // is gone, and the revoke control is gone.
+    expect(await screen.findByRole("region", { name: /revoked cards/i })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: /active cards/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^revoke$/i })).not.toBeInTheDocument();
   });
 
@@ -226,8 +242,8 @@ describe("CardHistoryList", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/no longer available to revoke/i);
-    // Still active (the failed revoke did not change the row).
-    expect(screen.getByText("Active")).toBeInTheDocument();
+    // Still active (the failed revoke did not change the row): the Active section is still present.
+    expect(screen.getByRole("region", { name: /active cards/i })).toBeInTheDocument();
   });
 
   it("offers Download PDF on every card (any status), by card_id", async () => {
@@ -366,5 +382,94 @@ describe("CardHistoryList", () => {
     expect(within(row).queryByText(/^for ada$/i)).not.toBeInTheDocument();
     expect(within(row).queryByText("Ada")).not.toBeInTheDocument();
     expect(within(row).getByText(/school/i)).toBeInTheDocument();
+  });
+
+  it("groups the cards into Active / Expired / Revoked sections (accessible headings)", async () => {
+    listCards.mockResolvedValue([
+      card({ id: "a", activity_name: "Active one", status: "active" }),
+      card({ id: "e", activity_name: "Expired one", status: "expired" }),
+      card({ id: "r", activity_name: "Revoked one", status: "revoked" }),
+    ]);
+
+    renderList();
+    await screen.findByText("Active one");
+
+    // Each status is a real section heading (h2), labelled with the status word + a count (not colour
+    // alone), in the fixed Active -> Expired -> Revoked order.
+    const headings = screen.getAllByRole("heading", { level: 2 });
+    const headingText = headings.map((h) => h.textContent);
+    expect(headingText.some((t) => /active\s*\(1\)/i.test(t ?? ""))).toBe(true);
+    expect(headingText.some((t) => /expired\s*\(1\)/i.test(t ?? ""))).toBe(true);
+    expect(headingText.some((t) => /revoked\s*\(1\)/i.test(t ?? ""))).toBe(true);
+
+    // The accessible section landmarks carry the status in their label (colour is never the only signal).
+    expect(screen.getByRole("region", { name: /active cards/i })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /expired cards/i })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /revoked cards/i })).toBeInTheDocument();
+
+    // The right card sits under the right section (the Active region holds the active card, not the others).
+    const active = screen.getByRole("region", { name: /active cards/i });
+    expect(within(active).getByText("Active one")).toBeInTheDocument();
+    expect(within(active).queryByText("Expired one")).not.toBeInTheDocument();
+  });
+
+  it("shows the calm loader during the initial fetch (distinct from empty + error)", async () => {
+    // A never-resolving fetch so the loading state stays on screen to assert.
+    listCards.mockReturnValue(new Promise(() => {}));
+
+    renderList();
+
+    // The loader is a labelled status region; the empty-state heading and the error Alert are NOT shown.
+    expect(await screen.findByRole("status", { name: /loading your cards/i })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /no cards yet/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("offers 'Show older cards' only when the api signals more, and fetches the next page", async () => {
+    // First page: a full page WITH a next_cursor; second page: the older card with no further cursor.
+    listCards
+      .mockResolvedValueOnce({
+        cards: [card({ id: "p1", activity_name: "Newest card", status: "active" })],
+        next_cursor: "2025-05-01T00:00:00Z",
+      })
+      .mockResolvedValueOnce({
+        cards: [card({ id: "p2", activity_name: "Older card", status: "active" })],
+        next_cursor: null,
+      });
+
+    renderList();
+    await screen.findByText("Newest card");
+
+    // The control is offered (more remain) ...
+    const loadMore = screen.getByRole("button", { name: /show older cards/i });
+    expect(loadMore).toBeInTheDocument();
+
+    // ... and tapping it fetches the next page with the previous page's cursor as `before`.
+    fireEvent.click(loadMore);
+    await waitFor(() =>
+      expect(listCards).toHaveBeenLastCalledWith(
+        { limit: 50, before: "2025-05-01T00:00:00Z" },
+        expect.anything()
+      )
+    );
+
+    // The older card is appended, and with no further cursor the control is gone.
+    expect(await screen.findByText("Older card")).toBeInTheDocument();
+    expect(screen.getByText("Newest card")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /show older cards/i })).not.toBeInTheDocument()
+    );
+  });
+
+  it("does not offer 'Show older cards' when the first page is the last (next_cursor null)", async () => {
+    listCards.mockResolvedValue({
+      cards: [card({ id: "only", activity_name: "Only card", status: "active" })],
+      next_cursor: null,
+    });
+
+    renderList();
+    await screen.findByText("Only card");
+
+    expect(screen.queryByRole("button", { name: /show older cards/i })).not.toBeInTheDocument();
   });
 });

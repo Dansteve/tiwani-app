@@ -156,17 +156,38 @@ const CARD_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-// The Cards list (CardHistoryList at /card): the list of cards the Coordinator has made, their status, and
-// revoke. The list anchor is absent on an empty list (no cards yet), so the single step is optional and the
-// tour no-ops there rather than pointing at nothing. (The page id stays "card-history" so the durable seen
-// flag is unchanged; it now describes the tour that runs on the /card list.)
+// The Cards list (CardHistoryList at /card): the cards the Coordinator has made, now GROUPED by status
+// (Active / Expired / Revoked), with "Show older cards" to page back through the rest. The tour teaches
+// that grouped layout (the NEW hard rule: a page change updates its stepper), so it never describes the
+// old flat list. The header anchor (card-history-list) is ALWAYS present (even on an empty list), so it
+// is the one required step; the status groups (card-history-groups) render only once there are cards and
+// "Show older cards" (card-history-load-more) only when more pages remain, so those two are optional and
+// drop on an empty or single-page list rather than pointing at nothing. (The page id stays "card-history"
+// so the durable seen flag is unchanged; it now describes the tour that runs on the /card list.)
 const CARD_HISTORY_TOUR_STEPS: TourStep[] = [
   {
-    id: "list",
+    id: "intro",
     target: "card-history-list",
     title: "Your shared cards",
-    body: "Each card you have shared is here, newest first, with how old it is so a helper always sees current notes.",
+    body: "Every card you have made is here, with how old it is so a helper always sees current notes. Make a new one any time from your dashboard.",
     placement: "bottom",
+  },
+  {
+    id: "groups",
+    target: "card-history-groups",
+    title: "Grouped by status",
+    body: "Your cards are split into Active, Expired, and Revoked, so the ones still working are easy to find. Switch off any active link from its card.",
+    placement: "bottom",
+    // The status sections render only once there are cards; on an empty list this step drops.
+    optional: true,
+  },
+  {
+    id: "more",
+    target: "card-history-load-more",
+    title: "Older cards",
+    body: "If you have a lot of cards, tap Show older cards to bring in the rest a page at a time.",
+    placement: "top",
+    // The "Show older cards" control shows only when more pages remain; otherwise this step drops.
     optional: true,
   },
 ];

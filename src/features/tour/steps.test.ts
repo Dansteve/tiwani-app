@@ -206,3 +206,43 @@ describe("the Your Plans tour (the list step is data-conditional)", () => {
     expect(ids).toEqual(["intro", "list"]);
   });
 });
+
+describe("the Cards list tour (teaches the GROUPED list + Load more)", () => {
+  it("shows only the intro on an empty list (the groups + load-more anchors are absent)", () => {
+    // An empty list renders the header (always present) but no status sections and no "Show older cards",
+    // so the optional 'groups' + 'more' steps drop while the required 'intro' stays.
+    const ids = resolveVisibleSteps(TOURS["card-history"], rootWith(["card-history-list"])).map(
+      (s) => s.id
+    );
+    expect(ids).toEqual(["intro"]);
+  });
+
+  it("adds the groups step once there are cards to group", () => {
+    const ids = resolveVisibleSteps(
+      TOURS["card-history"],
+      rootWith(["card-history-list", "card-history-groups"])
+    ).map((s) => s.id);
+    expect(ids).toEqual(["intro", "groups"]);
+  });
+
+  it("adds the load-more step only when there is another page to load", () => {
+    const ids = resolveVisibleSteps(
+      TOURS["card-history"],
+      rootWith(["card-history-list", "card-history-groups", "card-history-load-more"])
+    ).map((s) => s.id);
+    expect(ids).toEqual(["intro", "groups", "more"]);
+  });
+
+  it("never teaches the old flat list (no step targets a removed anchor)", () => {
+    // The grouped layout replaced the flat <ul>; every card-history step must point at an anchor that
+    // exists in the new layout (the header, the groups region, or the load-more control).
+    const liveAnchors = new Set([
+      "card-history-list",
+      "card-history-groups",
+      "card-history-load-more",
+    ]);
+    for (const step of TOURS["card-history"]) {
+      expect(liveAnchors.has(step.target), `${step.id} -> ${step.target}`).toBe(true);
+    }
+  });
+});

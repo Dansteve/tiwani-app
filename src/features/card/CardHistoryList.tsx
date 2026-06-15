@@ -20,27 +20,48 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { CalendarClock, Eye, FileDown, FilePlus2, Loader2, ShieldX } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
-import type { CardSummary } from "@/lib/api/types";
+import type { CardStatus, CardSummary } from "@/lib/api/types";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { downloadBlob } from "@/lib/download";
 import { chapterLabel, formatCardDate, formatCardExpiry } from "@/lib/format";
 import { cardStatusPresentation } from "@/features/card/cardStatusPresentation";
+import { groupCardsByStatus } from "@/features/card/cardGrouping";
 import { CardContentView } from "@/features/card/CardContentView";
 import { PageTour } from "@/features/tour/PageTour";
 
+// The page size the list requests. The api defaults + caps this server-side (the database-load fix), so
+// this is only the app's preferred page; a smaller cap from the api still works (the app pages what it
+// gets). The list loads the first page, then "Show older cards" pages back through the rest.
+const CARDS_PAGE_SIZE = 50;
+
 export function CardHistoryList() {
-  const query = useQuery({
+  // Paginated read: the list NEVER fetches every card. Each page is a CardPage ({ cards, next_cursor });
+  // getNextPageParam threads next_cursor back as the `before` keyset cursor for the next, older page.
+  // Keyed ["cards"] so revoke's invalidate still refetches the whole list (from the first page).
+  const query = useInfiniteQuery({
     queryKey: ["cards"],
-    queryFn: ({ signal }) => api.listCards(signal),
+    queryFn: ({ pageParam, signal }) =>
+      api.listCards({ limit: CARDS_PAGE_SIZE, before: pageParam }, signal),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.next_cursor,
   });
 
-  const hasCards = Boolean(query.data && query.data.length > 0);
+  // Flatten the pages into one newest-first list, then group by status for display (the api returns each
+  // page newest-first, so the concatenation stays newest-first).
+  const cards = query.data?.pages.flatMap((page) => page.cards) ?? [];
+  const hasCards = cards.length > 0;
+  const groups = groupCardsByStatus(cards);
 
   return (
     <div className="space-y-6">
@@ -50,7 +71,8 @@ export function CardHistoryList() {
         <div className="space-y-1" data-tour="card-history-list">
           <h1 className="text-2xl font-semibold md:text-3xl">Your Continuity Cards</h1>
           <p className="text-base text-muted-foreground">
-            The cards you have shared with helpers. Revoke any active card to switch off its link.
+            The cards you have shared with helpers, grouped by status. Revoke any active card to switch
+            off its link.
           </p>
         </div>
         {/* On-demand "Show me around" for the Cards list. */}
@@ -69,27 +91,43 @@ export function CardHistoryList() {
         </Alert>
       ) : null}
 
-      {query.isLoading && !query.isError ? (
-        <div className="space-y-3">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              aria-hidden="true"
-              className="h-28 animate-pulse rounded-xl border border-border bg-card"
-            />
-          ))}
-        </div>
-      ) : null}
+      {/* The INITIAL-fetch loader: a calm skeleton, distinct from the empty state (no cards yet) and the
+          error state above. */}
+      {query.isLoading && !query.isError ? <ListSkeleton /> : null}
 
       {!query.isLoading && !query.isError ? (
         hasCards ? (
-          <ul className="space-y-3">
-            {query.data!.map((card) => (
-              <li key={card.id}>
-                <CardHistoryRow card={card} />
-              </li>
+          // The status sections (Active / Expired / Revoked). The grouped region is the tour anchor for
+          // the "find your way around" coach-mark (present only once there are cards).
+          <div className="space-y-8" data-tour="card-history-groups">
+            {groups.map((group) => (
+              <CardStatusSection
+                key={group.status}
+                status={group.status}
+                cards={group.cards}
+              />
             ))}
-          </ul>
+
+            {/* "Show older cards": page back through the rest, only when more remain. Its own loader (the
+                spinner in the button) is distinct from the initial skeleton above. */}
+            {query.hasNextPage ? (
+              <div className="flex justify-center pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  data-tour="card-history-load-more"
+                  disabled={query.isFetchingNextPage}
+                  onClick={() => query.fetchNextPage()}
+                >
+                  {query.isFetchingNextPage ? (
+                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />
+                  ) : null}
+                  {query.isFetchingNextPage ? "Loading older cards..." : "Show older cards"}
+                </Button>
+              </div>
+            ) : null}
+          </div>
         ) : (
           <EmptyState />
         )
@@ -114,6 +152,49 @@ function CreateCardAction() {
   );
 }
 
+// The INITIAL-fetch loading state: a small set of calm pulsing placeholders, on-brand (the bg-card
+// surface + the border token), aria-hidden so a screen reader is not read a wall of empty boxes. It is
+// deliberately distinct from the empty state (a real "no cards yet" message) and the error Alert.
+function ListSkeleton() {
+  return (
+    <div className="space-y-3" role="status" aria-label="Loading your cards">
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          aria-hidden="true"
+          className="h-28 animate-pulse rounded-xl border border-border bg-card"
+        />
+      ))}
+    </div>
+  );
+}
+
+// One STATUS section (Active / Expired / Revoked) with an accessible heading and its rows. The heading is
+// a real <h2> (so the page reads h1 -> h2 section -> h3 card, navigable by a screen reader's heading list)
+// and carries the status as colour + icon + the word + a count, never colour alone (WCAG 2.1 AA). The
+// rows are the same CardHistoryRow as before; grouping changed where they sit, not how a card renders.
+function CardStatusSection({ status, cards }: { status: CardStatus; cards: CardSummary[] }) {
+  const presentation = cardStatusPresentation(status);
+  const StatusIcon = presentation.icon;
+  return (
+    <section aria-label={`${presentation.label} cards`} className="space-y-3">
+      <h2 className={cn("flex items-center gap-2 text-sm font-semibold", presentation.textClass)}>
+        <StatusIcon className="size-4 shrink-0" aria-hidden="true" />
+        <span>{presentation.label}</span>
+        {/* The count is a quiet, non-colour cue of how many cards are in this section. */}
+        <span className="text-muted-foreground">({cards.length})</span>
+      </h2>
+      <ul className="space-y-3">
+        {cards.map((card) => (
+          <li key={card.id}>
+            <CardHistoryRow card={card} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function CardHistoryRow({ card }: { card: CardSummary }) {
   const presentation = cardStatusPresentation(card.status);
   const StatusIcon = presentation.icon;
@@ -123,14 +204,15 @@ function CardHistoryRow({ card }: { card: CardSummary }) {
     <article className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <h2
+          {/* h3 under the section's h2 (the page reads h1 -> h2 status section -> h3 card). */}
+          <h3
             className={cn(
               "text-base font-semibold leading-snug text-foreground",
               presentation.struck && "line-through text-muted-foreground"
             )}
           >
             {card.activity_name}
-          </h2>
+          </h3>
           {/* Just the chapter (no child name): the owner already knows whose cards these are, and keeping
               the name off the row holds the name-minimal posture (owner request 2026-06-13). */}
           <p className="mt-0.5 truncate text-sm text-muted-foreground">
