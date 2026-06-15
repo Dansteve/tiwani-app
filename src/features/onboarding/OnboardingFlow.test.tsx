@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { axeRuleViolations } from "@/test/axe";
 
 // Mock the Next router (the flow calls router.push on submit/skip).
 const push = vi.fn();
@@ -147,5 +148,22 @@ describe("OnboardingFlow (rendered)", () => {
     expect(screen.getByText("What do they find challenging?")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
     expect(screen.getByText("Tell us about your child")).toBeInTheDocument();
+  });
+});
+
+describe("OnboardingFlow accessibility (axe)", () => {
+  it("has no axe violations on step 1", async () => {
+    const { container } = renderFlow();
+    await screen.findByText("Tell us about your child");
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("has no axe violations on step 2 (the challenges step)", async () => {
+    const { container } = renderFlow();
+    fireEvent.change(screen.getByLabelText("Their name"), { target: { value: "Ada" } });
+    fireEvent.click(screen.getByRole("button", { name: /some support/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByText("What do they find challenging?");
+    expect(await axeRuleViolations(container)).toEqual([]);
   });
 });

@@ -9,8 +9,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render } from "@testing-library/react";
-import { axe } from "vitest-axe";
-
+import { axeRuleViolations } from "@/test/axe";
 import { Wordmark } from "@/components/Wordmark";
 import { Button } from "@/components/ui/button";
 import { OfflineBanner } from "@/components/OfflineBanner";
@@ -19,13 +18,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field } from "@/components/ui/field";
 import { TagPill } from "@/components/TagPill";
 import { Stepper } from "@/components/Stepper";
-
-const AXE_OPTS = { rules: { region: { enabled: false } } };
-
-async function axeRuleViolations(container: HTMLElement): Promise<string[]> {
-  const { violations } = await axe(container, AXE_OPTS);
-  return violations.map((v) => v.id);
-}
+import { ChoiceCard } from "@/components/ChoiceCard";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { TabsList, TabPanel } from "@/components/ui/tabs";
+import { DimensionBars } from "@/features/plan/DimensionBars";
 
 describe("accessibility (axe) regression net", () => {
   it("Wordmark (full) has no violations", async () => {
@@ -106,6 +103,64 @@ describe("accessibility (axe) regression net", () => {
   it("Stepper (onboarding progressbar) has no violations", async () => {
     // role="progressbar" with an aria-label + an sr-only "Step N of M" line. Standalone (only cn).
     const { container } = render(<Stepper current={2} total={3} stepLabel="A little about them" />);
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("ChoiceCard (single-select, selected) carries an accessible name + aria-pressed (no violations)", async () => {
+    // The onboarding single-select card: a real <button> with a title, a help line, and aria-pressed.
+    const { container } = render(
+      <ChoiceCard
+        title="Some support"
+        description="They manage a lot, with help in places."
+        selected
+        onSelect={() => {}}
+      />,
+    );
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("Textarea tied to a Label has no violations", async () => {
+    // The multi-line input primitive (Village's post-a-need form): a <label> bound to it by id.
+    const { container } = render(
+      <div>
+        <Label htmlFor="need-detail">What would help?</Label>
+        <Textarea id="need-detail" defaultValue="A lift to the appointment on Tuesday." />
+      </div>,
+    );
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("TabsList + its active TabPanel (the accessible tablist, as used) has no violations", async () => {
+    // The roving-tabIndex tablist used by Settings/Sharing/Village, rendered the way the app renders it:
+    // the ACTIVE tab's panel is mounted (the standard ARIA tabs pattern), so each tab's aria-controls
+    // resolves and the panel is labelled by its trigger. Testing the list in isolation would (correctly)
+    // trip aria-valid-attr-value because aria-controls would dangle; the app never renders it that way.
+    const { container } = render(
+      <div>
+        <TabsList
+          tabs={[
+            { value: "a", label: "Profile" },
+            { value: "b", label: "Data & privacy" },
+          ]}
+          value="a"
+          onValueChange={() => {}}
+          label="Settings sections"
+          idBase="t"
+        />
+        <TabPanel value="a" idBase="t">
+          Profile settings
+        </TabPanel>
+      </div>,
+    );
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("DimensionBars (the four pressure scores) has no violations", async () => {
+    // Renders the api's four 1-to-5 scores; the highest is amber, and an sr-only line names the value so
+    // the highlight is never colour alone. Standalone (reads its own pure helpers; no api/provider).
+    const { container } = render(
+      <DimensionBars scores={{ temporal: 3, sensory: 5, logistical: 2, human: 4 }} />,
+    );
     expect(await axeRuleViolations(container)).toEqual([]);
   });
 

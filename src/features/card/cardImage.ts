@@ -12,8 +12,6 @@
 // fetches it via api.getCard and renders a hidden CardContentView for the capture), so the image equals
 // the live link a helper opens, not the owner's named preview (Docs/FeatureDecisions.md 2026-06-13).
 
-import { toBlob } from "html-to-image";
-
 /** The filename for the downloaded / shared card image. A fixed, PII-free name (no profile detail). */
 export const CARD_IMAGE_FILENAME = "continuity-card.png";
 
@@ -118,6 +116,10 @@ export async function captureCardImage(node: HTMLElement): Promise<Blob> {
     }
   }
 
+  // html-to-image is loaded ON DEMAND (a dynamic import), not at module load: it is only needed when the
+  // Coordinator actually shares or downloads the card (a secondary action), so deferring it keeps the
+  // heavy library out of the Card page's first-load bundle. The capture path is browser-only anyway.
+  const { toBlob } = await import("html-to-image");
   const blob = await toBlob(node, {
     pixelRatio: 2,
     // The card's deep-teal surface (--tiwani-dark), so the image is never transparent on a share sheet.

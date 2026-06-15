@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { axeRuleViolations } from "@/test/axe";
 
 // The Village viewer-ceiling test (Docs/FeatureDecisions.md 2026-06-12 "Helper Village ACCESS",
 // refinement 1): an OWNER sees the "Post & track" owner surface; a VIEWER (a recipient SHARED with the
@@ -110,5 +111,22 @@ describe("VillageScreen tour anchors", () => {
     expect(container.querySelector('[data-tour="village-post-tab"]')).toBeNull();
     // The everyone tab anchor is present, so the viewer still gets a useful tour.
     expect(container.querySelector('[data-tour="village-help-tab"]')).not.toBeNull();
+  });
+});
+
+describe("VillageScreen accessibility (axe)", () => {
+  it("has no axe violations for an OWNER", async () => {
+    recipientState.activeRole = "owner";
+    const { container } = renderVillage();
+    await screen.findByRole("tab", { name: /post & track/i });
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("has no axe violations for a VIEWER", async () => {
+    recipientState.activeRole = "viewer";
+    recipientState.activeRecipient = { id: "rec_1", first_name: "Ada", role: "viewer" };
+    const { container } = renderVillage();
+    await screen.findByRole("tab", { name: /ways to help/i });
+    expect(await axeRuleViolations(container)).toEqual([]);
   });
 });

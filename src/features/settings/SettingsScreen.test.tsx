@@ -13,6 +13,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { axeRuleViolations } from "@/test/axe";
 
 import type { CareRecipientProfile, UserProfile } from "@/lib/api/types";
 
@@ -305,5 +306,22 @@ describe("SettingsScreen tabs", () => {
     expect(screen.getByTestId("danger-zone-section")).toBeInTheDocument();
     // The care-recipient editor is not here (it lives under its own tab).
     expect(screen.queryByDisplayValue("Ade")).not.toBeInTheDocument();
+  });
+});
+
+describe("SettingsScreen accessibility (axe)", () => {
+  it("has no axe violations on the loaded Profile tab", async () => {
+    const { container } = renderScreen();
+    await screen.findByDisplayValue("Sam");
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("has no axe violations on the Care recipients tab", async () => {
+    const user = userEvent.setup();
+    const { container } = renderScreen();
+    await screen.findByDisplayValue("Sam");
+    await tabTo(user, /care recipients/i);
+    await screen.findByDisplayValue("Ade");
+    expect(await axeRuleViolations(container)).toEqual([]);
   });
 });

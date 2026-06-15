@@ -5,6 +5,7 @@
 
 import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import { axeRuleViolations } from "@/test/axe";
 
 import type { CardContent } from "@/lib/api/types";
 import { CardContentView } from "@/features/card/CardContentView";
@@ -131,5 +132,12 @@ describe("CardContentView", () => {
         /\b(medical|clinical|diagnos|symptom|condition)\b/i
       );
     });
+  });
+});
+
+describe("CardContentView accessibility (axe)", () => {
+  it("has no axe violations", async () => {
+    const { container } = render(<CardContentView content={makeContent()} />);
+    expect(await axeRuleViolations(container)).toEqual([]);
   });
 });

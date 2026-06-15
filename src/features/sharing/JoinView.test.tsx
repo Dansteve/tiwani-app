@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { axeRuleViolations } from "@/test/axe";
 
 import type { Session } from "@supabase/supabase-js";
 
@@ -131,5 +132,13 @@ describe("JoinView", () => {
     // Typing clears the error (the field is no longer in an error state).
     await user.type(screen.getByLabelText(/paste your join link/i), "tok_recover");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("JoinView accessibility (axe)", () => {
+  it("has no axe violations on the join front door", async () => {
+    const { container } = renderJoin();
+    await screen.findByLabelText(/paste your join link/i);
+    expect(await axeRuleViolations(container)).toEqual([]);
   });
 });

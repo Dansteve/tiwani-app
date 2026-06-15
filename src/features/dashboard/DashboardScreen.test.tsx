@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { axeRuleViolations } from "@/test/axe";
 
 import type { ChapterStatus, UserProfile } from "@/lib/api/types";
 
@@ -183,6 +184,13 @@ describe("DashboardScreen", () => {
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(/could not load your chapters/i)
     );
+  });
+
+  it("has no axe violations once the loaded dashboard has rendered", async () => {
+    const { container } = renderScreen();
+    // Wait for the data-driven content (the six chapter cards) before auditing the settled tree.
+    await screen.findByRole("heading", { name: "School" });
+    expect(await axeRuleViolations(container)).toEqual([]);
   });
 });
 

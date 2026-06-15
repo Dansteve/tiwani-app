@@ -6,19 +6,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { axe } from "vitest-axe";
-
 import { NotificationsScreen } from "@/features/notifications/NotificationsScreen";
 import { buildRedeemUrl } from "@/features/sharing/shareLink";
+import { axeRuleViolations } from "@/test/axe";
 import { setPendingInviteToken } from "@/features/sharing/pendingInvite";
-
-// Mirror the shared a11y net (components/accessibility.test.tsx): the "region" landmark rule is off for
-// an isolated fragment render, and we assert on the violations array so a failure lists the rule ids.
-const AXE_OPTS = { rules: { region: { enabled: false } } };
-async function axeRuleViolations(container: HTMLElement): Promise<string[]> {
-  const { violations } = await axe(container, AXE_OPTS);
-  return violations.map((v) => v.id);
-}
 
 beforeEach(() => {
   window.sessionStorage.clear();

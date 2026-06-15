@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { axeRuleViolations } from "@/test/axe";
 
 import type { CardContent } from "@/lib/api/types";
 
@@ -129,5 +130,21 @@ describe("PublicCardView", () => {
       screen.getByRole("heading", { name: /this link looks incomplete/i })
     ).toBeInTheDocument();
     expect(getCard).not.toHaveBeenCalled();
+  });
+});
+
+describe("PublicCardView accessibility (axe)", () => {
+  it("has no axe violations on a valid card", async () => {
+    getCard.mockResolvedValue(CONTENT);
+    const { container } = renderPublic("tok_abc123");
+    await screen.findByRole("heading", { level: 1, name: "Ada" });
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("has no axe violations on the expired/unknown-link state", async () => {
+    getCard.mockRejectedValue(new ApiError(404, "Card not found or expired"));
+    const { container } = renderPublic("tok_expired");
+    await screen.findByRole("heading", { name: /no longer available/i });
+    expect(await axeRuleViolations(container)).toEqual([]);
   });
 });

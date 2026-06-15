@@ -11,6 +11,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { axeRuleViolations } from "@/test/axe";
 
 import type {
   CareRecipientProfile,
@@ -321,5 +322,22 @@ describe("PlanScreen duplicate-plans guard", () => {
     expect(generate).toBeEnabled();
     fireEvent.click(generate);
     await waitFor(() => expect(preparePlan).toHaveBeenCalled());
+  });
+});
+
+describe("PlanScreen accessibility (axe)", () => {
+  it("has no axe violations on the picker", async () => {
+    const { container } = renderScreen("social");
+    await screen.findByText("A birthday party");
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("has no axe violations on the rendered plan result", async () => {
+    const { container } = renderScreen("social");
+    await screen.findByText("A birthday party");
+    fireEvent.click(screen.getByRole("button", { name: /a birthday party/i }));
+    fireEvent.click(screen.getByRole("button", { name: /generate plan/i }));
+    await screen.findByRole("heading", { name: "Continuity Pivot" });
+    expect(await axeRuleViolations(container)).toEqual([]);
   });
 });
