@@ -1,4 +1,3 @@
-import { logEvent } from "firebase/analytics";
 import { getAnalyticsClient } from "./firebase";
 import type { ParticipationTier } from "@/lib/api/types";
 
@@ -24,6 +23,9 @@ export async function track(eventName: string, params?: AnalyticsParams): Promis
   try {
     const analytics = await getAnalyticsClient();
     if (!analytics) return;
+    // Dynamic import (matches firebase.ts): the SDK is only fetched past the consent gate above,
+    // so logEvent is never in the first-load bundle and never loads for a non-consenting visitor.
+    const { logEvent } = await import("firebase/analytics");
     logEvent(analytics, eventName, params);
   } catch {
     // Tracking is best-effort; never surface an analytics error to the user.

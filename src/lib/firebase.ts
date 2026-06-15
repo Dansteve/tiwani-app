@@ -6,8 +6,12 @@
 // initialized lazily in the browser only: getAnalytics needs window and the measurement environment,
 // so on the server (static export / SSR) it is null and every call no-ops. It also stays off until the
 // user opts in (PECR, lib/consent.ts).
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAnalytics, isSupported, type Analytics } from "firebase/analytics";
+//
+// The Firebase SDK is loaded with a DYNAMIC import, INSIDE getAnalyticsClient and AFTER the consent
+// gate, so the SDK chunk is never downloaded by a visitor who has not opted in: it is out of the
+// first-load bundle entirely and only fetched the moment a consenting user first triggers an event.
+// `import type` is erased at build, so the Analytics type below adds no runtime weight.
+import type { Analytics } from "firebase/analytics";
 import { hasAnalyticsConsent } from "./consent";
 
 const firebaseConfig = {
@@ -20,23 +24,22 @@ const firebaseConfig = {
   measurementId: "G-0R7SK7GVGP",
 };
 
-// Reuse the existing app across hot reloads / multiple imports instead of re-initializing.
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-
 let analyticsInstance: Analytics | null = null;
 
 // Resolve analytics once, in the browser, after confirming the environment supports it. Returns null
 // on the server, where analytics is unsupported, and (PECR) until the user opts in (lib/consent.ts),
 // so the _ga cookie is never set without prior consent. Re-checked every call, so analytics begins the
 // moment they opt in, and is not re-created if they later withdraw, so the caller can simply skip
-// tracking when this returns null.
+// tracking when this returns null. The SDK import happens only past the consent gate (see above).
 export async function getAnalyticsClient(): Promise<Analytics | null> {
   if (typeof window === "undefined") return null;
   if (!hasAnalyticsConsent()) return null;
   if (analyticsInstance) return analyticsInstance;
+  const { getAnalytics, isSupported } = await import("firebase/analytics");
   if (!(await isSupported())) return null;
+  const { initializeApp, getApps, getApp } = await import("firebase/app");
+  // Reuse the existing app across hot reloads / multiple imports instead of re-initializing.
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   analyticsInstance = getAnalytics(app);
   return analyticsInstance;
 }
-
-export default app;
