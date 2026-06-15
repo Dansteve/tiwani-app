@@ -37,8 +37,26 @@ const getPendingPulses = vi.fn();
 const getAlerts = vi.fn();
 const dismissAlert = vi.fn();
 const getRecipients = vi.fn();
+const getCheckinMoment = vi.fn();
+
+// The check-in moment door (MomentDoor) is gated on psychiatrist + DPO sign-off: the api 404s until it
+// is enabled, and the door then renders nothing. The dashboard default here mirrors that dormant state
+// (a 404), so the existing dashboard assertions are unaffected. ApiError is the class the door's hook
+// instanceof-checks to detect the gated-off 404.
+const { ApiError } = vi.hoisted(() => {
+  class ApiError extends Error {
+    status: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.name = "ApiError";
+      this.status = status;
+    }
+  }
+  return { ApiError };
+});
 
 vi.mock("@/lib/api/client", () => ({
+  ApiError,
   api: {
     me: (...args: unknown[]) => me(...args),
     getChapters: (...args: unknown[]) => getChapters(...args),
@@ -47,6 +65,7 @@ vi.mock("@/lib/api/client", () => ({
     getAlerts: (...args: unknown[]) => getAlerts(...args),
     dismissAlert: (...args: unknown[]) => dismissAlert(...args),
     getRecipients: (...args: unknown[]) => getRecipients(...args),
+    getCheckinMoment: (...args: unknown[]) => getCheckinMoment(...args),
   },
 }));
 
@@ -82,6 +101,10 @@ beforeEach(() => {
   getAlerts.mockReset();
   dismissAlert.mockReset();
   getRecipients.mockReset();
+  getCheckinMoment.mockReset();
+  // The moment door defaults to the dormant, gated-off state (the api 404s until sign-off), so the door
+  // renders nothing and the existing dashboard assertions are unchanged. The door is read only when opened.
+  getCheckinMoment.mockRejectedValue(new ApiError(404, "Not found"));
   // A single-recipient user: the active child_id resolves to the sole recipient, the per-recipient reads
   // carry it, and the switcher hides itself. The dashboard renders exactly as before.
   getRecipients.mockResolvedValue([

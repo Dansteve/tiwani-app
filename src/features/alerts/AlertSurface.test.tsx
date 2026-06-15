@@ -61,8 +61,25 @@ const getPendingPulses = vi.fn();
 const getAlerts = vi.fn();
 const dismissAlert = vi.fn();
 const getRecipients = vi.fn();
+const getCheckinMoment = vi.fn();
+
+// The check-in moment door (MomentDoor) is gated on psychiatrist + DPO sign-off: the api 404s until it
+// is enabled, and the door then renders nothing. This dashboard render defaults to that dormant state, so
+// the alert-surface assertions are unaffected. ApiError is the class the door's hook instanceof-checks.
+const { ApiError } = vi.hoisted(() => {
+  class ApiError extends Error {
+    status: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.name = "ApiError";
+      this.status = status;
+    }
+  }
+  return { ApiError };
+});
 
 vi.mock("@/lib/api/client", () => ({
+  ApiError,
   api: {
     me: (...args: unknown[]) => me(...args),
     getChapters: (...args: unknown[]) => getChapters(...args),
@@ -71,6 +88,7 @@ vi.mock("@/lib/api/client", () => ({
     getAlerts: (...args: unknown[]) => getAlerts(...args),
     dismissAlert: (...args: unknown[]) => dismissAlert(...args),
     getRecipients: (...args: unknown[]) => getRecipients(...args),
+    getCheckinMoment: (...args: unknown[]) => getCheckinMoment(...args),
   },
 }));
 
@@ -98,7 +116,7 @@ beforeEach(() => {
   // dialog), which would otherwise sit over the alert surfaces these tests assert on. The recipient state
   // (also localStorage) starts clean, so the single mocked recipient resolves to the default active id.
   window.localStorage.setItem("tiwani.tour.dashboard.seen.v1", "1");
-  for (const fn of [me, getChapters, getOverallLci, getPendingPulses, getAlerts, dismissAlert, getRecipients]) {
+  for (const fn of [me, getChapters, getOverallLci, getPendingPulses, getAlerts, dismissAlert, getRecipients, getCheckinMoment]) {
     fn.mockReset();
   }
   me.mockResolvedValue(PROFILE);
@@ -107,6 +125,9 @@ beforeEach(() => {
   getPendingPulses.mockResolvedValue([]);
   getAlerts.mockResolvedValue([]);
   dismissAlert.mockResolvedValue(undefined);
+  // The moment door defaults to the dormant, gated-off state (the api 404s until sign-off), so it renders
+  // nothing and the alert-surface assertions are unchanged. The door is read only when opened.
+  getCheckinMoment.mockRejectedValue(new ApiError(404, "Not found"));
   // A single-recipient user: the active child_id resolves to that one recipient, so the per-recipient
   // reads (and the dismiss) carry it. The switcher hides itself (one recipient); the dashboard is unchanged.
   getRecipients.mockResolvedValue([

@@ -26,6 +26,7 @@ import { CheckInHistoryButton } from "@/features/continuity/CheckInHistoryButton
 import { PulsePrompt } from "@/features/pulse/PulsePrompt";
 import { AlertSurface } from "@/features/alerts/AlertSurface";
 import { useAlerts } from "@/features/alerts/useAlerts";
+import { MomentDoor } from "@/features/checkin/MomentDoor";
 import { CoachMarks } from "@/features/tour/CoachMarks";
 import { HelpButton } from "@/features/tour/HelpButton";
 import { useCoachMarks } from "@/features/tour/useCoachMarks";
@@ -247,6 +248,13 @@ export function DashboardScreen() {
               />
             ))}
       </div>
+
+      {/* "A moment for you" (ProductReview.md item 9, the psychiatrist board's SAFE shape): a calm,
+          OPTIONAL, always-reachable door that acknowledges the carer and signposts real support
+          (community/statutory + a crisis-capable carer route). It is a SEPARATE surface, never bolted
+          onto the Pulse and never blocking the child check-in. It never measures the carer and stores
+          nothing; it renders nothing until the api serves it (gated on psychiatrist + DPO sign-off). */}
+      <MomentDoor />
 
       {/* The onboarding coach-marks overlay (Product.md onboarding; the owner's skipper-style explainer).
           Renders only while open; it resolves which steps to show against the anchors above. */}
