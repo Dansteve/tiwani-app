@@ -3,10 +3,17 @@
 // The Post-Activity Pulse card (Product.md §4.7; HardRules/App/Modules/Continuity.md). Shown when an
 // activity is awaiting a Pulse. Two questions with LARGE tap targets (>= 44px, WCAG 2.1 AA):
 //   1. Outcome: Well / Okay / Difficult.
-//   2. Main challenge: which pressure dimension was hardest (or "Other / not sure").
-// BOTH are required before "Done": the outcome, and an explicit challenge answer ("Other" is a valid
-// answer that sends no specific dimension). On Done the app posts the Pulse via api.submitPulse and the
-// api recomputes the LCI and evaluates alerts; the app SCORES nothing (App SETUP: render the engine).
+//   2. A second question whose FRAMING follows the outcome (the psychiatrist board's prescription, so a
+//      good day is never met with a "challenge" question): "Well" asks what helped, "Okay" asks what
+//      took the most out of you, "Difficult" asks what felt hardest. The same four pressure dimensions
+//      are the chips in every case, plus a first-class "no specific dimension" answer per outcome.
+// BOTH are required before "Done": the outcome, and an explicit second answer (the first-class option is
+// valid and sends no dimension). On Done the app posts the Pulse via api.submitPulse and the api
+// recomputes the LCI and evaluates alerts; the app SCORES nothing (App SETUP: render the engine).
+//
+// The WIRE is unchanged by the reframing: a chosen chip still maps to challenge_dimension (the dimension
+// involved, whether it helped or was hardest); the first-class option ("It just went well" / "Nothing in
+// particular" / "Other / not sure") sends no dimension, exactly as the old "Other / not sure" did.
 //
 // Persistence and skips are handled by the parent (usePendingPulse + dismissals.ts): the card persists
 // across dashboard opens until completed or dismissed twice; this component just reports a dismiss. The
@@ -41,9 +48,26 @@ const OUTCOMES: { value: PulseOutcome; label: string; icon: LucideIcon }[] = [
   { value: "difficult", label: "Difficult", icon: CloudRain },
 ];
 
-// "Other / not sure" is a first-class answer: the question is required, but a Coordinator who cannot
-// name one dimension still completes the Pulse (no specific challenge is sent).
-type ChallengeChoice = PressureDimension | "other";
+// The second answer: one of the four pressure dimensions, or the first-class "no specific dimension"
+// choice (the `none` sentinel). The question is required, but a Coordinator who cannot name one
+// dimension still completes the Pulse, and that answer sends NO dimension (the wire is unchanged).
+type SecondChoice = PressureDimension | "none";
+
+// The second question reframed by outcome (the board's prescription): a positive outcome is NEVER asked
+// "what was the main challenge". The same dimension chips appear in every case; only the framing (the
+// legend) and the wording of the first-class "no specific dimension" option change. The first-class
+// option always maps to `none` and sends no dimension.
+const SECOND_QUESTION: Record<
+  PulseOutcome,
+  { legend: string; noneLabel: string }
+> = {
+  // "Well": a strengths question, so the engine still learns, with no "challenge" framing on a good day.
+  well: { legend: "Anything that really helped?", noneLabel: "It just went well" },
+  // "Okay": neutral, with a first-class "nothing" answer.
+  okay: { legend: "What took the most out of you, if anything?", noneLabel: "Nothing in particular" },
+  // "Difficult": a softened challenge question, keeping the familiar "Other / not sure".
+  difficult: { legend: "What felt hardest?", noneLabel: "Other / not sure" },
+};
 
 export function PulseCard({
   pending,
@@ -53,13 +77,14 @@ export function PulseCard({
   isError,
 }: PulseCardProps) {
   const [outcome, setOutcome] = useState<PulseOutcome | null>(null);
-  const [challenge, setChallenge] = useState<ChallengeChoice | null>(null);
+  const [secondChoice, setSecondChoice] = useState<SecondChoice | null>(null);
 
-  const canSubmit = outcome !== null && challenge !== null && !isSubmitting;
+  const canSubmit = outcome !== null && secondChoice !== null && !isSubmitting;
 
   async function handleDone() {
-    if (outcome === null || challenge === null) return;
-    const mainChallenge = challenge === "other" ? undefined : challenge;
+    if (outcome === null || secondChoice === null) return;
+    // The first-class "no specific dimension" answer sends nothing; a chosen chip sends its dimension.
+    const mainChallenge = secondChoice === "none" ? undefined : secondChoice;
     await onSubmit(outcome, mainChallenge);
   }
 
@@ -91,7 +116,12 @@ export function PulseCard({
                 key={value}
                 type="button"
                 aria-pressed={selected}
-                onClick={() => setOutcome(value)}
+                onClick={() => {
+                  setOutcome(value);
+                  // Re-frame the second question; clear any prior pick so it is chosen fresh under
+                  // the new wording (a "hardest" pick must not carry into "what helped").
+                  setSecondChoice(null);
+                }}
                 className={cn(
                   "flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   selected
@@ -107,21 +137,23 @@ export function PulseCard({
         </div>
       </fieldset>
 
-      {/* QUESTION 2: main challenge (revealed once the outcome is chosen, keeps it two clear steps) */}
+      {/* QUESTION 2: framed by the outcome (revealed once the outcome is chosen, keeps it two clear
+          steps). The same dimension chips appear in every case; the legend and the first-class option
+          reframe so a "Well" day is never asked about a "challenge". */}
       {outcome !== null ? (
         <fieldset className="mt-5">
           <legend className="text-sm font-medium text-foreground">
-            What was the main challenge?
+            {SECOND_QUESTION[outcome].legend}
           </legend>
           <div className="mt-2 flex flex-wrap gap-2">
             {DIMENSIONS.map((dimension) => {
-              const selected = challenge === dimension;
+              const selected = secondChoice === dimension;
               return (
                 <button
                   key={dimension}
                   type="button"
                   aria-pressed={selected}
-                  onClick={() => setChallenge(dimension)}
+                  onClick={() => setSecondChoice(dimension)}
                   className={cn(
                     "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                     selected
@@ -136,19 +168,19 @@ export function PulseCard({
             })}
             <button
               type="button"
-              aria-pressed={challenge === "other"}
-              onClick={() => setChallenge("other")}
+              aria-pressed={secondChoice === "none"}
+              onClick={() => setSecondChoice("none")}
               className={cn(
                 "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                challenge === "other"
+                secondChoice === "none"
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-card text-foreground hover:bg-secondary"
               )}
             >
-              {challenge === "other" ? (
+              {secondChoice === "none" ? (
                 <Check className="size-4 shrink-0" aria-hidden="true" />
               ) : null}
-              Other / not sure
+              {SECOND_QUESTION[outcome].noneLabel}
             </button>
           </div>
         </fieldset>
