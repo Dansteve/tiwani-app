@@ -21,6 +21,7 @@ import type {
   CardPage,
   CardPdf,
   CardRevoked,
+  CardSummary,
   CareRecipientCreate,
   CareRecipientProfile,
   CareRecipientUpdate,
@@ -262,6 +263,32 @@ function filenameFromContentDisposition(header: string | null, fallback: string)
  */
 function childQuery(childId?: string | null): string {
   return childId ? `?child_id=${encodeURIComponent(childId)}` : "";
+}
+
+/**
+ * Normalize the GET /api/v1/cards body into the paginated CardPage shape, tolerating BOTH the new and the
+ * old api response so the app does not break during the deploy window. The api and app ship close together
+ * but NOT atomically, so for a brief window a new app can talk to a not-yet-redeployed old api (and vice
+ * versa): the old api returns a bare CardSummary[] (the whole list), the new api returns a CardPage
+ * ({ cards, next_cursor }). This collapses both to one CardPage the caller always reads the same way:
+ *   - an ARRAY (the old api) becomes { cards: <array>, next_cursor: null } (one page, no more to load).
+ *   - a CardPage object (the new api) is used as-is (cards defaulted to [], next_cursor to null if absent).
+ *   - anything else (null/undefined, a malformed body) becomes an empty page rather than throwing, so a
+ *     surprise shape degrades to "no cards" instead of crashing the list.
+ * Pure (no I/O), so it is unit-tested directly. The app never derives the cursor; it only threads it.
+ */
+export function normalizeCardPage(raw: unknown): CardPage {
+  if (Array.isArray(raw)) {
+    return { cards: raw as CardSummary[], next_cursor: null };
+  }
+  if (raw && typeof raw === "object") {
+    const page = raw as Partial<CardPage>;
+    return {
+      cards: Array.isArray(page.cards) ? page.cards : [],
+      next_cursor: typeof page.next_cursor === "string" ? page.next_cursor : null,
+    };
+  }
+  return { cards: [], next_cursor: null };
 }
 
 // --- Typed endpoint functions (mirror the api contract under /api/v1) ---
@@ -603,8 +630,14 @@ export const api = {
    * it); `before` is the keyset cursor from the previous page's `next_cursor`, passed straight back to
    * fetch the next, older page ("Load more"). The app never derives the cursor, it only threads it. When
    * next_cursor is null there are no more cards.
+   *
+   * DEPLOY-WINDOW TOLERANT: the api changed GET /cards from a bare CardSummary[] to this CardPage, and the
+   * api + app deploy close together but NOT atomically. So the raw body is read as unknown and run through
+   * normalizeCardPage, which accepts BOTH shapes (a bare array becomes { cards, next_cursor: null }; a
+   * CardPage is used as-is). This keeps the app working during the brief window where the new app talks to
+   * the not-yet-redeployed old api (and the reverse). The normalization is pure and unit-tested.
    */
-  listCards(
+  async listCards(
     params: { limit?: number; before?: string | null } = {},
     signal?: AbortSignal
   ): Promise<CardPage> {
@@ -612,7 +645,8 @@ export const api = {
     if (params.limit !== undefined) search.set("limit", String(params.limit));
     if (params.before) search.set("before", params.before);
     const qs = search.toString();
-    return http<CardPage>(`/api/v1/cards${qs ? `?${qs}` : ""}`, { signal });
+    const raw = await http<unknown>(`/api/v1/cards${qs ? `?${qs}` : ""}`, { signal });
+    return normalizeCardPage(raw);
   },
 
   /**

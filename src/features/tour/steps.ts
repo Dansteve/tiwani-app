@@ -53,7 +53,7 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
     id: "lci",
     target: "resilience-score",
     title: "Your resilience score",
-    body: "Once you have prepared a few things and checked in, this shows whether life is holding steady or under pressure.",
+    body: "Once you have prepared a few things and checked in, this shows whether life is holding steady or under pressure. It is a signal from your check-ins, not a formal or validated measurement.",
     placement: "bottom",
     optional: true,
   },
@@ -209,7 +209,7 @@ const CONTINUITY_TOUR_STEPS: TourStep[] = [
     id: "overall",
     target: "continuity-overall",
     title: "Your overall picture",
-    body: "A single read on whether life is holding steady or quietly narrowing, built only from your check-ins.",
+    body: "A single read on whether life is holding steady or quietly narrowing, built only from your check-ins. It is a signal from your check-ins, not a formal or validated measurement.",
     placement: "bottom",
   },
   {

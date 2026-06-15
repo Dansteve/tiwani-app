@@ -48,7 +48,8 @@ export function ContinuityScreen() {
         <div>
           <h1 className="text-2xl font-semibold md:text-3xl">Life Continuity</h1>
           <p className="mt-1 text-base text-muted-foreground">
-            Whether life is holding steady or quietly narrowing, built from your check-ins.
+            A signal from your check-ins of whether life is holding steady or feeling stretched, not a
+            clinical or validated measurement.
           </p>
         </div>
         {/* On-demand "Show me around" for the Continuity screen, shown once there is a picture to tour

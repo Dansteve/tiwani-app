@@ -7,6 +7,11 @@
 // the api's JSON error envelope) on a non-2xx, so a 404 surfaces structurally rather than as a Blob of
 // an error page. The other endpoints are JSON and exercised through their screens; this covers the
 // binary path the screens cannot.
+//
+// Also covers the GET /cards deploy-window normalization (normalizeCardPage + api.listCards): the api
+// changed the response from a bare CardSummary[] to a paginated CardPage, and the api + app do not deploy
+// atomically, so the client tolerates BOTH shapes during the brief window. These pin that both a bare
+// array (old api) and a CardPage object (new api) collapse to the same CardPage the screen reads.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
@@ -15,7 +20,13 @@ vi.mock("@/lib/env", () => ({
   env: { apiUrl: "https://api.test", supabaseUrl: "", supabaseAnonKey: "", websiteUrl: "" },
 }));
 
-import { api, ApiError, setAuthTokenProvider } from "@/lib/api/client";
+import {
+  api,
+  ApiError,
+  normalizeCardPage,
+  setAuthTokenProvider,
+} from "@/lib/api/client";
+import type { CardSummary } from "@/lib/api/types";
 
 function pdfResponse(
   body: string,
@@ -124,5 +135,99 @@ describe("api.downloadCardPdf", () => {
     fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
 
     await expect(api.downloadCardPdf("card_1")).rejects.toBeInstanceOf(ApiError);
+  });
+});
+
+// A minimal CardSummary row for the GET /cards shape tests (only the fields the list reads; the
+// normalization passes the rows through opaquely, it does not inspect them).
+function cardRow(id: string): CardSummary {
+  return {
+    id,
+    activity_name: "Swimming lesson",
+    child_first_name: "Ada",
+    chapter: "social",
+    created_at: "2026-06-10T09:00:00Z",
+    expires_at: "2026-07-10T09:00:00Z",
+    status: "active",
+    generated_at: "2026-06-10T09:00:00Z",
+    is_stale: false,
+  };
+}
+
+describe("normalizeCardPage (GET /cards deploy-window tolerance)", () => {
+  it("wraps a bare CardSummary[] (the old api) as a single page with no cursor", () => {
+    const rows = [cardRow("card_1"), cardRow("card_2")];
+
+    const page = normalizeCardPage(rows);
+
+    expect(page.cards).toEqual(rows);
+    expect(page.next_cursor).toBeNull();
+  });
+
+  it("passes a CardPage object (the new api) through, keeping its cursor", () => {
+    const raw = {
+      cards: [cardRow("card_1")],
+      next_cursor: "2026-06-01T09:00:00Z",
+    };
+
+    const page = normalizeCardPage(raw);
+
+    expect(page.cards).toEqual(raw.cards);
+    expect(page.next_cursor).toBe("2026-06-01T09:00:00Z");
+  });
+
+  it("treats an empty array as an empty page", () => {
+    expect(normalizeCardPage([])).toEqual({ cards: [], next_cursor: null });
+  });
+
+  it("normalizes a CardPage with a null next_cursor (the last page)", () => {
+    const page = normalizeCardPage({ cards: [cardRow("card_1")], next_cursor: null });
+
+    expect(page.cards).toHaveLength(1);
+    expect(page.next_cursor).toBeNull();
+  });
+
+  it("degrades a malformed body to an empty page rather than throwing", () => {
+    expect(normalizeCardPage(null)).toEqual({ cards: [], next_cursor: null });
+    expect(normalizeCardPage(undefined)).toEqual({ cards: [], next_cursor: null });
+    // An object with a non-array cards field is not trusted; the page is empty.
+    expect(normalizeCardPage({ cards: "nope", next_cursor: 7 })).toEqual({
+      cards: [],
+      next_cursor: null,
+    });
+  });
+});
+
+describe("api.listCards (both api shapes during the deploy window)", () => {
+  function jsonResponse(body: unknown): Response {
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  it("reads a bare array body (the not-yet-redeployed old api) as one page", async () => {
+    const rows = [cardRow("card_1"), cardRow("card_2")];
+    fetchMock.mockResolvedValue(jsonResponse(rows));
+
+    const page = await api.listCards();
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe("https://api.test/api/v1/cards");
+    expect(page.cards).toEqual(rows);
+    expect(page.next_cursor).toBeNull();
+  });
+
+  it("reads a CardPage body (the new api) as-is and threads limit + before", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ cards: [cardRow("card_1")], next_cursor: "cursor-2" })
+    );
+
+    const page = await api.listCards({ limit: 50, before: "cursor-1" });
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe("https://api.test/api/v1/cards?limit=50&before=cursor-1");
+    expect(page.cards).toHaveLength(1);
+    expect(page.next_cursor).toBe("cursor-2");
   });
 });
