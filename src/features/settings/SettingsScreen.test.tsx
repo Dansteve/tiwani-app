@@ -83,6 +83,11 @@ vi.mock("@/features/settings/DataExportSection", () => ({
 vi.mock("@/features/settings/DangerZoneSection", () => ({
   DangerZoneSection: () => <div data-testid="danger-zone-section" />,
 }));
+// The Privacy (analytics opt-in) section drives lib/consent.ts and has its own focused test
+// (PrivacySection.test). Stub it here so this screen test stays about the tab shell.
+vi.mock("@/features/settings/PrivacySection", () => ({
+  PrivacySection: () => <div data-testid="privacy-section" />,
+}));
 // The Plans & billing section fires its own reads (the plan list + the caller's subscription) and the
 // checkout mutation; it has its own focused test (PlansBillingSection.test). Stub it here so this screen
 // test stays about the tab shell + the profile/recipient reads it owns.

@@ -21,6 +21,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { UserPlus } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
+import { trackPlanPrepared } from "@/lib/analytics";
 import { buttonVariants } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
@@ -107,6 +108,13 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
         },
         activeChildId
       ),
+    // Fire the consent-gated `plan_prepared` analytics event on a successful FRESH engine run (this
+    // mutation is the only fresh-prepare path; re-opening a stored plan via api.getPlan does not run
+    // it). It carries ONLY the participation tier enum, never the recipient, the activity, or any
+    // score (lib/analytics.ts). Best-effort: it no-ops unless the user opted in.
+    onSuccess: (plan) => {
+      void trackPlanPrepared(plan.tier);
+    },
   });
 
   // The existing plan that matches the picked activity (by activity_name, within this chapter), or null.

@@ -7,12 +7,19 @@
 // message lists the offending rule ids. "region" (a page-level landmark rule) is disabled because
 // these are isolated fragments, not whole pages.
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { axeRuleViolations } from "@/test/axe";
 import { Wordmark } from "@/components/Wordmark";
 import { Button } from "@/components/ui/button";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { PwaUpdateNotice } from "@/components/PwaUpdateNotice";
+
+// The PwaUpdateNotice reads the service-worker context; mock the hook so the notice renders (an update
+// is available) for the a11y audit, with no real service worker. Only this test imports the provider.
+vi.mock("@/components/ServiceWorkerProvider", () => ({
+  useServiceWorkerUpdate: () => ({ updateAvailable: true, applyUpdate: () => {} }),
+}));
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -161,6 +168,13 @@ describe("accessibility (axe) regression net", () => {
     const { container } = render(
       <DimensionBars scores={{ temporal: 3, sensory: 5, logistical: 2, human: 4 }} />,
     );
+    expect(await axeRuleViolations(container)).toEqual([]);
+  });
+
+  it("PwaUpdateNotice (update available) has no violations", async () => {
+    // The calm "new version is ready" notice: role="status" + Refresh/Later, built from Card + Button.
+    // The provider hook is mocked above to report an available update so the notice renders.
+    const { container } = render(<PwaUpdateNotice />);
     expect(await axeRuleViolations(container)).toEqual([]);
   });
 

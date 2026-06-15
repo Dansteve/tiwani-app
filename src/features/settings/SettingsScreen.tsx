@@ -41,6 +41,7 @@ import { CareRecipientSection } from "@/features/settings/CareRecipientSection";
 import { RecipientsSection } from "@/features/settings/RecipientsSection";
 import { PlansBillingSection } from "@/features/settings/PlansBillingSection";
 import { DataExportSection } from "@/features/settings/DataExportSection";
+import { PrivacySection } from "@/features/settings/PrivacySection";
 import { DangerZoneSection } from "@/features/settings/DangerZoneSection";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { ReplayTourButton } from "@/features/tour/ReplayTourButton";
@@ -263,6 +264,10 @@ export function SettingsScreen() {
           {/* Your data (export). Download a copy of everything the account holds; the file saves to the
               device and nothing is rendered from it. */}
           <DataExportSection />
+
+          {/* Privacy (analytics opt-in). Default OFF, PECR: no analytics runs until the user turns it
+              on, and the same toggle turns it back off (withdrawal as easy as opt-in). */}
+          <PrivacySection />
 
           {/* Close account (the deletion flow). A calm two-step confirm with honest, factual copy: the
               account is closed and the data is retained per the retention policy, not erased on the spot. */}
