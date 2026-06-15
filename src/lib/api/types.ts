@@ -345,6 +345,45 @@ export interface AlertRecord {
 }
 
 /**
+ * The OPTIONAL coarse tap on the carer check-in moment ("A moment for you", ProductReview.md item 9;
+ * Api/Modules/Checkin.md). It is NEVER a mood scale and NEVER free text: it only branches which
+ * governed acknowledgement + signposting block the api returns. "none" is the no-tap default (the
+ * moment opened with no selection).
+ */
+export type MomentTap = "none" | "okay" | "a_lot" | "hard";
+
+/**
+ * One support resource on a check-in moment (community/statutory or crisis-capable). Mirrors the api's
+ * MomentSignpostView, the same {label, url?} shape as AlertSignpost. url is null for a contextual
+ * resource (a GP, local carer organisations) or a phone route the app renders from the label. Never a
+ * clinical referral (the api guards every emitted string).
+ */
+export interface MomentSignpost {
+  label: string;
+  /** Null for a contextual resource the api lists without a link (e.g. a GP, local carer organisations). */
+  url: string | null;
+}
+
+/**
+ * The carer check-in moment as the app renders it (GET /api/v1/checkin/moment, ProductReview.md item 9;
+ * the psychiatrist board's SAFE shape). The app mirrors this field-for-field and renders `intro`,
+ * `acknowledgement`, and the `signposts` VERBATIM (it authors NO moment wording, exactly as it renders
+ * alerts). `tap` echoes the branch. The copy is GOVERNED + guard-tested api-side (clinical AND
+ * hollow-affirmation words barred). It NEVER scores the carer and the api stores NOTHING (ephemeral).
+ *
+ * `needs_signoff` is always true: a standing reminder that this surface is gated on psychiatrist + DPO
+ * sign-off (the api only serves it when its OFF-by-default flag is enabled; until then the read 404s and
+ * the app simply renders nothing). The app never enables the surface; the gate lives api-side.
+ */
+export interface MomentResponse {
+  tap: MomentTap;
+  intro: string;
+  acknowledgement: string;
+  signposts: MomentSignpost[];
+  needs_signoff: boolean;
+}
+
+/**
  * One strategy on a Continuity Card, written for an outsider (a helper who is new to the care
  * recipient). Mirrors the api's CardStrategy field-for-field. The source seed carries flat phrases,
  * so `title` and `detail` may be the same line; the app renders both as the api returns them.

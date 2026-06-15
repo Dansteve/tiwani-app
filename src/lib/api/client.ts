@@ -30,6 +30,8 @@ import type {
   ChapterStatus,
   ConsentRecorded,
   CreateNeedRequest,
+  MomentResponse,
+  MomentTap,
   NeedActionResult,
   NeedDetail,
   NeedSummary,
@@ -515,6 +517,25 @@ export const api = {
       `/api/v1/alerts/${encodeURIComponent(chapter)}/dismiss${childQuery(childId)}`,
       { method: "POST" }
     );
+  },
+
+  /**
+   * The carer check-in moment ("A moment for you", GET /api/v1/checkin/moment, ProductReview.md item 9;
+   * the psychiatrist board's SAFE shape). AUTH REQUIRED (the bearer is attached by http()). Returns the
+   * GOVERNED, verbatim acknowledgement + support signposts the app RENDERS (it authors no moment
+   * wording, exactly like alerts); the optional `tap` (a COARSE structured choice, never a mood scale,
+   * never free text) only branches which acknowledgement + signposting block the api returns. This is a
+   * READ: it carries no body, so it can never send a feeling, and the api STORES NOTHING (ephemeral; not
+   * fed to the engine / LCI / alerts / analytics).
+   *
+   * SIGN-OFF GATE: this surface is gated on psychiatrist + DPO sign-off (Task 12). The api keeps it OFF
+   * by default and 404s (ApiError.status === 404) until enabled; the caller treats a 404 as "the moment
+   * is not available" and simply renders nothing (the door does not appear), NOT an error. The app never
+   * enables the surface; the gate lives entirely api-side.
+   */
+  getCheckinMoment(tap?: MomentTap, signal?: AbortSignal): Promise<MomentResponse> {
+    const query = tap ? `?tap=${encodeURIComponent(tap)}` : "";
+    return http<MomentResponse>(`/api/v1/checkin/moment${query}`, { signal });
   },
 
   /**
