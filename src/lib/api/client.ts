@@ -18,9 +18,9 @@ import type {
   CheckoutSession,
   CardContent,
   CardCreated,
+  CardPage,
   CardPdf,
   CardRevoked,
-  CardSummary,
   CareRecipientCreate,
   CareRecipientProfile,
   CareRecipientUpdate,
@@ -591,15 +591,28 @@ export const api = {
   },
 
   /**
-   * List the Continuity Cards the caller has generated (GET /api/v1/cards, Product.md §4.6), newest
-   * first, for the Card History screen. AUTH REQUIRED: the bearer is attached by http(); the api
-   * scopes the rows to the caller (RLS), so a user only ever sees their own cards. Each row is a
-   * CardSummary (status + ages + is_stale) and carries NO share token (the list never re-exposes the
+   * List ONE PAGE of the Continuity Cards the caller has generated (GET /api/v1/cards, Product.md
+   * §4.6), newest first, for the Cards list screen. AUTH REQUIRED: the bearer is attached by http();
+   * the api scopes the rows to the caller (RLS), so a user only ever sees their own cards. Each row is
+   * a CardSummary (status + ages + is_stale) and carries NO share token (the list never re-exposes the
    * link's only secret) and no activity_id (re-share regenerates a fresh card, it does not re-mint a
    * stale link). The app renders the rows; it computes no status.
+   *
+   * PAGINATED (the database-load fix): the response is a CardPage ({ cards, next_cursor }), never the
+   * whole history. `limit` caps the page (the api defaults + clamps it server-side, so the app can omit
+   * it); `before` is the keyset cursor from the previous page's `next_cursor`, passed straight back to
+   * fetch the next, older page ("Load more"). The app never derives the cursor, it only threads it. When
+   * next_cursor is null there are no more cards.
    */
-  listCards(signal?: AbortSignal): Promise<CardSummary[]> {
-    return http<CardSummary[]>("/api/v1/cards", { signal });
+  listCards(
+    params: { limit?: number; before?: string | null } = {},
+    signal?: AbortSignal
+  ): Promise<CardPage> {
+    const search = new URLSearchParams();
+    if (params.limit !== undefined) search.set("limit", String(params.limit));
+    if (params.before) search.set("before", params.before);
+    const qs = search.toString();
+    return http<CardPage>(`/api/v1/cards${qs ? `?${qs}` : ""}`, { signal });
   },
 
   /**

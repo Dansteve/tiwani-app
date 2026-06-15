@@ -536,6 +536,22 @@ export interface CardSummary {
 }
 
 /**
+ * One PAGE of the Card History list (GET /api/v1/cards). Mirrors the api's CardPage field-for-field.
+ * The list is paginated so it never fetches every card the Coordinator has ever made (the api caps the
+ * page server-side, default 50, newest first); the app loads the first page and offers "Load more" to
+ * page back through older cards.
+ *   cards        the page of CardSummary rows, newest first (RLS-scoped to the caller).
+ *   next_cursor  the keyset cursor to pass back as the `before` argument to fetch the NEXT (older) page,
+ *                or null when this is the last page. It is an ISO timestamp (the last row's created_at on
+ *                a full page), not PII, and carries no token. The app sends it straight back; it never
+ *                derives or interprets the cursor, only passes it through.
+ */
+export interface CardPage {
+  cards: CardSummary[];
+  next_cursor: string | null;
+}
+
+/**
  * The POST /api/v1/cards/{card_id}/revoke response (the Coordinator revoked the card). Mirrors the
  * api: the updated CardSummary with `status` now "revoked". A 404 means the card is not the caller's
  * (RLS-scoped, a foreign or unknown id matches nothing); the app surfaces that inline and leaves the
