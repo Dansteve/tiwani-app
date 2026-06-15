@@ -315,6 +315,61 @@ export interface OverallLciSnapshot {
 }
 
 /**
+ * The §4.3 display band for an LCI value, the coloured ZONE a check-in-history point is read as
+ * (mirrors the api's LciBand enum and lib/format.LciBand: none / stable / pressure / critical). The
+ * api OWNS the band on each history point, so the view shows a zone, never a precise 2-significant-figure
+ * altitude (the researcher's honesty condition). A null score is the neutral `none` band.
+ */
+export type LciBandCode = "none" | "stable" | "pressure" | "critical";
+
+/**
+ * One DISCRETE recorded LCI reading on the "Your check-in history" view (GET /api/v1/lci/history),
+ * mirroring the api's LciHistoryPoint field-for-field. It is a single stored snapshot surfaced as a
+ * point: `taken_at` is the REAL check-in instant (never interpolated or evenly spaced), `score` is the
+ * 0 to 100 value, and `band` is the api-owned §4.3 zone. The app plots a dot at `taken_at` coloured by
+ * `band`; it computes no band and no score and draws no value axis.
+ */
+export interface LciHistoryPoint {
+  taken_at: string;
+  score: number;
+  band: LciBandCode;
+}
+
+/**
+ * One scope's DISCRETE check-in history (the api's LciSeries), for the overall index or one Life
+ * Chapter. The api owns every honesty signal the view depends on so the app cannot lie by accident:
+ *   scope            "overall" or a Life Chapter code (the app labels it).
+ *   points           the recorded readings, time-ascending, each a discrete instant + band. The app
+ *                    draws DOTS; a joined segment is allowed only when reading_count >= 3 (the floor).
+ *   reading_count    how many real readings exist. Below 3 the app shows NO line/slope (the "building
+ *                    your picture" state); the api owns this number, the app never infers a trend.
+ *   latest_taken_at  the last real reading's instant (null when there are none). After it the series
+ *                    STOPS; the app shows "no reading since [date]" and never carries the score forward.
+ *   is_stale         api-computed: the last reading is older than the staleness window, so the series is
+ *                    out of date and the app degrades to the muted no-reading-since state (stale = stop).
+ */
+export interface LciSeries {
+  scope: "overall" | ChapterCode;
+  points: LciHistoryPoint[];
+  reading_count: number;
+  latest_taken_at: string | null;
+  is_stale: boolean;
+}
+
+/**
+ * The whole check-in-history payload (GET /api/v1/lci/history) for ONE care recipient, mirroring the
+ * api's LciHistory field-for-field: the overall series plus one series per Life Chapter (the six, in the
+ * stable Chapter order), each a discrete recorded history with its own honesty signals, and
+ * `generated_at` (when the read was computed). A read of stored snapshots only; the app renders the
+ * points and authors no decline language (a declining chapter is paired with the governed alert framing).
+ */
+export interface LciHistory {
+  overall: LciSeries;
+  chapters: LciSeries[];
+  generated_at: string;
+}
+
+/**
  * One signpost on an Erosion Alert: a community or statutory support link (Carers UK, IPSEA,
  * SENDIASS, a local carer organisation, a statutory-rights page). The label and url are authored by
  * the api; the app renders the link verbatim and opens it in a new tab. Never a clinical referral

@@ -22,6 +22,7 @@ import { recipientKey } from "@/state/selectedRecipient";
 import { chapterStatus } from "@/features/dashboard/status";
 import { ChapterCard } from "@/features/dashboard/ChapterCard";
 import { OverallLciIndicator } from "@/features/continuity/OverallLciIndicator";
+import { CheckInHistoryButton } from "@/features/continuity/CheckInHistoryButton";
 import { PulsePrompt } from "@/features/pulse/PulsePrompt";
 import { AlertSurface } from "@/features/alerts/AlertSurface";
 import { useAlerts } from "@/features/alerts/useAlerts";
@@ -184,8 +185,13 @@ export function DashboardScreen() {
           snapshot; absence (or an error on this read) leaves the rest of the dashboard untouched. The
           data-tour anchor lets the coach-marks point at it (an optional step, skipped when absent). */}
       {overallLciQuery.data ? (
-        <div data-tour="resilience-score">
+        <div data-tour="resilience-score" className="space-y-3">
           <OverallLciIndicator snapshot={overallLciQuery.data} />
+          {/* Into the honest "Your check-in history" view (Product.md §4.8; the researcher's verdict): the
+              discrete check-in readings over time, a side page (slide-in panel on mobile), never a line. */}
+          <div className="flex">
+            <CheckInHistoryButton label="See your check-in history" />
+          </div>
         </div>
       ) : null}
 

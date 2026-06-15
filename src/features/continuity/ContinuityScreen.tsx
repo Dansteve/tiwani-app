@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
 import { LciPanel } from "@/features/continuity/LciPanel";
+import { CheckInHistoryButton } from "@/features/continuity/CheckInHistoryButton";
 import { PageTour } from "@/features/tour/PageTour";
 import { useRecipient } from "@/state/RecipientProvider";
 import { recipientKey } from "@/state/selectedRecipient";
@@ -75,7 +76,15 @@ export function ContinuityScreen() {
       ) : null}
 
       {showPanel ? (
-        <LciPanel overall={overallQuery.data!} chapters={chaptersQuery.data ?? []} />
+        <>
+          {/* The honest "Your check-in history" view (Product.md §4.8; the researcher's verdict): the
+              discrete check-in readings over time, NOT a precise plotted line. A button into the dedicated
+              side page (a slide-in panel on mobile). */}
+          <div className="flex">
+            <CheckInHistoryButton />
+          </div>
+          <LciPanel overall={overallQuery.data!} chapters={chaptersQuery.data ?? []} />
+        </>
       ) : null}
     </div>
   );
