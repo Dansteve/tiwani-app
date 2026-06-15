@@ -11,7 +11,9 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
-/** A nav item is active for its own route and any nested route under it (e.g. /card and /card/history). */
+/** A nav item is active for its own route and any nested route under it (so /card lights up "Cards" on
+ *  /card and on /card/new). With no nav item nested under another (the old /card vs /card/history overlap
+ *  is gone), exactly one item is active per route. */
 export function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }

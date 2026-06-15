@@ -1,7 +1,8 @@
 // The route -> tour-page mapping for the shell's mobile "Show me around" (ShellPageTour). Pure logic, so it
-// is unit-tested without a DOM: the LONGEST matching route prefix wins (so /card/history resolves to the
-// card-history tour, not card, and /plans to plans, not plan), nested routes match their page, and a route
-// with no tour (auth / the utility surfaces) resolves to null so the bar shows no tour button there.
+// is unit-tested without a DOM: the LONGEST matching route prefix wins (so /card/new resolves to the card
+// generator tour, not the /card list tour, and /plans to plans, not plan), nested routes match their page,
+// and a route with no tour (auth / the utility surfaces) resolves to null so the bar shows no tour button
+// there. The /card list runs the "card-history" tour (the list tour); /card/new runs the "card" tour.
 
 import { describe, it, expect } from "vitest";
 
@@ -10,7 +11,9 @@ import { tourForPath } from "@/features/tour/ShellPageTour";
 describe("tourForPath (the shell tour route map)", () => {
   it("maps each main route to its tour page", () => {
     expect(tourForPath("/dashboard")).toBe("dashboard");
-    expect(tourForPath("/card")).toBe("card");
+    // /card is the Cards LIST, so it runs the list ("card-history") tour; /card/new is the generator.
+    expect(tourForPath("/card")).toBe("card-history");
+    expect(tourForPath("/card/new")).toBe("card");
     expect(tourForPath("/plan")).toBe("plan");
     expect(tourForPath("/plans")).toBe("plans");
     expect(tourForPath("/pulse")).toBe("pulse");
@@ -21,8 +24,9 @@ describe("tourForPath (the shell tour route map)", () => {
   });
 
   it("resolves the LONGEST matching prefix so nested routes do not collide", () => {
-    // /card/history is its OWN tour, not card; /plans is plans, not plan.
-    expect(tourForPath("/card/history")).toBe("card-history");
+    // /card/new is the generator's OWN tour, not the /card list tour; /plans is plans, not plan.
+    expect(tourForPath("/card/new")).toBe("card");
+    expect(tourForPath("/card")).toBe("card-history");
     expect(tourForPath("/plans")).toBe("plans");
     expect(tourForPath("/plan")).toBe("plan");
   });

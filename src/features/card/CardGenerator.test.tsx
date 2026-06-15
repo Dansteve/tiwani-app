@@ -1,8 +1,8 @@
-// The in-app Continuity Card generate-flow test (Product.md §4.6). With the api client mocked (no live
-// backend), it drives the flow: the Coordinator presses "Generate Continuity Card", the app POSTs
+// The in-app Continuity Card generate-flow test (Product.md §4.5 / §4.6). With the api client mocked (no
+// live backend), it drives the flow: the Coordinator presses "Create Continuity Card", the app POSTs
 // generateCard(activityId), and on success renders the preview (the api's safe content) + the shareable
-// link built from the returned token. It also covers the missing-activity guard and the error state.
-// This is the path that cannot be exercised live without the demo password, so it is unit-tested here.
+// link built from the returned token. It also covers the no-activity teach-the-flow state and the error
+// state. This is the path that cannot be exercised live without the demo password, so it is unit-tested.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -88,11 +88,20 @@ beforeEach(() => {
 });
 
 describe("CardGenerator", () => {
-  it("shows a recoverable prompt when no activity id is in the URL", () => {
+  it("teaches the 3-step flow (not a dead-end) when no activity id is in the URL", () => {
     renderGen(null);
+    // The no-activity state TEACHES how a card is made rather than dead-ending: the heading, the three
+    // numbered steps, and a button that goes to the dashboard (named for where it goes).
     expect(
-      screen.getByRole("heading", { name: "Prepare an activity first" })
+      screen.getByRole("heading", { name: "Make a Continuity Card" })
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/open a life chapter on your dashboard and prepare an activity/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/on the plan, choose create continuity card/i)).toBeInTheDocument();
+    expect(screen.getByText(/share the link, or save it as a pdf/i)).toBeInTheDocument();
+    const cta = screen.getByRole("link", { name: /go to my dashboard/i });
+    expect(cta).toHaveAttribute("href", "/dashboard");
     expect(generateCard).not.toHaveBeenCalled();
   });
 
@@ -100,7 +109,7 @@ describe("CardGenerator", () => {
     generateCard.mockResolvedValue(CREATED);
     renderGen("act_99");
 
-    fireEvent.click(screen.getByRole("button", { name: /generate continuity card/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create continuity card/i }));
 
     // Sent the right request: the activity id + the SAFE-default public_name (null = no name on the
     // shared card), matching the pinned contract.
@@ -127,7 +136,7 @@ describe("CardGenerator", () => {
     // The "No name" option is the pre-selected one (the safe default).
     expect(screen.getByRole("button", { name: /no name/i })).toHaveAttribute("aria-pressed", "true");
 
-    fireEvent.click(screen.getByRole("button", { name: /generate continuity card/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create continuity card/i }));
     await waitFor(() => expect(generateCard).toHaveBeenCalledWith("act_99", null));
   });
 
@@ -138,7 +147,7 @@ describe("CardGenerator", () => {
     // Only the "First name" choice's accessible name contains "first name" (the others are "No name" /
     // "An initial or nickname"), so this uniquely selects it.
     fireEvent.click(screen.getByRole("button", { name: /first name/i }));
-    fireEvent.click(screen.getByRole("button", { name: /generate continuity card/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create continuity card/i }));
 
     await waitFor(() => expect(generateCard).toHaveBeenCalledWith("act_99", "Ada"));
   });
@@ -151,7 +160,7 @@ describe("CardGenerator", () => {
     fireEvent.change(screen.getByLabelText(/initial or nickname/i), {
       target: { value: "  Bee  " },
     });
-    fireEvent.click(screen.getByRole("button", { name: /generate continuity card/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create continuity card/i }));
 
     await waitFor(() => expect(generateCard).toHaveBeenCalledWith("act_99", "Bee"));
   });
@@ -214,7 +223,7 @@ describe("CardGenerator", () => {
     generateCard.mockRejectedValue(new ApiError(404, "Activity not found"));
     renderGen("act_missing");
 
-    fireEvent.click(screen.getByRole("button", { name: /generate continuity card/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create continuity card/i }));
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/could not find that prepared activity/i);

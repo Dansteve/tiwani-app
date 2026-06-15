@@ -1,13 +1,15 @@
 "use client";
 
-// The in-app Continuity Card flow (Product.md §4.5 / §4.6), reached from the Preparation Plan's
-// "Generate Continuity Card" action with ?activity=<activity_id>. The Coordinator generates a card,
+// The in-app Continuity Card flow (Product.md §4.5 / §4.6), the /card/new route, reached from a prepared
+// plan's "Create Continuity Card" action with ?activity=<activity_id>. The Coordinator creates a card,
 // then gets a clean preview + a shareable link for a helper.
 //
-// Flow: a "Generate Continuity Card" button -> api.generateCard(activityId) (a TanStack Query mutation,
+// Flow: a "Create Continuity Card" button -> api.generateCard(activityId) (a TanStack Query mutation,
 // loading + inline error) -> on success, render the card preview (CardContentView) + the shareable
 // public link (ShareLinkBar, built from the returned token). The app renders the api's safe content and
-// authors no card wording (App SETUP). The link carries the opaque token only, no PII.
+// authors no card wording (App SETUP). The link carries the opaque token only, no PII. Arriving with no
+// ?activity= (e.g. straight to /card/new) shows MissingActivity, which TEACHES the three-step flow rather
+// than dead-ending.
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -48,19 +50,52 @@ export function CardGenerator({ activityParam }: CardGeneratorProps) {
   return <GenerateForActivity activityId={activityParam} />;
 }
 
+// Arriving at /card/new with no prepared activity is a recoverable state, not a crash. Rather than a bare
+// "prepare an activity first" dead-end, it TEACHES the three-step flow (the content lens' copy), so a
+// Coordinator who lands here knows exactly how a card is made, and the button sends them to the dashboard
+// (where a chapter is prepared), not to a vaguely-named "chapters" place.
 function MissingActivity() {
   return (
-    <div className="mx-auto w-full max-w-md text-center">
-      <h1 className="text-2xl font-semibold md:text-3xl">Prepare an activity first</h1>
-      <p className="mt-2 text-base text-muted-foreground">
-        A Continuity Card is built from a prepared activity. Pick a chapter and prepare one, then
-        create the card from there.
+    <div className="mx-auto w-full max-w-md">
+      <h1 className="text-center text-2xl font-semibold md:text-3xl">Make a Continuity Card</h1>
+      <p className="mt-3 text-base text-muted-foreground">
+        A Continuity Card is a one-page summary you can share with anyone who steps in to help, like a
+        babysitter, teacher, or carer. Here is how to make one:
       </p>
+      <ol className="mt-4 space-y-3 text-base text-foreground">
+        <li className="flex gap-3">
+          <span
+            aria-hidden="true"
+            className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
+          >
+            1
+          </span>
+          <span>Open a Life Chapter on your dashboard and prepare an activity.</span>
+        </li>
+        <li className="flex gap-3">
+          <span
+            aria-hidden="true"
+            className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
+          >
+            2
+          </span>
+          <span>On the plan, choose Create Continuity Card.</span>
+        </li>
+        <li className="flex gap-3">
+          <span
+            aria-hidden="true"
+            className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
+          >
+            3
+          </span>
+          <span>Share the link, or save it as a PDF.</span>
+        </li>
+      </ol>
       <Link
         href="/dashboard"
-        className={cn(buttonVariants({ variant: "default", size: "lg" }), "mt-6")}
+        className={cn(buttonVariants({ variant: "default", size: "lg" }), "mt-6 w-full")}
       >
-        Go to your chapters
+        Go to my dashboard
       </Link>
     </div>
   );
@@ -137,13 +172,13 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
           />
 
           {/* The link's 30-day validity, stated at share time (Product.md §4.6). The expiry comes from
-              the api's expires_at; this only phrases it. The owner switches a link off early from Card
-              History (Revoke), where the same expiry line sits beside the revoke action. */}
+              the api's expires_at; this only phrases it. The owner switches a link off early from the
+              Cards list (Revoke), where the same expiry line sits beside the revoke action. */}
           <p className="mt-4 flex items-center gap-1.5 border-t border-border pt-4 text-sm text-muted-foreground">
             <CalendarClock className="size-4 shrink-0" aria-hidden="true" />
             <span>
               {formatCardExpiry(card.expires_at).absolute}. You can switch it off sooner from{" "}
-              <Link href="/card/history" className="font-medium text-primary underline-offset-4 hover:underline">
+              <Link href="/card" className="font-medium text-primary underline-offset-4 hover:underline">
                 your cards
               </Link>
               .
@@ -152,7 +187,7 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
         </div>
 
         <Link
-          href="/card/history"
+          href="/card"
           className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto")}
         >
           <History className="size-4 shrink-0" aria-hidden="true" />
@@ -206,11 +241,11 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
         data-tour="card-generate"
       >
         <FileText className="size-4 shrink-0" aria-hidden="true" />
-        {mutation.isPending ? "Creating the card..." : "Generate Continuity Card"}
+        {mutation.isPending ? "Creating the card..." : "Create Continuity Card"}
       </button>
 
       <p className="text-center text-sm text-muted-foreground" data-tour="card-history-link">
-        <Link href="/card/history" className="font-medium text-primary underline-offset-4 hover:underline">
+        <Link href="/card" className="font-medium text-primary underline-offset-4 hover:underline">
           View the cards you have already shared
         </Link>
       </p>

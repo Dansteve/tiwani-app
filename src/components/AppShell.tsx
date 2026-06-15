@@ -13,7 +13,6 @@ import {
   Activity,
   HeartPulse,
   Settings,
-  History,
   FileText,
   Share2,
   Users,
@@ -37,9 +36,12 @@ import { ShellPageTour } from "@/features/tour/ShellPageTour";
 // /plan route and the prepare flow stay LIVE, reached from a chapter card's "Prepare" (/plan?chapter=).
 // "Pulse" is labelled "Check-in" everywhere user-facing (the one consistent word); the /pulse route,
 // the pulse-nav tour anchor, and the api/query identifiers keep the internal "pulse" name.
+// "Cards" is ONE destination: the /card tab renders the LIST of the Coordinator's Continuity Cards (with a
+// Create action + each card's status + revoke); making a new card is the /card/new sub-route. There is no
+// separate "Card history" entry (the list IS the card surface), so the nav reads one Card place, not two.
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { href: "/card", label: "Card", icon: IdCard },
+  { href: "/card", label: "Cards", icon: IdCard },
   { href: "/pulse", label: "Check-in", icon: Activity },
   { href: "/continuity", label: "Continuity", icon: HeartPulse },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -48,8 +50,8 @@ const NAV: NavItem[] = [
 // Sharing is a primary destination on the DESKTOP sidebar (where another vertical item fits comfortably),
 // but it is kept OFF the mobile bottom bar: that bar holds the five core tabs, and another would crowd
 // them below the comfortable tap width at 375px (the responsive hard rule). On mobile Sharing is reached
-// from the desktop-style secondary section and from the in-app banner / Card flow, the same way Card
-// history and Your plans are secondary on mobile.
+// from the desktop-style secondary section and from the in-app banner / Card flow, the same way Your plans
+// is secondary on mobile.
 const DESKTOP_PRIMARY_EXTRA: NavItem[] = [
   { href: "/sharing", label: "Sharing", icon: Share2 },
 ];
@@ -58,20 +60,19 @@ const DESKTOP_PRIMARY_EXTRA: NavItem[] = [
 // (the bar keeps the five primary destinations to avoid crowding / horizontal overflow). They live in the
 // desktop sidebar's secondary section AND, on mobile, behind a single compact "More" menu at the top of
 // the content (SecondaryNavMenu), so a phone can reach them without an overflowing pill strip (which
-// clipped the last item). Notifications, Village, Your plans (re-open a prepared plan), and Card history
-// (a card's status + revoke) are all reached this way.
+// clipped the last item). Notifications, Village, and Your plans (re-open a prepared plan) are reached this
+// way. The Cards list is a PRIMARY tab now (no separate "Card history" entry), so it is not here.
 const SECONDARY_NAV: NavItem[] = [
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/village", label: "Village", icon: Users },
   { href: "/plans", label: "Your plans", icon: FileText },
-  { href: "/card/history", label: "Card history", icon: History },
 ];
 
 // The VIEWER ceiling (Docs/FeatureDecisions.md "Helper Village ACCESS", refinement 1): when the active
 // recipient was SHARED with the caller (role viewer/editor), the shell shows ONLY the surfaces a viewer
 // may use, the Village (claim a need) + the shared Card ("Shared"), plus Settings (their OWN account, not
 // recipient data: sign out, theme, data rights). Every owner-only screen (dashboard / plan / pulse /
-// continuity / your plans / card history) is HIDDEN, never shown-then-403. The RoleRouteGuard blocks the
+// continuity / your plans / the Cards list) is HIDDEN, never shown-then-403. The RoleRouteGuard blocks the
 // routes themselves so a bookmark or a mid-screen recipient switch lands on the Village, not a 403.
 const VIEWER_NAV: NavItem[] = [
   { href: "/village", label: "Village", icon: Users },
@@ -146,8 +147,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Secondary links: surfaces that are not top-level tabs (the mobile bar stays at the five
-            primary destinations). Your plans and Card history are reached here on desktop and from
-            their own flows on mobile. The data-tour anchor lets the dashboard coach-marks point here
+            primary destinations). Notifications, Village, and Your plans are reached here on desktop and
+            from their own flows on mobile. The data-tour anchor lets the dashboard coach-marks point here
             (a desktop-only step; the mobile bottom bar has no secondary section). Hidden for a viewer
             (secondaryNav is empty under the ceiling). */}
         {secondaryNav.length > 0 ? (
@@ -194,7 +195,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               utility bar that frees content space: the small TIWANI mark (T + dot) links HOME to the
               dashboard; the "Caring for" recipient switcher rides the middle; then the route-aware
               "Show me around" tour and the "More" menu (the secondary destinations: Notifications /
-              Village / Your plans / Card history, which stay off the five-item bottom bar). For a viewer
+              Village / Your plans, which stay off the five-item bottom bar). For a viewer
               the More menu renders nothing (the ceiling). A pending invite shows a coral "new" dot on the
               More trigger (and on /notifications). Full-bleed (-mx-4 px-4) with an opaque background + a
               bottom divider so content scrolls cleanly beneath it; the open More panel (z-40) layers above.

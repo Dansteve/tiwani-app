@@ -1,32 +1,14 @@
-"use client";
+import { CardHistoryList } from "@/features/card/CardHistoryList";
 
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-
-import { CardGenerator } from "@/features/card/CardGenerator";
-
-// The Continuity Card route (Product.md §4.6), reached from the Preparation Plan's "Generate Continuity
-// Card" action with ?activity=<activity_id>. It hands the activity id to CardGenerator, which generates
-// the card (POST /api/v1/cards) and shows the preview + the shareable public link. The app renders the
-// api's safe content and authors no card wording. useSearchParams needs a Suspense boundary under the
-// App Router (and for the static export), so the reader is wrapped here.
-
-function CardRoute() {
-  const searchParams = useSearchParams();
-  return <CardGenerator activityParam={searchParams.get("activity")} />;
-}
+// The Continuity Card destination (Product.md §4.6). ONE Card surface: the /card tab renders the list of
+// the cards the Coordinator has made (newest first), each with its status (active / expired / revoked) +
+// age + the helper-safety staleness cue, a Create action at the top, and revoke on an active card. The
+// generator moved to /card/new (it reads ?activity=<id>), so "Card" and "Card history" are no longer two
+// confusingly-named surfaces. It sits under the (app) route group, so AppShell and OnboardingGuard (the
+// layout) already wrap it: an unauthenticated caller is sent to /sign-in. The list reads GET /api/v1/cards
+// and renders the api's CardSummary rows; the app computes no status (App SETUP: render the engine, never
+// recompute it). No useSearchParams here, so no Suspense needed.
 
 export default function CardPage() {
-  return (
-    <Suspense
-      fallback={
-        <div
-          aria-hidden="true"
-          className="mx-auto h-64 w-full max-w-2xl animate-pulse rounded-xl border border-border bg-card"
-        />
-      }
-    >
-      <CardRoute />
-    </Suspense>
-  );
+  return <CardHistoryList />;
 }

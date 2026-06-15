@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
-import { Bell, Users, FileText, History } from "lucide-react";
+import { Bell, Users, FileText } from "lucide-react";
 
 // next/link needs the app-router context to navigate on click; stub it to a plain anchor (preventDefault
 // so jsdom does not attempt navigation) that still fires the component's onClick (which closes the menu).
@@ -39,11 +39,12 @@ vi.mock("next/link", () => ({
 import { SecondaryNavMenu } from "@/components/SecondaryNavMenu";
 import type { NavItem } from "@/components/appNav";
 
+// The real secondary destinations (matches AppShell's SECONDARY_NAV: Notifications / Village / Your plans).
+// The Cards list is a PRIMARY tab now, so it is not a "More" destination.
 const ITEMS: NavItem[] = [
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/village", label: "Village", icon: Users },
   { href: "/plans", label: "Your plans", icon: FileText },
-  { href: "/card/history", label: "Card history", icon: History },
 ];
 
 function renderMenu(
@@ -61,7 +62,7 @@ function renderMenu(
 const trigger = () => screen.getByRole("button", { name: /more/i });
 
 describe("SecondaryNavMenu", () => {
-  it("is collapsed by default and opens the four destinations on click", () => {
+  it("is collapsed by default and opens the destinations on click", () => {
     renderMenu();
     const button = trigger();
     expect(button).toHaveAttribute("aria-expanded", "false");
@@ -77,16 +78,12 @@ describe("SecondaryNavMenu", () => {
     );
     expect(within(menu).getByRole("link", { name: /village/i })).toHaveAttribute("href", "/village");
     expect(within(menu).getByRole("link", { name: /your plans/i })).toHaveAttribute("href", "/plans");
-    expect(within(menu).getByRole("link", { name: /card history/i })).toHaveAttribute(
-      "href",
-      "/card/history"
-    );
   });
 
   it("marks the active destination with aria-current and leaves the others unmarked", () => {
-    renderMenu({ pathname: "/card/history" });
+    renderMenu({ pathname: "/plans" });
     fireEvent.click(trigger());
-    expect(screen.getByRole("link", { name: /card history/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /your plans/i })).toHaveAttribute(
       "aria-current",
       "page"
     );

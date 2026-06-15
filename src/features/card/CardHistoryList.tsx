@@ -1,10 +1,12 @@
 "use client";
 
-// The Card History screen (Product.md §4.6): the Coordinator sees the Continuity Cards they have
-// generated (newest first), each card's status + age, and can revoke an active one. The list is a
-// NORMAL app surface (the brand Card primitive on bg-card), NOT the deep-teal card chrome itself,
-// which is the public artifact a helper sees (CardContentView). The app renders the api's CardSummary
-// rows and computes no status (App SETUP: render the engine, never recompute it).
+// The Cards list (Product.md §4.6), the /card destination: the Coordinator sees the Continuity Cards they
+// have made (newest first), each card's status + age, and can revoke an active one. It is the ONE Card
+// surface (there is no separate "Card history"); making a new card is the /card/new sub-route, reached from
+// the Create action at the top of this list or from a prepared plan. The list is a NORMAL app surface (the
+// brand Card primitive on bg-card), NOT the deep-teal card chrome itself, which is the public artifact a
+// helper sees (CardContentView). The app renders the api's CardSummary rows and computes no status (App
+// SETUP: render the engine, never recompute it).
 //
 // Reads ["cards"] via TanStack Query; revoke is a useMutation that invalidates ["cards"] on success so
 // the row flips to revoked. A fetch error surfaces inline (the repo has no toast library; the
@@ -13,8 +15,8 @@
 //
 // View (ViewControl) re-opens a card the owner made, by card_id via the owner-view endpoint
 // (GET /cards/{card_id}/content), which returns the safe content but NEVER the share token, so viewing
-// cannot re-mint or re-share a stale link. Re-SHARING a fresh link regenerates through the /card flow
-// (the board's rule). So the screen is list + status + view + revoke.
+// cannot re-mint or re-share a stale link. Re-SHARING a fresh link regenerates through the /card/new flow
+// (the board's rule). So the screen is list + create + status + view + revoke.
 
 import { useState } from "react";
 import Link from "next/link";
@@ -38,20 +40,28 @@ export function CardHistoryList() {
     queryFn: ({ signal }) => api.listCards(signal),
   });
 
+  const hasCards = Boolean(query.data && query.data.length > 0);
+
   return (
     <div className="space-y-6">
       <header className="flex items-start justify-between gap-3">
-        {/* The header is the coach-marks anchor for the Card History tour (always present, so the
-            on-demand "Show me around" always has a target even before any card exists). */}
+        {/* The header is the coach-marks anchor for the Cards-list tour (always present, so the on-demand
+            "Show me around" always has a target even before any card exists). */}
         <div className="space-y-1" data-tour="card-history-list">
           <h1 className="text-2xl font-semibold md:text-3xl">Your Continuity Cards</h1>
           <p className="text-base text-muted-foreground">
             The cards you have shared with helpers. Revoke any active card to switch off its link.
           </p>
         </div>
-        {/* On-demand "Show me around" for Card History. */}
+        {/* On-demand "Show me around" for the Cards list. */}
         <PageTour page="card-history" buttonClassName="mt-1" />
       </header>
+
+      {/* The Create action at the TOP of the list, so the Cards list is never a dead-end (the board's
+          refinement): a card is made from a prepared plan, so this routes to the dashboard (open a chapter,
+          prepare an activity, then Create Continuity Card). Shown only when there ARE cards; the empty state
+          carries its own create CTA below, so this would otherwise sit right above a duplicate. */}
+      {hasCards ? <CreateCardAction /> : null}
 
       {query.isError ? (
         <Alert variant="destructive">
@@ -72,9 +82,9 @@ export function CardHistoryList() {
       ) : null}
 
       {!query.isLoading && !query.isError ? (
-        query.data && query.data.length > 0 ? (
+        hasCards ? (
           <ul className="space-y-3">
-            {query.data.map((card) => (
+            {query.data!.map((card) => (
               <li key={card.id}>
                 <CardHistoryRow card={card} />
               </li>
@@ -85,6 +95,22 @@ export function CardHistoryList() {
         )
       ) : null}
     </div>
+  );
+}
+
+// The "Create a Continuity Card" action at the top of the list (the list is never a dead-end). A card is
+// born from a prepared plan, so this routes to the dashboard (the simplest existing path: open a chapter,
+// prepare an activity, then choose Create Continuity Card on the plan), rather than inventing a blank-card
+// creator. Full-width on a phone, intrinsic on larger screens; the brand primary button (44px+ target).
+function CreateCardAction() {
+  return (
+    <Link
+      href="/dashboard"
+      className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full sm:w-auto")}
+    >
+      <FilePlus2 className="size-4 shrink-0" aria-hidden="true" />
+      Create a Continuity Card
+    </Link>
   );
 }
 
@@ -417,22 +443,24 @@ function RevokeControl({ card }: { card: CardSummary }) {
   );
 }
 
-// The calm empty state (no cards yet): point the Coordinator at preparing a plan, from which a card is
-// generated. Mirrors the warm, non-clinical tone of the other empty states (Dashboard/CardGenerator).
+// The calm empty state (no cards yet): teach what a card is and how to make one, then send the Coordinator
+// to the dashboard (where a chapter is prepared, from which a card is made). The button says "Go to my
+// dashboard" so the label matches where it goes (the old "Prepare an activity" went to /dashboard, not a
+// prepare screen). Mirrors the warm, non-clinical tone of the other empty states.
 function EmptyState() {
   return (
     <div className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center">
       <h2 className="text-lg font-semibold text-foreground">No cards yet</h2>
       <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-        When you prepare an activity, you can create a Continuity Card to share with a helper. Your
-        cards will appear here so you can check their status or revoke them.
+        When you prepare an activity, you can make a Continuity Card to share with someone helping out.
+        Your cards appear here so you can view, share, or switch off a link.
       </p>
       <Link
         href="/dashboard"
         className={cn(buttonVariants({ variant: "default", size: "lg" }), "mt-6")}
       >
         <FilePlus2 className="size-4 shrink-0" aria-hidden="true" />
-        Prepare an activity
+        Go to my dashboard
       </Link>
     </div>
   );
