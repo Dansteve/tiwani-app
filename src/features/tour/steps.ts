@@ -105,7 +105,9 @@ const PLAN_TOUR_STEPS: TourStep[] = [
 
 // The Your Prepared Plans screen (PlansList): re-open a plan you already made. The header intro is always
 // present; the list of plans is conditional (it is replaced by a loading skeleton or an empty state), so
-// its step is optional and drops until there are plans to point at.
+// its step is optional and drops until there are plans to point at. The list is PAGINATED, so "Show more
+// plans" only appears when more pages remain; its step is optional and drops otherwise (mirrors the Cards
+// list).
 const PLANS_TOUR_STEPS: TourStep[] = [
   {
     id: "intro",
@@ -120,6 +122,15 @@ const PLANS_TOUR_STEPS: TourStep[] = [
     title: "Pick up where you left off",
     body: "Your plans are listed newest first. Tap View plan on any of them to re-open it exactly as before.",
     placement: "top",
+    optional: true,
+  },
+  {
+    id: "more",
+    target: "plans-load-more",
+    title: "Older plans",
+    body: "If you have a lot of plans, tap Show more plans to bring in the rest a page at a time.",
+    placement: "top",
+    // The "Show more plans" control shows only when more pages remain; otherwise this step drops.
     optional: true,
   },
 ];

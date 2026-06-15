@@ -18,8 +18,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { CalendarCheck, CalendarClock, Eye, FilePlus2 } from "lucide-react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { CalendarCheck, CalendarClock, Eye, FilePlus2, Loader2 } from "lucide-react";
 
 import { api } from "@/lib/api/client";
 import type { ChapterCode, PlanSummary } from "@/lib/api/types";
@@ -30,15 +30,31 @@ import { chapterLabel, CHAPTERS, formatCardDate, tierLabel } from "@/lib/format"
 import { PreparationPlanView } from "@/features/plan/PreparationPlanView";
 import { PageTour } from "@/features/tour/PageTour";
 
+// The page size the list requests. The api defaults + caps this server-side (the database-load fix), so
+// this is only the app's preferred page; a smaller cap from the api still works (the app pages what it
+// gets). The list loads the first page, then "Show more" pages back through the rest.
+const PLANS_PAGE_SIZE = 50;
+
 export function PlansList() {
   // The chapter filter is local UI state (not a URL param): "All chapters" or one of the six. It keys
   // the query so switching it refetches the narrowed list (the api applies ?chapter=).
   const [chapter, setChapter] = useState<ChapterCode | null>(null);
 
-  const query = useQuery({
+  // Paginated read: the list NEVER fetches every plan (prepared plans accumulate). Each page is a
+  // PlanSummaryPage ({ plans, next_cursor }); getNextPageParam threads next_cursor back as the `before`
+  // keyset cursor for the next, older page (the /cards precedent). Keyed by the chapter filter so
+  // switching it refetches the narrowed list from the first page.
+  const query = useInfiniteQuery({
     queryKey: ["plans", chapter],
-    queryFn: ({ signal }) => api.listPlans(chapter ?? undefined, signal),
+    queryFn: ({ pageParam, signal }) =>
+      api.listPlans(chapter ?? undefined, { limit: PLANS_PAGE_SIZE, before: pageParam }, signal),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.next_cursor,
   });
+
+  // Flatten the pages into one newest-first list (each page is newest-first, so the concatenation stays
+  // newest-first).
+  const plans = query.data?.pages.flatMap((page) => page.plans) ?? [];
 
   return (
     <div className="space-y-6">
@@ -76,14 +92,36 @@ export function PlansList() {
       ) : null}
 
       {!query.isLoading && !query.isError ? (
-        query.data && query.data.length > 0 ? (
-          <ul data-tour="plans-list" className="space-y-3">
-            {query.data.map((plan) => (
-              <li key={plan.activity_id}>
-                <PlanRow plan={plan} />
-              </li>
-            ))}
-          </ul>
+        plans.length > 0 ? (
+          <>
+            <ul data-tour="plans-list" className="space-y-3">
+              {plans.map((plan) => (
+                <li key={plan.activity_id}>
+                  <PlanRow plan={plan} />
+                </li>
+              ))}
+            </ul>
+
+            {/* "Show more plans": page back through the rest, only when more remain. Its own loader (the
+                spinner in the button) is distinct from the initial skeleton above. Mirrors the Cards list. */}
+            {query.hasNextPage ? (
+              <div className="flex justify-center pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  data-tour="plans-load-more"
+                  disabled={query.isFetchingNextPage}
+                  onClick={() => query.fetchNextPage()}
+                >
+                  {query.isFetchingNextPage ? (
+                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />
+                  ) : null}
+                  {query.isFetchingNextPage ? "Loading more plans..." : "Show more plans"}
+                </Button>
+              </div>
+            ) : null}
+          </>
         ) : (
           <EmptyState filtered={chapter !== null} />
         )

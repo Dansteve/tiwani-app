@@ -233,6 +233,23 @@ export interface PlanSummary {
 }
 
 /**
+ * One PAGE of the "your prepared plans" list (GET /api/v1/plans). Mirrors the api's PlanSummaryPage
+ * field-for-field. The list is paginated so it never fetches every plan the Coordinator has ever
+ * prepared (prepared plans accumulate per user; the api caps the page server-side, default 50, newest
+ * first); the app loads the first page and offers "Show more" to page back through older plans (the
+ * /cards precedent).
+ *   plans        the page of PlanSummary rows, newest first (RLS-scoped to the caller).
+ *   next_cursor  the keyset cursor to pass back as the `before` argument to fetch the NEXT (older) page,
+ *                or null when this is the last page. It is an ISO timestamp (the last row's created_at on
+ *                a full page), not PII. The app sends it straight back; it never derives or interprets
+ *                the cursor, only passes it through.
+ */
+export interface PlanSummaryPage {
+  plans: PlanSummary[];
+  next_cursor: string | null;
+}
+
+/**
  * A recorded Pulse (the api's pulse_record, Models.md): the outcome, the main-challenge dimension,
  * the STORED recommended tier the LCI used (never re-derived in the app), the chapter, and the time.
  * The app does not read this back to compute anything; it confirms the write and lets TanStack Query
@@ -1099,6 +1116,23 @@ export interface NeedSummary {
   recipient_first_name: string;
   claimed_by_me: boolean;
   is_claimed: boolean;
+}
+
+/**
+ * One PAGE of the village board (GET /api/v1/village/needs?recipient_id=). Mirrors the api's
+ * NeedSummaryPage field-for-field. The board is paginated server-side so it never returns an unbounded
+ * number of needs (the api caps the page, default 50, soonest-first). The board is a LIVE, poll-refetched
+ * surface and is bounded-in-practice (the api returns only the non-terminal live needs of one recipient,
+ * a small working set), so the app reads the FIRST page (the cap is the safety net) and does not add an
+ * infinite-scroll "load more" on a polled, client-filtered board; `next_cursor` is exposed for parity and
+ * a future need.
+ *   needs        the page of NeedSummary rows, in board order (member-gated + RLS-scoped).
+ *   next_cursor  the keyset cursor (a need id) to pass back as the `after` argument to fetch the NEXT
+ *                page, or null when this is the last page. The app passes it through; it never derives it.
+ */
+export interface NeedSummaryPage {
+  needs: NeedSummary[];
+  next_cursor: string | null;
 }
 
 /**

@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import type { PlanSummary, PreparationPlan } from "@/lib/api/types";
+import type { PlanSummary, PlanSummaryPage, PreparationPlan } from "@/lib/api/types";
 
 function plan(over: Partial<PlanSummary> = {}): PlanSummary {
   return {
@@ -24,6 +24,12 @@ function plan(over: Partial<PlanSummary> = {}): PlanSummary {
     pulse_due: false,
     ...over,
   };
+}
+
+// listPlans now returns a PlanSummaryPage ({ plans, next_cursor }); a page() wraps a list of rows with
+// an optional cursor (null = no more, a string = a "Show more" is offered).
+function page(plans: PlanSummary[], next_cursor: string | null = null): PlanSummaryPage {
+  return { plans, next_cursor };
 }
 
 // A full PreparationPlan as the detail read (GET /plans/{activity_id}) returns it: note
@@ -77,10 +83,12 @@ beforeEach(() => {
 
 describe("PlansList", () => {
   it("renders each prepared plan with its chapter, tier, and prepared date the api returned", async () => {
-    listPlans.mockResolvedValue([
-      plan({ activity_id: "a", activity_name: "Swimming lesson", chapter: "social", tier: "Modified" }),
-      plan({ activity_id: "b", activity_name: "School assembly", chapter: "school", tier: "Full" }),
-    ]);
+    listPlans.mockResolvedValue(
+      page([
+        plan({ activity_id: "a", activity_name: "Swimming lesson", chapter: "social", tier: "Modified" }),
+        plan({ activity_id: "b", activity_name: "School assembly", chapter: "school", tier: "Full" }),
+      ])
+    );
 
     renderList();
 
@@ -106,11 +114,13 @@ describe("PlansList", () => {
   });
 
   it("renders the check-in hint (label, not colour alone): done, due, or none", async () => {
-    listPlans.mockResolvedValue([
-      plan({ activity_id: "done", activity_name: "Done one", pulse_exists: true }),
-      plan({ activity_id: "due", activity_name: "Due one", pulse_exists: false, pulse_due: true }),
-      plan({ activity_id: "none", activity_name: "Scheduled one", pulse_exists: false, pulse_due: false }),
-    ]);
+    listPlans.mockResolvedValue(
+      page([
+        plan({ activity_id: "done", activity_name: "Done one", pulse_exists: true }),
+        plan({ activity_id: "due", activity_name: "Due one", pulse_exists: false, pulse_due: true }),
+        plan({ activity_id: "none", activity_name: "Scheduled one", pulse_exists: false, pulse_due: false }),
+      ])
+    );
 
     renderList();
 
@@ -122,28 +132,31 @@ describe("PlansList", () => {
   });
 
   it("filters by chapter: selecting a chapter refetches the list narrowed via the api", async () => {
-    // First load: all chapters (listPlans called with undefined). After selecting School, the query key
-    // changes and listPlans is called again with "school".
+    // First load: all chapters (listPlans called with undefined chapter). After selecting School, the
+    // query key changes and listPlans is called again with "school". The call now passes (chapter, the
+    // pagination opts, signal).
     listPlans
-      .mockResolvedValueOnce([plan({ activity_id: "a", activity_name: "Swimming lesson", chapter: "social" })])
-      .mockResolvedValueOnce([plan({ activity_id: "b", activity_name: "School assembly", chapter: "school" })]);
+      .mockResolvedValueOnce(page([plan({ activity_id: "a", activity_name: "Swimming lesson", chapter: "social" })]))
+      .mockResolvedValueOnce(page([plan({ activity_id: "b", activity_name: "School assembly", chapter: "school" })]));
 
     renderList();
 
     await screen.findByText("Swimming lesson");
-    expect(listPlans).toHaveBeenCalledWith(undefined, expect.anything());
+    expect(listPlans).toHaveBeenCalledWith(undefined, expect.anything(), expect.anything());
 
     // Select the School filter chip.
     fireEvent.click(screen.getByRole("button", { name: "School" }));
 
-    await waitFor(() => expect(listPlans).toHaveBeenCalledWith("school", expect.anything()));
+    await waitFor(() =>
+      expect(listPlans).toHaveBeenCalledWith("school", expect.anything(), expect.anything())
+    );
     expect(await screen.findByText("School assembly")).toBeInTheDocument();
     // The chip announces its pressed state.
     expect(screen.getByRole("button", { name: "School" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("views a plan inline: fetches the full plan by activity_id and re-renders it", async () => {
-    listPlans.mockResolvedValue([plan({ activity_id: "act_1", activity_name: "Swimming lesson" })]);
+    listPlans.mockResolvedValue(page([plan({ activity_id: "act_1", activity_name: "Swimming lesson" })]));
     getPlan.mockResolvedValue(storedPlan);
 
     renderList();
@@ -159,7 +172,7 @@ describe("PlansList", () => {
   });
 
   it("handles the null dimension_explanations a stored read returns (omits the breakdown, no crash)", async () => {
-    listPlans.mockResolvedValue([plan({ activity_id: "act_1", activity_name: "Swimming lesson" })]);
+    listPlans.mockResolvedValue(page([plan({ activity_id: "act_1", activity_name: "Swimming lesson" })]));
     getPlan.mockResolvedValue(storedPlan); // dimension_explanations: null
 
     renderList();
@@ -172,7 +185,7 @@ describe("PlansList", () => {
   });
 
   it("toggles the inline plan closed again (the way the Coordinator switches between plans)", async () => {
-    listPlans.mockResolvedValue([plan({ activity_id: "act_1", activity_name: "Swimming lesson" })]);
+    listPlans.mockResolvedValue(page([plan({ activity_id: "act_1", activity_name: "Swimming lesson" })]));
     getPlan.mockResolvedValue(storedPlan);
 
     renderList();
@@ -188,7 +201,7 @@ describe("PlansList", () => {
   });
 
   it("surfaces an inline error when opening a plan fails, and does not crash the list", async () => {
-    listPlans.mockResolvedValue([plan({ activity_id: "act_1", activity_name: "Swimming lesson" })]);
+    listPlans.mockResolvedValue(page([plan({ activity_id: "act_1", activity_name: "Swimming lesson" })]));
     getPlan.mockRejectedValue(new ApiError(404, "Plan not found"));
 
     renderList();
@@ -202,7 +215,7 @@ describe("PlansList", () => {
   });
 
   it("shows a calm empty state pointing at preparing a plan when there are none", async () => {
-    listPlans.mockResolvedValue([]);
+    listPlans.mockResolvedValue(page([]));
 
     renderList();
 
@@ -212,10 +225,10 @@ describe("PlansList", () => {
   });
 
   it("shows a filtered empty state (not 'no plans yet') when a chapter filter yields nothing", async () => {
-    // All chapters has a plan; the School filter returns an empty list.
+    // All chapters has a plan; the School filter returns an empty page.
     listPlans
-      .mockResolvedValueOnce([plan({ activity_id: "a", activity_name: "Swimming lesson", chapter: "social" })])
-      .mockResolvedValueOnce([]);
+      .mockResolvedValueOnce(page([plan({ activity_id: "a", activity_name: "Swimming lesson", chapter: "social" })]))
+      .mockResolvedValueOnce(page([]));
 
     renderList();
     await screen.findByText("Swimming lesson");
@@ -224,6 +237,46 @@ describe("PlansList", () => {
 
     expect(await screen.findByRole("heading", { name: /no plans in this chapter yet/i })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /^no plans yet$/i })).not.toBeInTheDocument();
+  });
+
+  it("pages older plans via 'Show more' (the keyset cursor) and hides it on the last page", async () => {
+    // First page is full and carries a next_cursor; "Show more" fetches the next (older) page with that
+    // cursor as `before`, and the second page has a null cursor so the button disappears.
+    listPlans
+      .mockResolvedValueOnce(
+        page([plan({ activity_id: "newer", activity_name: "Newer plan" })], "2025-06-01T00:00:00Z")
+      )
+      .mockResolvedValueOnce(page([plan({ activity_id: "older", activity_name: "Older plan" })]));
+
+    renderList();
+    await screen.findByText("Newer plan");
+
+    const showMore = screen.getByRole("button", { name: /show more plans/i });
+    fireEvent.click(showMore);
+
+    // The next page is fetched with the cursor threaded as `before`, and the older plan is appended.
+    await waitFor(() =>
+      expect(listPlans).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({ before: "2025-06-01T00:00:00Z" }),
+        expect.anything()
+      )
+    );
+    expect(await screen.findByText("Older plan")).toBeInTheDocument();
+    expect(screen.getByText("Newer plan")).toBeInTheDocument();
+    // The last page has no cursor, so "Show more" is gone.
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /show more plans/i })).not.toBeInTheDocument()
+    );
+  });
+
+  it("does not show 'Show more' when the first page is the last (null cursor)", async () => {
+    listPlans.mockResolvedValue(page([plan({ activity_id: "a", activity_name: "Only plan" })]));
+
+    renderList();
+    await screen.findByText("Only plan");
+
+    expect(screen.queryByRole("button", { name: /show more plans/i })).not.toBeInTheDocument();
   });
 
   it("surfaces a load error inline rather than swallowing it", async () => {

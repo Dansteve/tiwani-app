@@ -24,9 +24,11 @@ import {
   api,
   ApiError,
   normalizeCardPage,
+  normalizeNeedPage,
+  normalizePlanPage,
   setAuthTokenProvider,
 } from "@/lib/api/client";
-import type { CardSummary } from "@/lib/api/types";
+import type { CardSummary, NeedSummary, PlanSummary } from "@/lib/api/types";
 
 function pdfResponse(
   body: string,
@@ -198,6 +200,92 @@ describe("normalizeCardPage (GET /cards deploy-window tolerance)", () => {
   });
 });
 
+function planRow(id: string): PlanSummary {
+  return {
+    activity_id: id,
+    chapter: "social",
+    activity_name: "Swimming lesson",
+    tier: "Modified",
+    total: 11,
+    created_at: "2026-06-10T09:00:00Z",
+    pulse_exists: false,
+    pulse_due: false,
+  };
+}
+
+describe("normalizePlanPage (GET /plans deploy-window tolerance)", () => {
+  it("wraps a bare PlanSummary[] (the old api) as a single page with no cursor", () => {
+    const rows = [planRow("a"), planRow("b")];
+
+    const page = normalizePlanPage(rows);
+
+    expect(page.plans).toEqual(rows);
+    expect(page.next_cursor).toBeNull();
+  });
+
+  it("passes a PlanSummaryPage object (the new api) through, keeping its cursor", () => {
+    const raw = { plans: [planRow("a")], next_cursor: "2026-06-01T09:00:00Z" };
+
+    const page = normalizePlanPage(raw);
+
+    expect(page.plans).toEqual(raw.plans);
+    expect(page.next_cursor).toBe("2026-06-01T09:00:00Z");
+  });
+
+  it("degrades a malformed body to an empty page rather than throwing", () => {
+    expect(normalizePlanPage(null)).toEqual({ plans: [], next_cursor: null });
+    expect(normalizePlanPage(undefined)).toEqual({ plans: [], next_cursor: null });
+    expect(normalizePlanPage({ plans: "nope", next_cursor: 7 })).toEqual({
+      plans: [],
+      next_cursor: null,
+    });
+  });
+});
+
+function needRow(id: string): NeedSummary {
+  return {
+    id,
+    status: "open",
+    title: "School run",
+    detail: null,
+    area_label: "North Leeds",
+    starts_at: null,
+    ends_at: null,
+    recipient_first_name: "Sam",
+    claimed_by_me: false,
+    is_claimed: false,
+  };
+}
+
+describe("normalizeNeedPage (GET /village/needs deploy-window tolerance)", () => {
+  it("wraps a bare NeedSummary[] (the old api) as a single page with no cursor", () => {
+    const rows = [needRow("n1"), needRow("n2")];
+
+    const page = normalizeNeedPage(rows);
+
+    expect(page.needs).toEqual(rows);
+    expect(page.next_cursor).toBeNull();
+  });
+
+  it("passes a NeedSummaryPage object (the new api) through, keeping its cursor", () => {
+    const raw = { needs: [needRow("n1")], next_cursor: "n1" };
+
+    const page = normalizeNeedPage(raw);
+
+    expect(page.needs).toEqual(raw.needs);
+    expect(page.next_cursor).toBe("n1");
+  });
+
+  it("degrades a malformed body to an empty page rather than throwing", () => {
+    expect(normalizeNeedPage(null)).toEqual({ needs: [], next_cursor: null });
+    expect(normalizeNeedPage(undefined)).toEqual({ needs: [], next_cursor: null });
+    expect(normalizeNeedPage({ needs: "nope", next_cursor: 7 })).toEqual({
+      needs: [],
+      next_cursor: null,
+    });
+  });
+});
+
 describe("api.listCards (both api shapes during the deploy window)", () => {
   function jsonResponse(body: unknown): Response {
     return new Response(JSON.stringify(body), {
@@ -229,5 +317,70 @@ describe("api.listCards (both api shapes during the deploy window)", () => {
     expect(url).toBe("https://api.test/api/v1/cards?limit=50&before=cursor-1");
     expect(page.cards).toHaveLength(1);
     expect(page.next_cursor).toBe("cursor-2");
+  });
+});
+
+describe("api.listPlans (both api shapes during the deploy window)", () => {
+  function jsonResponse(body: unknown): Response {
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  it("reads a bare array body (the not-yet-redeployed old api) as one page", async () => {
+    const rows = [planRow("a"), planRow("b")];
+    fetchMock.mockResolvedValue(jsonResponse(rows));
+
+    const page = await api.listPlans();
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe("https://api.test/api/v1/plans");
+    expect(page.plans).toEqual(rows);
+    expect(page.next_cursor).toBeNull();
+  });
+
+  it("reads a PlanSummaryPage body (the new api) as-is and threads chapter + limit + before", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ plans: [planRow("a")], next_cursor: "cursor-2" })
+    );
+
+    const page = await api.listPlans("social", { limit: 50, before: "cursor-1" });
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe("https://api.test/api/v1/plans?chapter=social&limit=50&before=cursor-1");
+    expect(page.plans).toHaveLength(1);
+    expect(page.next_cursor).toBe("cursor-2");
+  });
+});
+
+describe("api.listNeeds (both api shapes during the deploy window)", () => {
+  function jsonResponse(body: unknown): Response {
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  it("unwraps a bare array body (the not-yet-redeployed old api) to the needs list", async () => {
+    const rows = [needRow("n1"), needRow("n2")];
+    fetchMock.mockResolvedValue(jsonResponse(rows));
+
+    const needs = await api.listNeeds("recip-1");
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe("https://api.test/api/v1/village/needs?recipient_id=recip-1");
+    expect(needs).toEqual(rows);
+  });
+
+  it("unwraps a NeedSummaryPage body (the new api) to the first page's needs", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ needs: [needRow("n1")], next_cursor: "n1" })
+    );
+
+    const needs = await api.listNeeds("recip-1");
+
+    expect(needs).toHaveLength(1);
+    expect(needs[0].id).toBe("n1");
   });
 });

@@ -93,9 +93,11 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   // re-prepare creates a duplicate. Scoped by activeChildId in the key (the list reads the caller's own
   // plans under RLS); the chapter narrows it. A failure here never blocks preparing: the steer just does
   // not show (isError leaves existingPlan undefined), so the prepare flow degrades to its prior behaviour.
+  // The duplicate-steer only needs the caller's NEWEST matching plan for this chapter, which is on the
+  // newest-first FIRST page, so it reads the first page (no cursor) and matches over page.plans.
   const existingPlansQuery = useQuery({
     queryKey: ["plans", chapter, activeChildId],
-    queryFn: ({ signal }) => api.listPlans(chapter, signal),
+    queryFn: ({ signal }) => api.listPlans(chapter, {}, signal),
   });
 
   const planMutation = useMutation({
@@ -122,7 +124,7 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   // ExistingPlanNotice steer instead of the bare Generate button (the duplicate-plans guard).
   const matchedExistingPlan = useMemo(
     () =>
-      matchExistingPlan(selectedActivity, activitiesQuery.data, existingPlansQuery.data ?? undefined),
+      matchExistingPlan(selectedActivity, activitiesQuery.data, existingPlansQuery.data?.plans),
     [selectedActivity, activitiesQuery.data, existingPlansQuery.data]
   );
   const showExistingSteer =

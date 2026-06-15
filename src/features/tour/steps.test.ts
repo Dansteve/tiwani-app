@@ -205,6 +205,14 @@ describe("the Your Plans tour (the list step is data-conditional)", () => {
     ).map((s) => s.id);
     expect(ids).toEqual(["intro", "list"]);
   });
+
+  it("adds the 'Show more' step only when there is a next page (the load-more anchor is present)", () => {
+    const ids = resolveVisibleSteps(
+      TOURS.plans,
+      rootWith(["plans-header", "plans-list", "plans-load-more"])
+    ).map((s) => s.id);
+    expect(ids).toEqual(["intro", "list", "more"]);
+  });
 });
 
 describe("the Cards list tour (teaches the GROUPED list + Load more)", () => {

@@ -17,6 +17,7 @@ import type {
   CareRecipientProfile,
   ChapterActivity,
   PlanSummary,
+  PlanSummaryPage,
   PreparationPlan,
 } from "@/lib/api/types";
 
@@ -88,6 +89,11 @@ const EXISTING_SUMMARY: PlanSummary = {
   pulse_due: false,
 };
 
+// listPlans now returns a PlanSummaryPage ({ plans, next_cursor }); the duplicate-steer reads page.plans.
+function planPage(plans: PlanSummary[]): PlanSummaryPage {
+  return { plans, next_cursor: null };
+}
+
 const getChapterActivities = vi.fn();
 const preparePlan = vi.fn();
 const getRecipients = vi.fn();
@@ -142,7 +148,7 @@ beforeEach(() => {
   getRecipients.mockResolvedValue(RECIPIENTS);
   // No existing plans by default, so the prepare flow shows the plain Generate button (the steer only
   // appears when a picked activity is already prepared). The guard tests override this per case.
-  listPlans.mockResolvedValue([]);
+  listPlans.mockResolvedValue(planPage([]));
   getPlan.mockResolvedValue(STORED_PLAN);
 });
 
@@ -252,7 +258,7 @@ describe("PlanScreen prepare flow", () => {
 
 describe("PlanScreen duplicate-plans guard", () => {
   it("shows the 'already prepared' steer (not the Generate button) when the picked activity is already prepared", async () => {
-    listPlans.mockResolvedValue([EXISTING_SUMMARY]); // the birthday party is already prepared
+    listPlans.mockResolvedValue(planPage([EXISTING_SUMMARY])); // the birthday party is already prepared
     renderScreen("social");
     await screen.findByText("A birthday party");
 
@@ -271,7 +277,7 @@ describe("PlanScreen duplicate-plans guard", () => {
   });
 
   it("re-opens the existing plan via api.getPlan (a READ) and never POSTs api.preparePlan", async () => {
-    listPlans.mockResolvedValue([EXISTING_SUMMARY]);
+    listPlans.mockResolvedValue(planPage([EXISTING_SUMMARY]));
     renderScreen("social");
     await screen.findByText("A birthday party");
 
@@ -288,7 +294,7 @@ describe("PlanScreen duplicate-plans guard", () => {
   });
 
   it("prepares a fresh plan only when the Coordinator deliberately chooses to", async () => {
-    listPlans.mockResolvedValue([EXISTING_SUMMARY]);
+    listPlans.mockResolvedValue(planPage([EXISTING_SUMMARY]));
     renderScreen("social");
     await screen.findByText("A birthday party");
 
@@ -310,7 +316,7 @@ describe("PlanScreen duplicate-plans guard", () => {
 
   it("keeps the plain Generate flow for an activity that is NOT already prepared", async () => {
     // The birthday party is prepared, but the Coordinator picks the (un-prepared) playdate.
-    listPlans.mockResolvedValue([EXISTING_SUMMARY]);
+    listPlans.mockResolvedValue(planPage([EXISTING_SUMMARY]));
     renderScreen("social");
     await screen.findByText("A playdate");
 

@@ -37,12 +37,14 @@ import type {
   NeedActionResult,
   NeedDetail,
   NeedSummary,
+  NeedSummaryPage,
   OnboardingPayload,
   MySubscription,
   OverallLciSnapshot,
   PendingPulse,
   PlanList,
   PlanSummary,
+  PlanSummaryPage,
   PreparePlanRequest,
   PreparationPlan,
   PressureDimension,
@@ -291,6 +293,54 @@ export function normalizeCardPage(raw: unknown): CardPage {
   return { cards: [], next_cursor: null };
 }
 
+/**
+ * Normalize the GET /api/v1/plans body into the paginated PlanSummaryPage shape, tolerating BOTH the
+ * new and the old api response so the app does not break during the deploy window (the api changed
+ * GET /plans from a bare PlanSummary[] to a PlanSummaryPage, and api + app deploy close together but NOT
+ * atomically). The same shape and posture as normalizeCardPage:
+ *   - an ARRAY (the old api) becomes { plans: <array>, next_cursor: null } (one page, no more to load).
+ *   - a PlanSummaryPage object (the new api) is used as-is (plans defaulted to [], next_cursor to null).
+ *   - anything else (a malformed body) becomes an empty page rather than throwing.
+ * Pure (no I/O), so it is unit-tested directly. The app never derives the cursor; it only threads it.
+ */
+export function normalizePlanPage(raw: unknown): PlanSummaryPage {
+  if (Array.isArray(raw)) {
+    return { plans: raw as PlanSummary[], next_cursor: null };
+  }
+  if (raw && typeof raw === "object") {
+    const page = raw as Partial<PlanSummaryPage>;
+    return {
+      plans: Array.isArray(page.plans) ? page.plans : [],
+      next_cursor: typeof page.next_cursor === "string" ? page.next_cursor : null,
+    };
+  }
+  return { plans: [], next_cursor: null };
+}
+
+/**
+ * Normalize the GET /api/v1/village/needs body into the paginated NeedSummaryPage shape, tolerating BOTH
+ * the new and the old api response (the api changed GET /village/needs from a bare NeedSummary[] to a
+ * NeedSummaryPage; api + app deploy close together but NOT atomically). The same posture as the card/plan
+ * normalizers:
+ *   - an ARRAY (the old api) becomes { needs: <array>, next_cursor: null }.
+ *   - a NeedSummaryPage object (the new api) is used as-is (needs defaulted to [], next_cursor to null).
+ *   - anything else (a malformed body) becomes an empty page rather than throwing.
+ * Pure (no I/O), so it is unit-tested directly. The app never derives the cursor; it only threads it.
+ */
+export function normalizeNeedPage(raw: unknown): NeedSummaryPage {
+  if (Array.isArray(raw)) {
+    return { needs: raw as NeedSummary[], next_cursor: null };
+  }
+  if (raw && typeof raw === "object") {
+    const page = raw as Partial<NeedSummaryPage>;
+    return {
+      needs: Array.isArray(page.needs) ? page.needs : [],
+      next_cursor: typeof page.next_cursor === "string" ? page.next_cursor : null,
+    };
+  }
+  return { needs: [], next_cursor: null };
+}
+
 // --- Typed endpoint functions (mirror the api contract under /api/v1) ---
 // The built Task 3 endpoints (profile, onboarding, child) match the api exactly. The rest carry the
 // /api/v1 prefix as placeholders; their final paths are set when Tasks 5-9 build those routes.
@@ -412,16 +462,36 @@ export const api = {
   },
 
   /**
-   * List the Preparation Plans the caller has prepared (GET /api/v1/plans), newest first, for the
-   * "your prepared plans" screen (the owner's "toggle plans" ask). AUTH REQUIRED: the bearer is
+   * List ONE PAGE of the Preparation Plans the caller has prepared (GET /api/v1/plans), newest first,
+   * for the "your prepared plans" screen (the owner's "toggle plans" ask). AUTH REQUIRED: the bearer is
    * attached by http(); the api scopes the rows to the caller (RLS), so a user only ever sees their
    * own plans. Each row is a PlanSummary (activity + chapter + tier + total + prepared date + the two
    * pulse hints). The optional `chapter` narrows the list to one Life Chapter (the api filters; the app
    * sends ?chapter=<code> only when set). The app renders the rows and computes no score or tier.
+   *
+   * PAGINATED (the database-load fix, the /cards precedent): the response is a PlanSummaryPage
+   * ({ plans, next_cursor }), never the whole history. `opts.limit` caps the page (the api defaults +
+   * clamps it server-side, so the app can omit it); `opts.before` is the keyset cursor from the previous
+   * page's `next_cursor`, passed straight back to fetch the next, older page ("Show more"). The app never
+   * derives the cursor, it only threads it. When next_cursor is null there are no more plans.
+   *
+   * DEPLOY-WINDOW TOLERANT: the api changed GET /plans from a bare PlanSummary[] to this PlanSummaryPage,
+   * and api + app deploy close together but NOT atomically. So the raw body is read as unknown and run
+   * through normalizePlanPage, which accepts BOTH shapes (a bare array becomes { plans, next_cursor:
+   * null }; a PlanSummaryPage is used as-is). The normalization is pure and unit-tested.
    */
-  listPlans(chapter?: ChapterCode, signal?: AbortSignal): Promise<PlanSummary[]> {
-    const query = chapter ? `?chapter=${encodeURIComponent(chapter)}` : "";
-    return http<PlanSummary[]>(`/api/v1/plans${query}`, { signal });
+  async listPlans(
+    chapter?: ChapterCode,
+    opts: { limit?: number; before?: string | null } = {},
+    signal?: AbortSignal
+  ): Promise<PlanSummaryPage> {
+    const search = new URLSearchParams();
+    if (chapter) search.set("chapter", chapter);
+    if (opts.limit !== undefined) search.set("limit", String(opts.limit));
+    if (opts.before) search.set("before", opts.before);
+    const qs = search.toString();
+    const raw = await http<unknown>(`/api/v1/plans${qs ? `?${qs}` : ""}`, { signal });
+    return normalizePlanPage(raw);
   },
 
   /**
@@ -915,12 +985,22 @@ export const api = {
    * board renders the OPEN ones for a member to claim; the owner's view uses the same read and filters to
    * what it shows. `claimed_by_me` / `is_claimed` drive the per-row action + "covered" state. RLS-scoped:
    * a caller only ever sees a recipient they are a member of.
+   *
+   * PAGINATED + bounded-in-practice: the api now returns a NeedSummaryPage and caps the page server-side
+   * (so the read is bounded), but the api only ever lists the NON-TERMINAL live needs of one recipient (a
+   * small working set), so the first page is the whole board in practice. The board is also a LIVE,
+   * poll-refetched, client-filtered surface, where an infinite-scroll "load more" would fight the poll, so
+   * this returns the FIRST page's `needs` array and the board screens are unchanged; the cap is the safety
+   * net. DEPLOY-WINDOW TOLERANT: the api changed GET /village/needs from a bare NeedSummary[] to a
+   * NeedSummaryPage; the raw body is read as unknown and run through normalizeNeedPage (which accepts BOTH
+   * shapes), so the app works during the brief non-atomic deploy window. The normalization is pure + tested.
    */
-  listNeeds(recipientId: string, signal?: AbortSignal): Promise<NeedSummary[]> {
-    return http<NeedSummary[]>(
+  async listNeeds(recipientId: string, signal?: AbortSignal): Promise<NeedSummary[]> {
+    const raw = await http<unknown>(
       `/api/v1/village/needs?recipient_id=${encodeURIComponent(recipientId)}`,
       { signal }
     );
+    return normalizeNeedPage(raw).needs;
   },
 
   /**
