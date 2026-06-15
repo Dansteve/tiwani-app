@@ -15,10 +15,12 @@
 import { PageTour } from "@/features/tour/PageTour";
 import type { TourPageId } from "@/features/tour/seen";
 
-// Longest-prefix-first so /card/history resolves before /card, and /plans before /plan.
+// Longest-prefix-first so /card/new (the generator) resolves before /card (the Cards list), and /plans
+// before /plan. The "card" tour (what a card is + how to make one) belongs to the GENERATE screen at
+// /card/new; the "card-history" tour (the list of cards + status + revoke) belongs to the /card list.
 const ROUTE_TOURS: { prefix: string; page: TourPageId }[] = [
-  { prefix: "/card/history", page: "card-history" },
-  { prefix: "/card", page: "card" },
+  { prefix: "/card/new", page: "card" },
+  { prefix: "/card", page: "card-history" },
   { prefix: "/plans", page: "plans" },
   { prefix: "/plan", page: "plan" },
   { prefix: "/pulse", page: "pulse" },

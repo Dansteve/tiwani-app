@@ -4,7 +4,7 @@
 // LCE output the api returned and recomputes NOTHING (App SETUP: render the engine, never compute it).
 // Composed from small, single-purpose components so the layout is the mockup and the logic stays
 // elsewhere:
-//   - PlanResultHeader: a back control, the chapter label, a Share action, and "Today's activity: <name>".
+//   - PlanResultHeader: a back control + the chapter label, then "Today's activity: <name>".
 //   - TotalPressureCard: the total big ("11 / 20") + the four dimensions as 1-to-5 bars (the highest in
 //     amber), so the personalized score is broken down AND located (the owner's "why this score" ask).
 //   - RecommendedApproach: a lightning icon + the participation tier + its plain-English gloss.
@@ -14,7 +14,7 @@
 //   - RemovedStrategies: the persistent "Removed strategies" re-allow section (the fallback path).
 //   - "Why this score": the api-authored per-dimension sentences (collapsible; OMITTED when null, a stored
 //     re-read carries no explanations: they are an engine derivation, not stored).
-//   - ActionDock: Export Continuity Card + Delegate Logistics (the Village post-a-need flow).
+//   - ActionDock: Create Continuity Card + Delegate Logistics (the Village post-a-need flow).
 //
 // The STRATEGY removal is the Strategy Library suppress (Task 9): scenario-scoped + reversible, owned by
 // the api (suppress-after-3, cross-context surfacing). The app renders the affordances and fires the api;
@@ -122,7 +122,6 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
       <PlanResultHeader
         chapter={plan.chapter}
         activityName={plan.activity_name}
-        activityId={plan.activity_id}
         onBack={onPrepareAnother}
       />
 

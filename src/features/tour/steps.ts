@@ -39,7 +39,7 @@ export interface TourStep {
 // The ordered dashboard walkthrough, adapted to what is actually on the dashboard (DashboardScreen):
 //   1. A Life Chapter card + its Prepare button: the core action (always present).
 //   2. The resilience score (LCI): the at-a-glance signal (conditional, shown once there is data).
-//   3. The secondary navigation: Your plans / Card history / Settings (always present on desktop).
+//   3. The secondary navigation: Notifications / Village / Your plans (always present on desktop).
 //   4. The check-in (Pulse): how the picture stays current (always present in the nav).
 export const DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
@@ -61,7 +61,7 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
     id: "nav",
     target: "secondary-nav",
     title: "Find your way around",
-    body: "Your notifications, village, saved plans, and shared cards live here. On a phone, tap More to reach them.",
+    body: "Your notifications, village, and saved plans live here. On a phone, tap More to reach them.",
     placement: "right",
     // Anchored to the secondary nav, which renders as the sidebar section on desktop AND the mobile "More"
     // menu (both carry data-tour="secondary-nav"; the runtime picks the visible one). Still optional: a
@@ -124,11 +124,11 @@ const PLANS_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-// The Continuity Card screen (CardGenerator, the generate phase): what the card is and how to make one.
-// ALL THREE anchors live ONLY in the GENERATE phase (you arrive with ?activity=<id>). On the Card tab's
-// "prepare an activity first" state, and on the post-generate "ready" state, they are absent, so every step
-// is `optional`: the tour resolves to NOTHING there and the button no-ops (useCoachMarks guards against
-// opening an empty overlay), rather than flashing a scroll-locked overlay that finds no anchor.
+// The make-a-card screen (CardGenerator at /card/new, the generate phase): what the card is and how to
+// make one. ALL THREE anchors live ONLY in the GENERATE phase (you arrive with ?activity=<id>). On the
+// no-activity "make a Continuity Card" state, and on the post-generate "ready" state, they are absent, so
+// every step is `optional`: the tour resolves to NOTHING there and the button no-ops (useCoachMarks guards
+// against opening an empty overlay), rather than flashing a scroll-locked overlay that finds no anchor.
 const CARD_TOUR_STEPS: TourStep[] = [
   {
     id: "name",
@@ -156,9 +156,10 @@ const CARD_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-// The Card History screen (CardHistoryList): the list of generated cards, their status, and revoke. The
-// list anchor is absent on an empty history (no cards yet), so the single step is optional and the tour
-// no-ops there rather than pointing at nothing.
+// The Cards list (CardHistoryList at /card): the list of cards the Coordinator has made, their status, and
+// revoke. The list anchor is absent on an empty list (no cards yet), so the single step is optional and the
+// tour no-ops there rather than pointing at nothing. (The page id stays "card-history" so the durable seen
+// flag is unchanged; it now describes the tour that runs on the /card list.)
 const CARD_HISTORY_TOUR_STEPS: TourStep[] = [
   {
     id: "list",

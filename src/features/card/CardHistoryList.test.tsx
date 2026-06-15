@@ -298,14 +298,37 @@ describe("CardHistoryList", () => {
     expect(downloadBlob).not.toHaveBeenCalled();
   });
 
-  it("shows a calm empty state pointing at preparing a plan when there are no cards", async () => {
+  it("teaches the flow in the empty state and the button is named for where it goes (the dashboard)", async () => {
     listCards.mockResolvedValue([]);
 
     renderList();
 
     expect(await screen.findByRole("heading", { name: /no cards yet/i })).toBeInTheDocument();
-    const prepare = screen.getByRole("link", { name: /prepare an activity/i });
-    expect(prepare).toHaveAttribute("href", "/dashboard");
+    // The empty-state body teaches what a card is and where they appear.
+    expect(
+      screen.getByText(/you can make a continuity card to share with someone helping out/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/your cards appear here so you can view, share, or switch off a link/i)
+    ).toBeInTheDocument();
+    // The button label matches where it goes (the old "Prepare an activity" went to /dashboard).
+    const cta = screen.getByRole("link", { name: /go to my dashboard/i });
+    expect(cta).toHaveAttribute("href", "/dashboard");
+    // The empty state carries its OWN create CTA, so the top "Create a Continuity Card" action is NOT
+    // also shown above it (no duplicate).
+    expect(screen.queryByRole("link", { name: /create a continuity card/i })).not.toBeInTheDocument();
+  });
+
+  it("offers a Create action at the top of the list when there are cards (never a dead-end)", async () => {
+    listCards.mockResolvedValue([card({ id: "card_1", activity_name: "Swimming lesson" })]);
+
+    renderList();
+    await screen.findByText("Swimming lesson");
+
+    // The list is not a dead-end: a clear Create action sits at the top, routing to the dashboard (where a
+    // chapter is prepared, from which a card is made).
+    const create = screen.getByRole("link", { name: /create a continuity card/i });
+    expect(create).toHaveAttribute("href", "/dashboard");
   });
 
   it("surfaces a load error inline rather than swallowing it", async () => {

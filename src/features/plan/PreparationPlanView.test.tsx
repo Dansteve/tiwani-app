@@ -318,10 +318,13 @@ describe("PreparationPlanView dimension breakdown", () => {
 });
 
 describe("PreparationPlanView action dock", () => {
-  it("offers an Export Continuity Card action linking to the card route for this activity", () => {
+  it("offers a single Create Continuity Card action linking to /card/new for this activity", () => {
     renderPlan(makePlan());
-    const link = screen.getByRole("link", { name: /export continuity card/i });
-    expect(link).toHaveAttribute("href", "/card?activity=act_1");
+    // The create action is named "Create Continuity Card" (one consistent name), routing to the
+    // make-a-card sub-route /card/new with the activity id.
+    const links = screen.getAllByRole("link", { name: /create continuity card/i });
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", "/card/new?activity=act_1");
   });
 
   it("offers a Delegate Logistics action linking to the Village post-a-need flow", () => {
@@ -330,10 +333,12 @@ describe("PreparationPlanView action dock", () => {
     expect(link).toHaveAttribute("href", "/village");
   });
 
-  it("offers a Share action in the header linking to the card route for this activity", () => {
+  it("no longer shows the old separate 'Share' / 'Export Continuity Card' actions (one create name)", () => {
     renderPlan(makePlan());
-    const link = screen.getByRole("link", { name: /^share$/i });
-    expect(link).toHaveAttribute("href", "/card?activity=act_1");
+    // The duplicate, differently-named create paths are gone: no header "Share" link and no
+    // "Export Continuity Card" label; the dock's "Create Continuity Card" is the only one.
+    expect(screen.queryByRole("link", { name: /^share$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /export continuity card/i })).not.toBeInTheDocument();
   });
 
   it("offers a Back control that returns to the prepare inputs", () => {

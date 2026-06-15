@@ -1,8 +1,10 @@
 "use client";
 
 // The ACTION DOCK footer (the owner's mockup): the two onward actions for a prepared plan.
-//   - Export Continuity Card -> the existing Continuity Card flow (/card?activity=<id>, Product.md §4.6),
-//     reused unchanged (this is the same link the old "Generate Continuity Card" button used).
+//   - Create Continuity Card -> the make-a-card flow (/card/new?activity=<id>, Product.md §4.5 / §4.6).
+//     The action is named "Create Continuity Card" everywhere (this dock, the generator button, and there
+//     is no second differently-named "Share" path on this screen), so the Coordinator reads one consistent
+//     action. The FilePlus2 (a neutral "make a card") icon replaces FileDown, which implied "save/export".
 //   - Delegate Logistics -> the Village "post a need" flow for THIS recipient (/village, Product.md §6).
 //     The Village screen opens on the owner's "post a need" tab and is already scoped to the active
 //     recipient (RecipientProvider), so this reuses the existing delegation surface rather than inventing
@@ -12,7 +14,7 @@
 // flow. Icons are decorative; the labels carry the meaning.
 
 import Link from "next/link";
-import { FileDown, Users } from "lucide-react";
+import { FilePlus2, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -26,11 +28,11 @@ export function ActionDock({ activityId }: ActionDockProps) {
   return (
     <section aria-label="Plan actions" className="flex flex-col gap-3 sm:flex-row">
       <Link
-        href={`/card?activity=${encodeURIComponent(activityId)}`}
+        href={`/card/new?activity=${encodeURIComponent(activityId)}`}
         className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full gap-2 sm:flex-1")}
       >
-        <FileDown className="size-4 shrink-0" aria-hidden="true" />
-        Export Continuity Card
+        <FilePlus2 className="size-4 shrink-0" aria-hidden="true" />
+        Create Continuity Card
       </Link>
       <Link
         href="/village"
