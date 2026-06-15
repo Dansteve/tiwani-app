@@ -28,6 +28,7 @@ import type {
   ChapterCode,
   ChapterLci,
   ChapterStatus,
+  LciHistory,
   ConsentRecorded,
   CreateNeedRequest,
   NeedActionResult,
@@ -491,6 +492,19 @@ export const api = {
    */
   getChapterLci(childId?: string | null, signal?: AbortSignal): Promise<ChapterLci[]> {
     return http<ChapterLci[]>(`/api/v1/lci/chapters${childQuery(childId)}`, { signal });
+  },
+
+  /**
+   * ONE care recipient's DISCRETE LCI history (GET /api/v1/lci/history, Product.md §4.8): the data
+   * behind the "Your check-in history" view (the de-risked timeline). Returns the overall series + one
+   * per Life Chapter, each a set of recorded points (a stored snapshot at its real instant + the §4.3
+   * band) plus the honesty signals (reading_count, latest_taken_at, is_stale). The app renders these as
+   * discrete dots read as zones, draws no line below 3 readings, and stops at the last reading; it
+   * computes no band, no score, and no trajectory. `childId` selects the recipient (?child_id=); omitted,
+   * the api defaults to the caller's sole recipient. A non-owned id is a 404.
+   */
+  getLciHistory(childId?: string | null, signal?: AbortSignal): Promise<LciHistory> {
+    return http<LciHistory>(`/api/v1/lci/history${childQuery(childId)}`, { signal });
   },
 
   /**
