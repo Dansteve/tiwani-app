@@ -29,6 +29,7 @@ import type {
   ChapterCode,
   ChapterLci,
   ChapterStatus,
+  LastOutcome,
   LciHistory,
   ConsentRecorded,
   CreateNeedRequest,
@@ -443,6 +444,27 @@ export const api = {
   ): Promise<ChapterActivity[]> {
     return http<ChapterActivity[]>(
       `/api/v1/chapters/${encodeURIComponent(chapter)}/activities`,
+      { signal }
+    );
+  },
+
+  /**
+   * The family's OWN most recent prior outcome in a chapter ("What helped last time", ProductReview.md
+   * item 5; GET /api/v1/chapters/{chapter}/last-outcome). AUTH REQUIRED (the bearer is attached by
+   * http()). Returns a LastOutcome (stored facts: the prior outcome + tier + named challenge dimension,
+   * the §4.10 promoted strategy that worked, the grounded pivot_helped flag) OR `null` for a first-time
+   * chapter (no prior completed outcome). The app surfaces it as a calm "Last time here" note at
+   * prepare-time and renders only what the api returns (it authors no insight it cannot ground; the api
+   * computes no score for this). `childId` selects the recipient (?child_id=); omitted, the api defaults
+   * to the caller's sole recipient. A non-owned child_id is a 404; an unknown chapter is a 404.
+   */
+  getLastOutcome(
+    chapter: ChapterCode,
+    childId?: string | null,
+    signal?: AbortSignal
+  ): Promise<LastOutcome | null> {
+    return http<LastOutcome | null>(
+      `/api/v1/chapters/${encodeURIComponent(chapter)}/last-outcome${childQuery(childId)}`,
       { signal }
     );
   },

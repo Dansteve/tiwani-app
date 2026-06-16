@@ -34,6 +34,7 @@ import { PreparationPlanView } from "@/features/plan/PreparationPlanView";
 import { ExistingPlanNotice } from "@/features/plan/ExistingPlanNotice";
 import { matchExistingPlan } from "@/features/plan/existingPlanMatch";
 import { EngineReveal } from "@/features/plan/EngineReveal";
+import { LastTimeHereNote } from "@/features/plan/LastTimeHereNote";
 import { PageTour } from "@/features/tour/PageTour";
 
 interface PlanScreenProps {
@@ -186,6 +187,12 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
       <div className="flex justify-end">
         <PageTour page="plan" />
       </div>
+
+      {/* "What helped last time" (ProductReview.md item 5): a calm, FACTUAL recall of the family's OWN
+          prior outcome in this chapter, surfaced before the picker. It renders nothing on a first-time
+          chapter (the api returns null) or when there is nothing grounded to recall, so it never gets in
+          the way. Scoped to the active recipient, like the prepare flow. */}
+      <LastTimeHereNote chapter={chapter} childId={activeChildId} />
 
       <PrepareFlow
         chapter={chapter}

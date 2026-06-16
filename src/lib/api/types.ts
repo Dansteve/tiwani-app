@@ -281,6 +281,41 @@ export interface PendingPulse {
 }
 
 /**
+ * The family's OWN most recent prior outcome in a chapter ("What helped last time", ProductReview.md
+ * item 5; GET /api/v1/chapters/{chapter}/last-outcome). Mirrors the api's LastOutcome field-for-field.
+ * It is a READ of STORED FACTS, never a prediction: the app renders these facts as plain language at
+ * prepare-time (and optionally on the check-in) and authors NO insight it cannot ground in this object
+ * (it never says "this will work"). The api computes no score for this; the app recomputes nothing.
+ *
+ * The endpoint returns `LastOutcome | null`. `null` means there is no prior completed outcome in the
+ * chapter (a first-time chapter, or a history of only skipped pulses): the app shows nothing.
+ *   activity_name        the activity of the most recent prior COMPLETED pulse (the app names it).
+ *   outcome_code         that pulse's two-tap outcome (well / okay / difficult); NEVER skipped (a skip
+ *                        is not an outcome to recall).
+ *   tier_recommended     the participation tier that plan used (Full / Modified / Pivot), the stored
+ *                        value, so the app can say "the Continuity Pivot worked here" only when grounded.
+ *   challenge_dimension  the biggest-pressure dimension the Coordinator named on that pulse (the app
+ *                        renders "[dimension] was the biggest pressure last time"), or null.
+ *   worked_strategy      the title of a strategy that has WORKED for this recipient + chapter (a §4.10
+ *                        promoted strategy, the most-positive one), or null when nothing has crossed the
+ *                        promotion bar yet (no overclaim from a single use).
+ *   pivot_helped         true ONLY when the recalled outcome was a positive one recorded under the
+ *                        Continuity Pivot tier (the grounded fact behind "the Pivot Plan worked better
+ *                        than the Full Plan"); a stored-fact flag, never a prediction. False otherwise.
+ *   recorded_at          when that prior outcome was recorded (ISO; the app may phrase recency).
+ */
+export interface LastOutcome {
+  chapter: ChapterCode;
+  activity_name: string;
+  outcome_code: PulseOutcome;
+  tier_recommended: ParticipationTier;
+  challenge_dimension: PressureDimension | null;
+  worked_strategy: string | null;
+  pivot_helped: boolean;
+  recorded_at: string;
+}
+
+/**
  * A chapter's LCI as the api returns it (GET /api/v1/lci/chapters), one row per Life Chapter for the
  * user. Mirrors the api's ChapterLci field-for-field. `score` is null before the first Pulse (the app
  * shows "--"); `trajectory` is the weekly band (building_picture with no prior point); `pulse_count`
