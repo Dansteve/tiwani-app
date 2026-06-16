@@ -99,6 +99,7 @@ const preparePlan = vi.fn();
 const getRecipients = vi.fn();
 const listPlans = vi.fn();
 const getPlan = vi.fn();
+const getLastOutcome = vi.fn();
 
 vi.mock("@/lib/api/client", () => ({
   ApiError: class ApiError extends Error {
@@ -114,6 +115,9 @@ vi.mock("@/lib/api/client", () => ({
     getRecipients: (...args: unknown[]) => getRecipients(...args),
     listPlans: (...args: unknown[]) => listPlans(...args),
     getPlan: (...args: unknown[]) => getPlan(...args),
+    // The "Last time here" recall (LastTimeHereNote mounts its own read); default to null (a
+    // first-time chapter) so the note renders nothing and the existing assertions are unaffected.
+    getLastOutcome: (...args: unknown[]) => getLastOutcome(...args),
   },
 }));
 
@@ -143,9 +147,13 @@ beforeEach(() => {
   getRecipients.mockReset();
   listPlans.mockReset();
   getPlan.mockReset();
+  getLastOutcome.mockReset();
   getChapterActivities.mockResolvedValue(ACTIVITIES);
   preparePlan.mockResolvedValue(PLAN);
   getRecipients.mockResolvedValue(RECIPIENTS);
+  // No prior outcome by default (a first-time chapter), so the "Last time here" note shows nothing
+  // and the existing prepare-flow assertions are unchanged.
+  getLastOutcome.mockResolvedValue(null);
   // No existing plans by default, so the prepare flow shows the plain Generate button (the steer only
   // appears when a picked activity is already prepared). The guard tests override this per case.
   listPlans.mockResolvedValue(planPage([]));
