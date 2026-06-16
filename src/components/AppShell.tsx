@@ -25,6 +25,7 @@ import { Wordmark } from "@/components/Wordmark";
 import { LogoutButton } from "@/components/LogoutButton";
 import { RecipientSwitcher } from "@/components/RecipientSwitcher";
 import { readPendingInviteToken } from "@/features/sharing/pendingInvite";
+import { useUnacknowledgedCovered } from "@/features/village/useCoveredNotices";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { isActive, NavDot, type NavItem } from "@/components/appNav";
@@ -96,6 +97,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => cancelAnimationFrame(frame);
   }, []);
 
+  // A covered ("this is handled") notice the Coordinator has not yet acknowledged ALSO lights the
+  // Notifications dot (the Village "covered" signal): a need they posted reached done, so something new is
+  // waiting on /notifications. Reads the SAME shared query the /notifications page + board use (deduped, one
+  // request); a non-owner / no-recipient yields nothing. The dot is the union of the two notices.
+  const { notices: coveredNotices } = useUnacknowledgedCovered();
+  const hasNewNotice = hasPendingInvite || coveredNotices.length > 0;
+
   // A viewer/editor (a recipient SHARED with the caller) is held to the viewer ceiling: the nav shows
   // only the Village + the shared Card + Notifications + their own Settings. An owner (or the null
   // no-recipient-yet state) sees the full nav. The RoleRouteGuard enforces the same ceiling on the routes.
@@ -140,7 +148,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Icon className="size-5 shrink-0" aria-hidden="true" />
                 <span className="flex-1">{item.label}</span>
-                {item.href === "/notifications" && hasPendingInvite ? <NavDot /> : null}
+                {item.href === "/notifications" && hasNewNotice ? <NavDot /> : null}
               </Link>
             );
           })}
@@ -174,7 +182,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Icon className="size-5 shrink-0" aria-hidden="true" />
                 <span className="flex-1">{item.label}</span>
-                {item.href === "/notifications" && hasPendingInvite ? <NavDot /> : null}
+                {item.href === "/notifications" && hasNewNotice ? <NavDot /> : null}
               </Link>
             );
           })}
@@ -211,7 +219,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <SecondaryNavMenu
                 pathname={pathname}
                 items={secondaryNav}
-                hasPendingInvite={hasPendingInvite}
+                hasNewNotice={hasNewNotice}
               />
             </div>
           </div>
@@ -241,7 +249,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <span className="relative">
                 <Icon className="size-5" aria-hidden="true" />
-                {item.href === "/notifications" && hasPendingInvite ? (
+                {item.href === "/notifications" && hasNewNotice ? (
                   <span className="absolute -right-1 -top-0.5">
                     <NavDot />
                   </span>

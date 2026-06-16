@@ -49,6 +49,15 @@ export const VILLAGE_COPY = {
   "need.drop_action": "I can no longer help",
   "need.cancel_action": "Withdraw this",
 
+  // The COORDINATOR-FACING "covered / this is handled" CHROME (the owner board's "recently handled"
+  // section + the /notifications covered section), the calm relief surface that tells the Coordinator a
+  // need is covered. The per-notice RELIEF line itself is the api's governed message (rendered verbatim);
+  // these are the static chrome around it (the section headings + the acknowledge action). Warm, non-clinical,
+  // non-surveillance; reviewed against the api's guard.py the same as the rest of VILLAGE_COPY.
+  "covered.section_title": "Recently handled",
+  "covered.section_intro": "Things your village has taken off your hands. You can let these go.",
+  "covered.acknowledge_action": "Got it, thanks",
+
   // The consent gate (shown before posting; the api stores this verbatim on POST /village/consent).
   "consent.share_with_village":
     "I confirm I have the authority to share these details with the people in this person's village, so they can offer practical help.",

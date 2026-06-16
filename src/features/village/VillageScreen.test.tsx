@@ -26,6 +26,13 @@ vi.mock("@/state/RecipientProvider", () => ({
 
 const getRoster = vi.fn();
 vi.mock("@/lib/api/client", () => ({
+  ApiError: class ApiError extends Error {
+    status: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.status = status;
+    }
+  },
   api: { getRoster: (...a: unknown[]) => getRoster(...a) },
 }));
 
@@ -35,6 +42,11 @@ vi.mock("@/features/village/PostNeedForm", () => ({
 }));
 vi.mock("@/features/village/OwnerNeedsList", () => ({
   OwnerNeedsList: () => <div data-testid="owner-needs-list" />,
+}));
+// CoveredNeedsList reads the covered notices (its own focused test covers it); stub it here so the tab
+// shell test does not need the village-covered query mocked.
+vi.mock("@/features/village/CoveredNeedsList", () => ({
+  CoveredNeedsList: () => <div data-testid="covered-needs-list" />,
 }));
 vi.mock("@/features/village/OpenNeedsList", () => ({
   OpenNeedsList: () => <div data-testid="open-needs-list" />,

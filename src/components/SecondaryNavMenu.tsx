@@ -12,9 +12,9 @@
 // semantics it would not honour. The trigger carries aria-expanded + aria-controls; the panel is a
 // labelled <nav> of links. It closes on Escape (focus returns to the trigger), on a pointer-down outside,
 // on a route change, and on choosing a link. Each link is a 44px-min target with icon + label, the active
-// one is the filled-primary state (colour AND aria-current, never colour alone). A pending invite shows
-// the same coral "(new)" dot on the trigger AND on the Notifications item, so the signal is not hidden
-// behind the closed menu.
+// one is the filled-primary state (colour AND aria-current, never colour alone). A new notice (a pending
+// invite to open, or a covered "this is handled" need waiting on /notifications) shows the same coral
+// "(new)" dot on the trigger AND on the Notifications item, so the signal is not hidden behind the closed menu.
 
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
@@ -26,11 +26,11 @@ import { isActive, NavDot, type NavItem } from "@/components/appNav";
 export function SecondaryNavMenu({
   pathname,
   items,
-  hasPendingInvite,
+  hasNewNotice,
 }: {
   pathname: string;
   items: NavItem[];
-  hasPendingInvite: boolean;
+  hasNewNotice: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [lastPathname, setLastPathname] = useState(pathname);
@@ -87,7 +87,7 @@ export function SecondaryNavMenu({
       >
         <Menu className="size-4 shrink-0" aria-hidden="true" />
         More
-        {hasPendingInvite ? <NavDot /> : null}
+        {hasNewNotice ? <NavDot /> : null}
       </button>
 
       {open ? (
@@ -115,7 +115,7 @@ export function SecondaryNavMenu({
                   >
                     <Icon className="size-4 shrink-0" aria-hidden="true" />
                     <span className="flex-1">{item.label}</span>
-                    {item.href === "/notifications" && hasPendingInvite ? <NavDot /> : null}
+                    {item.href === "/notifications" && hasNewNotice ? <NavDot /> : null}
                   </Link>
                 </li>
               );

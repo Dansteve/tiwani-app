@@ -1285,3 +1285,40 @@ export interface CreateNeedRequest {
   starts_at?: string;
   ends_at?: string;
 }
+
+/**
+ * One "this is handled, you can let it go" confirmation for the Coordinator (the Village "covered" signal).
+ * Mirrors the api's CoveredNotice field-for-field. When a need reaches `done` (the claimer completed it),
+ * the OWNER who posted it LEARNS it is covered (the mental-load-lifts moment), rather than seeing a silent
+ * status flip. MINIMUM VISIBILITY: it carries the need TITLE (already village-visible + ingress-guarded by
+ * the api) + the recipient FIRST name only, and the GOVERNED `message` the app shows VERBATIM; it NEVER
+ * carries the exact location, the contact, or the helper's identity (the no-contribution-metric rule: the
+ * message says "a helper" covered it, never WHO).
+ *   need_id              the covered need's id (the stable key).
+ *   title                what the need was (the only need-derived text; safe + already village-visible).
+ *   recipient_first_name the recipient's first name (the Card ceiling).
+ *   completed_at         when it was marked done (ISO), or null.
+ *   copy_key             the governed copy key (notification.covered).
+ *   message              the api-rendered governed relief line ({name} + {title} substituted), shown verbatim.
+ */
+export interface CoveredNotice {
+  need_id: string;
+  title: string;
+  recipient_first_name: string;
+  completed_at: string | null;
+  copy_key: string;
+  message: string;
+}
+
+/**
+ * The Coordinator's covered ("this is handled") notices for one recipient (GET /api/v1/village/notifications,
+ * OWNER auth). Mirrors the api's CoveredNoticesResponse. The owner-facing read behind BOTH the /notifications
+ * covered notices and the owner board's "recently handled" relief cards: the recipient's first name (for the
+ * governed intro), the governed `intro` line, and the covered notices (newest-completed first, capped). A
+ * non-owner / non-member gets a 403 (the relief is the Coordinator's); the app treats that as "no notices".
+ */
+export interface CoveredNoticesResponse {
+  recipient_first_name: string;
+  intro: string;
+  notices: CoveredNotice[];
+}
