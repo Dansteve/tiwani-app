@@ -21,6 +21,16 @@
 // it never decides suppression. A strategy with no library_item_id (a legacy stored plan) hides locally
 // only (it cannot be suppressed api-side) and has no undo snackbar (nothing to re-allow). Expand/collapse
 // use native <details>/<summary> so they are keyboard-usable with no extra dependency.
+//
+// THE "GO GENTLER TODAY" CONTROL (the psychiatrist board's approved SAFE shape). A USER-flipped view
+// preference (GentlerToggle), default OFF, held in transient component state (it stores NOTHING: never
+// sessionStorage, never sent to the api, never an engine/LCI input). The app NEVER assesses the carer (no
+// mood read, no "how are you feeling?"); the carer taps it themselves. When ON it RE-PRESENTS the SAME
+// plan: a calm intro the carer chose, then it leads with the RecommendedApproach (the engine's own tier,
+// the Continuity Pivot when the engine recommended it, surfaced first) and shows the big TotalPressureCard
+// beneath it. It RECOMPUTES NOTHING and changes NO value: the same scores, the same total, the same tier,
+// the same strategy order (the app never re-ranks) all stay present and reachable; only the section order
+// and an added calm line change. §4.4 determinism is intact (the api response is unchanged).
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
@@ -36,6 +46,9 @@ import { RecommendedApproach } from "@/features/plan/RecommendedApproach";
 import { StrategyList, type RankedStrategy } from "@/features/plan/StrategyList";
 import { StrategyRemovedUndo } from "@/features/plan/StrategyRemovedUndo";
 import { ActionDock } from "@/features/plan/ActionDock";
+import { GentlerToggle } from "@/features/plan/GentlerToggle";
+import { GentlerIntro } from "@/features/plan/GentlerIntro";
+// gentlerFraming (the pure copy logic) is consumed by GentlerIntro; the view only owns the toggle state.
 
 interface PreparationPlanViewProps {
   plan: PreparationPlan;
@@ -70,6 +83,12 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
   // The strategy just removed (for the OBVIOUS undo snackbar, Task 14). Only api-backed removals (with a
   // library_item_id) get an undo, since undo re-allows api-side; a local-only hide has nothing to re-allow.
   const [justRemoved, setJustRemoved] = useState<{ id: string; title: string } | null>(null);
+
+  // The carer's "go gentler today" view preference (default OFF). It is USER-flipped, never app-assessed,
+  // and held ONLY in this transient state: it is never stored (no sessionStorage), never sent to the api,
+  // and never an engine/LCI input. When on, the SAME plan is re-presented with the calmest framing first
+  // (the section order below reorders); no value changes.
+  const [gentler, setGentler] = useState(false);
 
   const visibleStrategies: RankedStrategy[] = plan.strategies
     .map((strategy, index) => ({ strategy, index }))
@@ -125,11 +144,28 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
         onBack={onPrepareAnother}
       />
 
-      {/* TOTAL PRESSURE SCORE + the four dimensions broken out (the highest in amber). */}
-      <TotalPressureCard total={plan.total} scores={plan.scores} />
+      {/* The OPTIONAL, user-flipped "go gentler today" control (default OFF). It re-presents the SAME plan;
+          it stores nothing and changes no value. */}
+      <GentlerToggle on={gentler} onToggle={setGentler} />
 
-      {/* RECOMMENDED APPROACH: the tier + a plain gloss. */}
-      <RecommendedApproach tier={plan.tier} />
+      {gentler ? (
+        <>
+          {/* GENTLER VIEW: the calm intro the carer chose, then LEAD with the engine's own approach (the
+              Continuity Pivot when the engine recommended it), the big pressure score beneath it. The same
+              tier and the same total, only surfaced in a calmer order. */}
+          <GentlerIntro tier={plan.tier} total={plan.total} />
+          <RecommendedApproach tier={plan.tier} />
+          <TotalPressureCard total={plan.total} scores={plan.scores} />
+        </>
+      ) : (
+        <>
+          {/* TOTAL PRESSURE SCORE + the four dimensions broken out (the highest in amber). */}
+          <TotalPressureCard total={plan.total} scores={plan.scores} />
+
+          {/* RECOMMENDED APPROACH: the tier + a plain gloss. */}
+          <RecommendedApproach tier={plan.tier} />
+        </>
+      )}
 
       {/* STRATEGIES: the top 3 led, the rest under "Show more". */}
       <StrategyList

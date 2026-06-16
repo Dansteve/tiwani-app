@@ -354,6 +354,86 @@ describe("PreparationPlanView action dock", () => {
   });
 });
 
+describe("PreparationPlanView 'go gentler today' control (the board's SAFE shape)", () => {
+  // A helper: the section that holds the recommended approach (the tier), so the test can assert its
+  // ORDER relative to the total-pressure card without depending on layout details.
+  function sectionTops(): { approach: number; total: number } {
+    const approach = screen
+      .getByRole("heading", { name: /full engagement|modified participation|continuity pivot/i })
+      .closest("section")!;
+    const total = screen.getByText("Total pressure score").closest("section")!;
+    // compareDocumentPosition: FOLLOWING means `approach` comes before `total` in the DOM.
+    const approachBeforeTotal = Boolean(
+      approach.compareDocumentPosition(total) & Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    return { approach: approachBeforeTotal ? 0 : 1, total: approachBeforeTotal ? 1 : 0 };
+  }
+
+  it("defaults OFF: the control is off and the score leads (the unchanged order)", () => {
+    renderPlan(makePlan({ total: 11, tier: "Modified" }));
+
+    expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "false");
+    // Off by default: no calmer intro yet, and the total pressure card leads the approach.
+    expect(screen.queryByText(/a calmer way through this one today/i)).not.toBeInTheDocument();
+    const order = sectionTops();
+    expect(order.total).toBeLessThan(order.approach);
+  });
+
+  it("turning it ON re-presents the SAME plan: it leads with the approach and keeps the SAME tier + strategies", () => {
+    renderPlan(makePlan({ total: 16, tier: "Pivot" }));
+
+    // The carer flips it on themselves.
+    fireEvent.click(screen.getByRole("switch"));
+    expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "true");
+
+    // The calm framing appears and the recommended approach now leads, the big score beneath it.
+    expect(screen.getByText(/a calmer way through this one today/i)).toBeInTheDocument();
+    const order = sectionTops();
+    expect(order.approach).toBeLessThan(order.total);
+
+    // The SAME tier is still shown (it is not mutated), and the big total is still present (not hidden).
+    expect(screen.getByRole("heading", { name: "Continuity Pivot" })).toBeInTheDocument();
+    expect(screen.getByText("Total pressure score")).toBeInTheDocument();
+    expect(screen.getByText("16")).toBeInTheDocument();
+
+    // The SAME strategies are still all present (the app never re-ranks).
+    expect(screen.getByText("Arrive early")).toBeInTheDocument();
+    expect(screen.getByText("Plan an exit")).toBeInTheDocument();
+
+    // Flipping the view sends NOTHING to the api (no suppress/allow, no scoring call).
+    expect(suppressStrategy).not.toHaveBeenCalled();
+    expect(allowStrategy).not.toHaveBeenCalled();
+  });
+
+  it("does not change the strategy data or the tier when toggled on then off (re-presentation only)", () => {
+    renderPlan(makeLibraryPlan({ total: 16, tier: "Pivot" }));
+
+    const before = within(strategyList())
+      .getAllByText(/arrive early|plan an exit/i)
+      .map((el) => el.textContent);
+
+    fireEvent.click(screen.getByRole("switch")); // on
+    fireEvent.click(screen.getByRole("switch")); // off again
+
+    // Back to the default order, with the identical strategies in the identical order, and the same tier.
+    expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByRole("heading", { name: "Continuity Pivot" })).toBeInTheDocument();
+    const after = within(strategyList())
+      .getAllByText(/arrive early|plan an exit/i)
+      .map((el) => el.textContent);
+    expect(after).toEqual(before);
+  });
+
+  it("uses no carer-assessment or 'do less' wording when on (the board's red-lines)", () => {
+    renderPlan(makePlan({ total: 16, tier: "Pivot" }));
+    fireEvent.click(screen.getByRole("switch"));
+
+    const banned =
+      /\b(how are you feeling|you seem|having a (tough|bad|rough|hard) day|struggling|overwhelmed|burn ?out|do less|less with your life|scale back|cut back|give up)\b/i;
+    expect(document.body.textContent ?? "").not.toMatch(banned);
+  });
+});
+
 describe("PreparationPlanView stored re-read (dimension_explanations null)", () => {
   it("omits the 'Why this score' breakdown when dimension_explanations is null and does not crash", () => {
     // A plan re-opened from the prepared-plans list has no explanations (an engine derivation, not
