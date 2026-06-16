@@ -299,11 +299,36 @@ export interface ChapterLci {
 }
 
 /**
+ * The surfaced engagement-band codes (the owner's "disengagement" Tier-1 signal). Only a once-active
+ * chapter that has gone quiet carries a signal, so the wire only ever sees "quiet" or "resting"; a
+ * not-started or recently-active chapter has `engagement: null` (no extra copy). Mirrors the api.
+ */
+export type EngagementBandCode = "quiet" | "resting";
+
+/**
+ * The GOVERNED per-chapter engagement signal (owner-track Task 12; the boards' HONEST shape), present
+ * on a chapter ONLY when the api's OFF-by-default flag is on AND the chapter is quiet/resting. The
+ * strings are the api's VERBATIM governed copy: factual about the plan record (never the carer as the
+ * subject of a failure), with no count/streak/trend. The app renders them verbatim and authors no
+ * wording (exactly as it renders alerts). While the api flag is off (the default) this is always null.
+ */
+export interface EngagementSignal {
+  band: EngagementBandCode;
+  /** The short status word ("Quiet" / "Resting"); never "Dormant" / "Abandoned". */
+  label: string;
+  /** The factual one-line statement about the plan record (the chapter is the subject). */
+  note: string;
+  /** The warm forward invitation (a door, never a scold). */
+  invitation: string;
+}
+
+/**
  * The per-chapter status feed for the dashboard (Product.md §4.3), one row per Life Chapter for the
  * current user. The app maps these inputs to a grey/green/amber/red display status (it does not
  * compute the LCI or the alert; both arrive computed). Mirrors the api's /api/v1/chapters payload
- * field-for-field: lci is null before any pulse, alert_level is null when no alert is active, and
- * last_prepared_at is null until an activity exists.
+ * field-for-field: lci is null before any pulse, alert_level is null when no alert is active,
+ * last_prepared_at is null until an activity exists, and engagement is null unless the api's
+ * OFF-by-default engagement flag is on AND the chapter is in a surfaced (quiet/resting) band.
  */
 export interface ChapterStatus {
   chapter: ChapterCode;
@@ -312,6 +337,7 @@ export interface ChapterStatus {
   alert_level: AlertLevelNumeric | null;
   last_prepared_at: string | null;
   activity_count: number;
+  engagement?: EngagementSignal | null;
 }
 
 /**

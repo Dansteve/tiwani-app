@@ -6,6 +6,7 @@ import { formatLastPrepared } from "@/lib/format";
 import type { AlertRecord, ChapterStatus } from "@/lib/api/types";
 import { chapterStatus } from "@/features/dashboard/status";
 import { STATUS_PRESENTATION } from "@/features/dashboard/presentation";
+import { ENGAGEMENT_PRESENTATION } from "@/features/dashboard/engagementPresentation";
 import { alertPresentation } from "@/features/alerts/presentation";
 import { AlertBanner } from "@/features/alerts/AlertBanner";
 
@@ -17,6 +18,13 @@ import { AlertBanner } from "@/features/alerts/AlertBanner";
 // A Level 1 Erosion Alert (Product.md §4.9) surfaces here as an amber dot beside the chapter name and a
 // dismissible banner inside the card, rendering the api's verbatim copy + action + signposts. The alert
 // (when present) comes from the dashboard's useAlerts read; the card renders it and authors no wording.
+//
+// The ENGAGEMENT signal (owner-track Task 12; the boards' HONEST shape) surfaces here too, ON THIS
+// CHAPTER'S OWN CARD, in context, when the api attaches `status.engagement` (a once-active chapter that
+// has gone quiet, behind the api's OFF-by-default flag). It is a CALM, warm-neutral block (icon + the
+// api's "Quiet"/"Resting" label + the api's factual note + the api's warm invitation), NEVER an alarm
+// and NEVER a roll-call of multiple chapters (a neglected-areas list shames; the signal lives per
+// chapter, never aggregated). The app renders the api's governed copy verbatim and authors no wording.
 
 interface ChapterCardProps {
   status: ChapterStatus;
@@ -39,6 +47,15 @@ export function ChapterCard({
   const presentation = STATUS_PRESENTATION[kind];
   const StatusIcon = presentation.icon;
   const alertDot = alert ? alertPresentation(alert.level) : null;
+
+  // The engagement signal, if the api attached one (a once-active chapter gone quiet, behind the api's
+  // OFF-by-default flag). Suppressed when an alert is already present: an Erosion Alert is the louder,
+  // more important signal for this chapter, so we do not also stack a gentle "quiet" nudge on top.
+  const engagement = !alert ? status.engagement ?? null : null;
+  const engagementPresentation = engagement
+    ? ENGAGEMENT_PRESENTATION[engagement.band]
+    : null;
+  const EngagementIcon = engagementPresentation?.icon ?? null;
 
   return (
     <div
@@ -79,6 +96,26 @@ export function ChapterCard({
             onDismiss={() => onDismissAlert?.()}
             isDismissing={isDismissingAlert}
           />
+        ) : null}
+
+        {/* The engagement signal (owner-track Task 12): a CALM, warm-neutral nudge on this chapter's
+            own card when it has gone quiet. The label/note/invitation are the api's VERBATIM governed
+            copy (factual about the plan record, never a count/streak, never the carer as the subject of
+            a failure); this block adds only the calm icon + colour. Status is colour + label + icon. */}
+        {engagement && engagementPresentation && EngagementIcon ? (
+          <div className="space-y-1.5 rounded-lg bg-secondary/40 p-3">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+                engagementPresentation.pillClass
+              )}
+            >
+              <EngagementIcon className="size-3.5 shrink-0" aria-hidden="true" />
+              {engagement.label}
+            </span>
+            <p className="text-sm text-muted-foreground">{engagement.note}</p>
+            <p className="text-sm font-medium text-foreground">{engagement.invitation}</p>
+          </div>
         ) : null}
       </div>
 
