@@ -7,7 +7,10 @@
 // because a need belongs to exactly one recipient (the multi-recipient isolation rule).
 //
 // THREE tabs, the app's accessible tabs primitive (components/ui/tabs):
-//   - "Post & track" (the OWNER side): the post-a-need form + the owner's list (covered + who + confirm/cancel).
+//   - "Post & track" (the OWNER side): the post-a-need form + the owner's live list (covered + who +
+//     confirm/cancel) + the "recently handled" relief section (a need that reached done shows as a calm
+//     "this is handled, you can let it go" card; the live list drops done needs, so this is where the
+//     Coordinator LEARNS a need is covered rather than seeing it silently disappear).
 //   - "Ways to help" (the MEMBER/board side): the open needs to claim + the claimer's done/drop.
 //   - "Members" (the ROSTER, tab value "village"): the visible "who is in the village" list. It lives in
 //     its own tab now, BUT an always-on count chip ABOVE the tabs keeps the board's mandatory transparency
@@ -34,6 +37,7 @@ import { TabsList, TabPanel, type TabItem } from "@/components/ui/tabs";
 import { useRecipient } from "@/state/RecipientProvider";
 import { PostNeedForm } from "@/features/village/PostNeedForm";
 import { OwnerNeedsList } from "@/features/village/OwnerNeedsList";
+import { CoveredNeedsList } from "@/features/village/CoveredNeedsList";
 import { OpenNeedsList } from "@/features/village/OpenNeedsList";
 import { RosterPanel } from "@/features/village/RosterPanel";
 import { ShareRoster } from "@/features/sharing/ShareRoster";
@@ -171,6 +175,12 @@ function VillageForRecipient({
             onPosted={() => onTabChange("post")}
           />
           <OwnerNeedsList recipientId={recipientId} />
+          {/* The COORDINATOR's "this is handled, you can let it go" relief section: a need that reached
+              done shows here as a calm "covered" card (the owner board's live list drops done needs, so
+              without this the owner would just see it disappear). It scopes to the ACTIVE recipient (this
+              panel only renders for an owner on their active recipient). Renders nothing when nothing is
+              handled. */}
+          <CoveredNeedsList />
         </TabPanel>
       ) : null}
 

@@ -31,6 +31,7 @@ import type {
   ChapterStatus,
   LciHistory,
   ConsentRecorded,
+  CoveredNoticesResponse,
   CreateNeedRequest,
   MomentResponse,
   MomentTap,
@@ -1143,6 +1144,26 @@ export const api = {
   getRoster(recipientId: string, signal?: AbortSignal): Promise<RosterResponse> {
     return http<RosterResponse>(
       `/api/v1/village/roster?recipient_id=${encodeURIComponent(recipientId)}`,
+      { signal }
+    );
+  },
+
+  /**
+   * The Coordinator's "this is handled, you can let it go" covered notices for one recipient (GET
+   * /api/v1/village/notifications?recipient_id=). OWNER auth (403 if not the owner -> the caller treats it
+   * as "no notices"). The "covered" signal: when a need reaches `done` the OWNER learns it is covered, the
+   * relief moment, rather than a silent status flip. Returns CoveredNoticesResponse: the recipient first
+   * name + the governed intro + the covered notices (newest-completed first, capped), each carrying the
+   * need title + first name + the GOVERNED message ONLY (NEVER the helper identity / exact location /
+   * contact). Drives both the /notifications covered notices and the owner board's "recently handled"
+   * cards. The app renders the api's governed `message` verbatim and computes nothing.
+   */
+  listCoveredNotices(
+    recipientId: string,
+    signal?: AbortSignal
+  ): Promise<CoveredNoticesResponse> {
+    return http<CoveredNoticesResponse>(
+      `/api/v1/village/notifications?recipient_id=${encodeURIComponent(recipientId)}`,
       { signal }
     );
   },

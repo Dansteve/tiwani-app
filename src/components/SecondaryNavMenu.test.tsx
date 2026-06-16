@@ -1,5 +1,5 @@
 // The mobile "More" menu test (the secondary-destinations disclosure that replaced the overflowing pill
-// strip). Pure props in (pathname / items / hasPendingInvite), so no providers are needed. It pins the
+// strip). Pure props in (pathname / items / hasNewNotice), so no providers are needed. It pins the
 // accessible disclosure contract: collapsed by default, the trigger toggles it, the items are links, the
 // active destination announces aria-current, a pending invite shows the "(new)" signal on the trigger AND
 // the Notifications item, and every close path works (choosing a link, Escape with focus back to the
@@ -48,13 +48,13 @@ const ITEMS: NavItem[] = [
 ];
 
 function renderMenu(
-  over: Partial<{ pathname: string; hasPendingInvite: boolean; items: NavItem[] }> = {}
+  over: Partial<{ pathname: string; hasNewNotice: boolean; items: NavItem[] }> = {}
 ) {
   return render(
     <SecondaryNavMenu
       pathname={over.pathname ?? "/dashboard"}
       items={over.items ?? ITEMS}
-      hasPendingInvite={over.hasPendingInvite ?? false}
+      hasNewNotice={over.hasNewNotice ?? false}
     />
   );
 }
@@ -90,8 +90,8 @@ describe("SecondaryNavMenu", () => {
     expect(screen.getByRole("link", { name: /village/i })).not.toHaveAttribute("aria-current");
   });
 
-  it("shows the '(new)' signal on the trigger and the Notifications item when an invite is pending", () => {
-    renderMenu({ hasPendingInvite: true });
+  it("shows the '(new)' signal on the trigger and the Notifications item when there is a new notice", () => {
+    renderMenu({ hasNewNotice: true });
     // Collapsed: the signal rides on the trigger so it is visible behind the closed menu.
     expect(within(trigger()).getByText(/\(new\)/i)).toBeInTheDocument();
 
