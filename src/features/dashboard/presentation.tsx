@@ -4,7 +4,8 @@
 // + icon, never colour alone (accessibility, CLAUDE.md UI scrutiny / WCAG 2.1 AA).
 //
 // Colours come from the status tokens in styles/theme.css (--status-stable teal-mid, --status-pressure
-// amber, --status-critical coral; muted-foreground for not-started AND for awaiting_reading). No
+// amber, --status-critical deep amber (calm, not coral); muted-foreground for not-started AND for
+// awaiting_reading). No
 // hardcoded hex. awaiting_reading (a plan exists but no LCI reading yet) is deliberately NEUTRAL/grey,
 // never green: the dashboard does not claim a chapter is Stable on no data (the honest-signal promise).
 // It carries a distinct icon (Clock, "a reading is pending") and the label "No reading yet" so it reads

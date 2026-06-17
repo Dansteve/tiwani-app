@@ -4,9 +4,11 @@
 // ALWAYS colour + label + icon, never colour alone (accessibility, CLAUDE.md UI scrutiny / WCAG 2.1 AA).
 //
 // Colours come from the caution and critical tokens in styles/theme.css: L1 and L2 are caution
-// (--warning / amber, also --status-pressure), L3 is critical (--destructive / coral, also
-// --status-critical). No hardcoded hex. The tone is calm and supportive: the copy itself is governed
-// and rendered verbatim from the api; this layer only chooses where and in what colour it appears.
+// (--warning / amber, also --status-pressure), L3 is critical (--status-critical / DEEP AMBER, never
+// coral/red: the erosion alert is supportive, not an alarm; the warm-red --destructive is reserved for
+// functional errors only). No hardcoded hex. The tone is calm and supportive: the copy itself is
+// governed and rendered verbatim from the api; this layer only chooses where and in what colour it
+// appears (owner + psychiatrist de-escalation, Brand.md / Decisions.md D5).
 
 import { Info, TriangleAlert, LifeBuoy, type LucideIcon } from "lucide-react";
 
@@ -21,7 +23,7 @@ export type AlertTone = "caution" | "critical";
 export interface AlertPresentation {
   /** The §4.9 placement for this level. */
   placement: AlertPlacement;
-  /** The colour family: caution (amber) for L1/L2, critical (coral) for L3. */
+  /** The colour family: caution (amber) for L1/L2, critical (deep amber) for L3. */
   tone: AlertTone;
   /** A short, non-clinical severity label, read alongside the icon (never colour alone). */
   severityLabel: string;
@@ -62,10 +64,10 @@ export const ALERT_PRESENTATION: Record<AlertLevelNumeric, AlertPresentation> = 
     tone: "critical",
     severityLabel: "Needs attention",
     icon: LifeBuoy,
-    textClass: "text-destructive",
-    surfaceClass: "bg-destructive/10",
-    borderClass: "border-destructive/40",
-    dotClass: "bg-destructive",
+    textClass: "text-status-critical",
+    surfaceClass: "bg-status-critical/10",
+    borderClass: "border-status-critical/40",
+    dotClass: "bg-status-critical",
   },
 };
 

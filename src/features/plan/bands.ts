@@ -21,15 +21,29 @@ export function pressureBand(total: number): PressureBand {
   return "high_pressure";
 }
 
-/** The pressure-summary headline copy per band (Product.md §4.5, verbatim). */
+/** The pressure-summary headline copy per band (Product.md §4.5). Calm + activity-focused, never a
+ *  verdict on the family: a hard day describes what the ACTIVITY asks today and pairs it with help, it
+ *  does not say the family's stability is "under threat" (the de-escalation; psychiatrist-reviewed,
+ *  Brand.md / Decisions.md D5). The api's scores/total/tier are unchanged; only this presentation copy. */
 const PRESSURE_COPY: Record<PressureBand, string> = {
-  manageable: "This looks manageable",
-  needs_preparation: "This needs some preparation",
-  high_pressure: "This is high-pressure: here is how to protect your family's stability",
+  manageable: "This one looks gentle.",
+  needs_preparation: "Worth a little preparation.",
+  high_pressure: "This one asks a lot today. Here's what can make it lighter.",
 };
 
 export function pressureCopy(band: PressureBand): string {
   return PRESSURE_COPY[band];
+}
+
+/** A supportive second line, shown only where the de-escalation matters most (the high band): it points
+ *  at where a small change helps, so the reading arrives WITH agency, not as a bare verdict. The calmer
+ *  bands need no extra scaffolding, so they have none. */
+const PRESSURE_SUBTITLE: Partial<Record<PressureBand, string>> = {
+  high_pressure: "These areas are carrying the most weight. Here's where a small change helps most.",
+};
+
+export function pressureSubtitle(band: PressureBand): string | null {
+  return PRESSURE_SUBTITLE[band] ?? null;
 }
 
 /**
@@ -43,7 +57,7 @@ const TIER_EXPLANATIONS: Record<ParticipationTier, string> = {
   Modified:
     "Take part, with adjustments. Plan to adapt the activity so it stays within reach on the day.",
   Pivot:
-    "Protect stability over taking part. The pressure is high, so the goal is to keep your family steady rather than push through.",
+    "A lighter version is the win today. Keeping things calm and steady is a good outcome here, not a compromise.",
 };
 
 export function tierExplanation(tier: ParticipationTier): string {

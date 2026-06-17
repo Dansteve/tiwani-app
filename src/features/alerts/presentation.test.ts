@@ -27,16 +27,19 @@ describe("alertPresentation", () => {
     expect(p.severityLabel).toBe("Sustained pressure");
   });
 
-  it("maps L3 to a critical overlay on the coral/destructive token", () => {
+  it("maps L3 to a critical overlay on the deep-amber status-critical token (calm, never coral/red)", () => {
     const p = alertPresentation(3);
     expect(p.placement).toBe("overlay");
     expect(p.tone).toBe("critical");
-    expect(p.textClass).toContain("destructive");
-    expect(p.dotClass).toContain("destructive");
+    // The erosion alert is supportive, not an alarm: it uses the calm deep-amber concern token, NOT
+    // the warm-red --destructive (which is reserved for functional errors). Brand.md / Decisions.md D5.
+    expect(p.textClass).toContain("status-critical");
+    expect(p.dotClass).toContain("status-critical");
+    expect(p.textClass).not.toContain("destructive");
     expect(p.severityLabel).toBe("Needs attention");
   });
 
-  it("uses amber for caution levels and coral for the critical level, never the same token", () => {
+  it("uses amber for caution levels and deep amber for the critical level, never the same token", () => {
     const caution = [1, 2].map((l) => alertPresentation(l as AlertLevelNumeric));
     const critical = alertPresentation(3);
     for (const c of caution) {

@@ -75,30 +75,37 @@ beforeEach(() => {
 });
 
 describe("PreparationPlanView pressure summary (§4.5 bands)", () => {
-  it("shows the green 'manageable' band and copy for a total of 8 (4 to 8)", () => {
+  it("shows the calm 'gentle' band and copy for a total of 8 (4 to 8)", () => {
     renderPlan(makePlan({ total: 8 }));
-    expect(screen.getByText("This looks manageable")).toBeInTheDocument();
-    expect(screen.getByText("Manageable")).toBeInTheDocument();
-    // The total is shown big in the Total Pressure Score card ("8 / 20").
-    expect(screen.getByText("Total pressure score")).toBeInTheDocument();
+    expect(screen.getByText("This one looks gentle.")).toBeInTheDocument();
+    expect(screen.getByText("Gentle")).toBeInTheDocument();
+    // The total is shown big + calm in the pressure card ("8 / 20").
+    expect(screen.getByText("How much this asks today")).toBeInTheDocument();
     expect(screen.getByText("8")).toBeInTheDocument();
     expect(screen.getByText("/ 20")).toBeInTheDocument();
   });
 
-  it("shows the amber 'needs preparation' band and copy for a total of 11 (9 to 13)", () => {
+  it("shows the 'a little to prepare' band and copy for a total of 11 (9 to 13)", () => {
     renderPlan(makePlan({ total: 11 }));
-    expect(screen.getByText("This needs some preparation")).toBeInTheDocument();
-    expect(screen.getByText("Needs preparation")).toBeInTheDocument();
+    expect(screen.getByText("Worth a little preparation.")).toBeInTheDocument();
+    expect(screen.getByText("A little to prepare")).toBeInTheDocument();
   });
 
-  it("shows the red 'high pressure' band and the protect-your-family copy for a total of 16 (14 to 20)", () => {
+  it("shows the calm 'asks more today' band + the supportive copy for a total of 16 (14 to 20), with no family-threat framing", () => {
     renderPlan(makePlan({ total: 16 }));
     expect(
+      screen.getByText("This one asks a lot today. Here's what can make it lighter.")
+    ).toBeInTheDocument();
+    expect(
       screen.getByText(
-        "This is high-pressure: here is how to protect your family's stability"
+        "These areas are carrying the most weight. Here's where a small change helps most."
       )
     ).toBeInTheDocument();
-    expect(screen.getByText("High pressure")).toBeInTheDocument();
+    expect(screen.getByText("Asks more today")).toBeInTheDocument();
+    // The retired anxiety-inducing verdict must not reappear.
+    expect(
+      screen.queryByText(/protect your family's stability/i)
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -108,7 +115,7 @@ describe("PreparationPlanView tier", () => {
     expect(
       screen.getByRole("heading", { name: "Continuity Pivot" })
     ).toBeInTheDocument();
-    expect(screen.getByText(/protect stability over taking part/i)).toBeInTheDocument();
+    expect(screen.getByText(/a lighter version is the win today/i)).toBeInTheDocument();
   });
 });
 
@@ -365,7 +372,7 @@ describe("PreparationPlanView stored re-read (dimension_explanations null)", () 
 
     // The plan still renders its activity, pressure summary, tier, and strategies.
     expect(screen.getByRole("heading", { name: "A birthday party" })).toBeInTheDocument();
-    expect(screen.getByText("This looks manageable")).toBeInTheDocument();
+    expect(screen.getByText("This one looks gentle.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Full Engagement" })).toBeInTheDocument();
     expect(screen.getByText("Arrive early")).toBeInTheDocument();
   });

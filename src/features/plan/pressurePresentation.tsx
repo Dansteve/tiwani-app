@@ -3,11 +3,12 @@
 // function; this file is the React/Tailwind half. The pressure signal is ALWAYS colour + label + icon,
 // never colour alone (accessibility, CLAUDE.md UI scrutiny / WCAG 2.1 AA).
 //
-// Colours reuse the dashboard status tokens in styles/theme.css so green/amber/red read identically
-// across the product (--status-stable teal-mid = green, --status-pressure amber, --status-critical
-// coral = red). No hardcoded hex.
+// Colours reuse the dashboard status tokens in styles/theme.css (--status-stable teal, --status-pressure
+// amber, --status-critical DEEP AMBER). Coral is NOT a "bad" colour here: the high band reads in calm
+// deep amber, never coral/red, and the icons are informational (a heavier-day CloudSun, a Lightbulb
+// tip), never an alarm shield/triangle (owner + psychiatrist de-escalation; Brand.md / Decisions.md D5).
 
-import { CircleCheck, TriangleAlert, ShieldAlert, type LucideIcon } from "lucide-react";
+import { CircleCheck, Lightbulb, CloudSun, type LucideIcon } from "lucide-react";
 
 import type { PressureBand } from "@/features/plan/bands";
 
@@ -25,22 +26,22 @@ export interface PressurePresentation {
 
 export const PRESSURE_PRESENTATION: Record<PressureBand, PressurePresentation> = {
   manageable: {
-    label: "Manageable",
+    label: "Gentle",
     icon: CircleCheck,
     textClass: "text-status-stable",
     surfaceClass: "bg-status-stable/10",
     borderClass: "border-status-stable/30",
   },
   needs_preparation: {
-    label: "Needs preparation",
-    icon: TriangleAlert,
+    label: "A little to prepare",
+    icon: Lightbulb,
     textClass: "text-status-pressure",
     surfaceClass: "bg-status-pressure/12",
     borderClass: "border-status-pressure/35",
   },
   high_pressure: {
-    label: "High pressure",
-    icon: ShieldAlert,
+    label: "Asks more today",
+    icon: CloudSun,
     textClass: "text-status-critical",
     surfaceClass: "bg-status-critical/10",
     borderClass: "border-status-critical/30",

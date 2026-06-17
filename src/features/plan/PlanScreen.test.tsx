@@ -189,9 +189,7 @@ describe("PlanScreen prepare flow", () => {
     // The plan the api returned is rendered (the app recomputes nothing).
     await waitFor(() =>
       expect(
-        screen.getByText(
-          "This is high-pressure: here is how to protect your family's stability"
-        )
+        screen.getByText("This one asks a lot today. Here's what can make it lighter.")
       ).toBeInTheDocument()
     );
     expect(screen.getByRole("heading", { name: "Continuity Pivot" })).toBeInTheDocument();

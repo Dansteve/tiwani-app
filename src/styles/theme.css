@@ -49,20 +49,23 @@
   --muted-foreground: #5F5E5A;
   --accent: #E1F5EE;
   --accent-foreground: #04342C;
-  --destructive: #D85A30;
+  --destructive: #B23A2B;        /* functional errors + irreversible actions ONLY (warm red, NOT coral) */
   --destructive-foreground: #ffffff;
 
   /* Dashboard status semantics (Product.md §4.3 / §4.6 / §4.9), harmonized to the palette.
-     Status is always colour + label + icon, never colour alone (accessibility). */
+     Status is always colour + label + icon, never colour alone (accessibility).
+     Coral is reserved for warmth + action (CTAs, the logo dot, a positive key number), NEVER a
+     difficult reading: the concern escalation runs teal -> amber -> deep amber, carried by an icon
+     + a word, not an alarm colour (owner decision, Brand.md / Decisions.md D5). */
   --success: #1D9E75;            /* stable / positive (teal-mid) */
   --success-foreground: #ffffff;
   --warning: #C8862B;           /* under pressure (warm amber) */
   --warning-foreground: #2C2C2A;
-  --critical: #D85A30;          /* needs attention (coral, = destructive) */
+  --critical: #A35E14;          /* needs attention (deep amber, calm, NOT coral) */
   --critical-foreground: #ffffff;
   --status-stable: #1D9E75;
   --status-pressure: #C8862B;
-  --status-critical: #D85A30;
+  --status-critical: #A35E14;   /* highest concern (deep amber); coral is no longer a "bad" colour */
 
   --border: rgba(44, 44, 42, 0.12);
   --input: transparent;
@@ -105,19 +108,20 @@
   --muted-foreground: #B7B3A8;
   --accent: #04342C;
   --accent-foreground: #E1F5EE;
-  --destructive: #E27A52;
+  --destructive: #E47A66;        /* functional errors + irreversible actions ONLY (warm red, NOT coral) */
   --destructive-foreground: #2C1810;
 
-  /* Dashboard status semantics, brightened for the dark surface. */
+  /* Dashboard status semantics, brightened for the dark surface. Coral is freed from "bad news";
+     the concern escalation is teal -> amber -> deep amber (see the light block + Decisions.md D5). */
   --success: #2BB888;
   --success-foreground: #04342C;
   --warning: #E0A03E;
   --warning-foreground: #2C2C2A;
-  --critical: #E27A52;
+  --critical: #E0934A;          /* needs attention (deep amber, calm, NOT coral) */
   --critical-foreground: #2C1810;
   --status-stable: #2BB888;
   --status-pressure: #E0A03E;
-  --status-critical: #E27A52;
+  --status-critical: #E0934A;
 
   --border: rgba(236, 234, 227, 0.14);
   --input: #243029;

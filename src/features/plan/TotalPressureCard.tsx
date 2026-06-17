@@ -1,9 +1,14 @@
 "use client";
 
-// The TOTAL PRESSURE SCORE card (the owner's mockup): the total shown big ("11 / 20") with its band
-// colour + label + icon, and UNDER it the four dimensions broken out as labelled 1-to-5 bars
+// The pressure-score card (the owner's mockup, de-escalated): the total shown calmly in neutral teal
+// (the SAME colour in every band, so a hard day never "lights up" red), with its band chip (icon + word)
+// and a supportive headline, and UNDER it the four dimensions broken out as labelled 1-to-5 bars
 // (DimensionBars), the highest in amber. It RENDERS the api's total + scores and recomputes nothing; the
 // band is a display mapping of the total (bands.ts), never a re-derivation of the tier.
+//
+// De-escalation (owner + psychiatrist, Brand.md / Decisions.md D5): the number is calm + constant, the
+// concern lives only in the small chip + the amber "Highest" bar (never coral/red), and the copy
+// describes what the ACTIVITY asks today + how to ease it, never a verdict on the family.
 //
 // The pressure signal is ALWAYS colour + label + icon (CLAUDE.md UI scrutiny / WCAG 2.1 AA): the band
 // chip carries an icon and a word, and the dimension breakdown carries its own labels + values + the
@@ -12,7 +17,7 @@
 import { cn } from "@/lib/utils";
 import { formatScore } from "@/lib/format";
 import type { DimensionScores } from "@/lib/api/types";
-import { pressureBand, pressureCopy } from "@/features/plan/bands";
+import { pressureBand, pressureCopy, pressureSubtitle } from "@/features/plan/bands";
 import { PRESSURE_PRESENTATION } from "@/features/plan/pressurePresentation";
 import { DimensionBars } from "@/features/plan/DimensionBars";
 
@@ -27,6 +32,7 @@ export function TotalPressureCard({ total, scores }: TotalPressureCardProps) {
   const band = pressureBand(total);
   const presentation = PRESSURE_PRESENTATION[band];
   const BandIcon = presentation.icon;
+  const subtitle = pressureSubtitle(band);
 
   return (
     <section
@@ -43,10 +49,12 @@ export function TotalPressureCard({ total, scores }: TotalPressureCardProps) {
             id="total-pressure-label"
             className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
           >
-            Total pressure score
+            How much this asks today
           </p>
+          {/* The total is calm + neutral (text-primary teal) in EVERY band: a high number must not read
+              as a red alarm. The band colour lives in the chip + the amber "Highest" bar, not here. */}
           <p className="mt-1 leading-none">
-            <span className={cn("text-4xl font-bold tabular-nums", presentation.textClass)}>
+            <span className="text-4xl font-bold tabular-nums text-primary">
               {formatScore(total)}
             </span>
             <span className="text-lg font-medium text-muted-foreground"> / {TOTAL_MAX}</span>
@@ -65,7 +73,10 @@ export function TotalPressureCard({ total, scores }: TotalPressureCardProps) {
         </span>
       </div>
 
-      <p className={cn("mt-2 text-sm font-medium", presentation.textClass)}>{pressureCopy(band)}</p>
+      {/* The headline + its supportive second line: calm neutral text, describing the ACTIVITY today,
+          never a verdict on the family. */}
+      <p className="mt-3 text-sm font-medium text-foreground">{pressureCopy(band)}</p>
+      {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
 
       {/* The four dimensions, broken out + located (the highest in amber). */}
       <div className="mt-4 border-t border-current/15 pt-4">
