@@ -37,6 +37,7 @@ import type {
   MomentResponse,
   MomentTap,
   NeedActionResult,
+  NeedCard,
   NeedDetail,
   NeedSummary,
   NeedSummaryPage,
@@ -1093,6 +1094,25 @@ export const api = {
       `/api/v1/village/needs/${encodeURIComponent(needId)}`,
       { signal }
     );
+  },
+
+  /**
+   * The Continuity Card attached to a need, CLAIMER-ONLY (GET /api/v1/village/needs/{need_id}/card;
+   * card-on-task). Returns the NeedCard (the safe card content + a GOVERNED helper note) when the card
+   * is attached AND the caller is the live claimer (or owner); returns null on a 404 (no card attached,
+   * no live claim, not the claimer, or the feature gated off api-side), so the caller renders nothing.
+   * The app also gates the CALL on isCardOnTaskEnabled(), so it is not made unless the build flag is on.
+   */
+  async getNeedCard(needId: string, signal?: AbortSignal): Promise<NeedCard | null> {
+    try {
+      return await http<NeedCard>(
+        `/api/v1/village/needs/${encodeURIComponent(needId)}/card`,
+        { signal }
+      );
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) return null;
+      throw err;
+    }
   },
 
   /**

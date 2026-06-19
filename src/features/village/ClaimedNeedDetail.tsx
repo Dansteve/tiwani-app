@@ -22,6 +22,8 @@ import type { NeedActionResult, NeedDetail } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { villageCopy } from "@/features/village/copy";
+import { CardContentView } from "@/features/card/CardContentView";
+import { isCardOnTaskEnabled } from "@/lib/env";
 import { formatNeedWindow } from "@/lib/format";
 
 interface ClaimedNeedDetailProps {
@@ -69,6 +71,16 @@ function ClaimedNeedBody({
   });
   const [confirmingDrop, setConfirmingDrop] = useState(false);
 
+  // The attached Continuity Card (card-on-task): fetched ONLY when the build flag is on, and rendered
+  // ONLY when the api returns one (the card is attached to this need AND this caller is the live
+  // claimer). A 404 -> null -> nothing shown, so an unattached need, a non-claimer, or the flag-off
+  // case is silent. The api re-checks the claimer gate on every read; the app never recomputes it.
+  const cardQuery = useQuery({
+    queryKey: ["village-need-card", need.id],
+    queryFn: ({ signal }) => api.getNeedCard(need.id, signal),
+    enabled: isCardOnTaskEnabled(),
+  });
+
   const busy = doneMutation.isPending || dropMutation.isPending;
 
   return (
@@ -106,6 +118,16 @@ function ClaimedNeedBody({
           </DetailRow>
         ) : null}
       </dl>
+
+      {/* The recipient's support card, shown ONLY when the family attached it to this task and the api
+          served it to this live claimer (card-on-task). The api's GOVERNED helper note sits above the
+          shared Continuity Card layout (CardContentView); the app authors no card wording. */}
+      {cardQuery.data ? (
+        <div className="space-y-2 border-t border-success/20 pt-3">
+          <p className="text-sm text-muted-foreground">{cardQuery.data.helper_note}</p>
+          <CardContentView content={cardQuery.data.card} />
+        </div>
+      ) : null}
 
       {doneMutation.isError ? (
         <Alert variant="destructive">

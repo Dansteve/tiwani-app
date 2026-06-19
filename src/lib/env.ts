@@ -15,9 +15,23 @@ function read(name: string): string {
       return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
     case "NEXT_PUBLIC_WEBSITE_URL":
       return process.env.NEXT_PUBLIC_WEBSITE_URL ?? "";
+    case "NEXT_PUBLIC_CARD_ON_TASK_ENABLED":
+      return process.env.NEXT_PUBLIC_CARD_ON_TASK_ENABLED ?? "";
     default:
       return "";
   }
+}
+
+/**
+ * The card-on-task SIGN-OFF GATE (default OFF): the owner may attach the recipient's Continuity Card to
+ * a Village task, visible only to the claimer (FeatureDecisions 2026-06-17). It is a directed disclosure
+ * of a child's support card, so it stays OFF until the human DPO + psychiatrist sign-off + the DPIA
+ * clear. The api has the matching CARD_ON_TASK_ENABLED gate; the feature is dormant unless BOTH are on.
+ * True only for an explicit truthy build value ("1" / "true" / "yes" / "on").
+ */
+export function isCardOnTaskEnabled(): boolean {
+  const v = read("NEXT_PUBLIC_CARD_ON_TASK_ENABLED").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "on";
 }
 
 export const env = {

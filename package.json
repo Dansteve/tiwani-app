@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "deploy": "NEXT_PUBLIC_API_URL=https://tiwani-api.onrender.com NEXT_PUBLIC_WEBSITE_URL=https://tiwani-main.web.app next build && firebase deploy"
+    "deploy": "NEXT_PUBLIC_API_URL=https://tiwani-api.onrender.com NEXT_PUBLIC_WEBSITE_URL=https://tiwani-main.web.app NEXT_PUBLIC_CARD_ON_TASK_ENABLED=true next build && firebase deploy"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",

@@ -1284,6 +1284,24 @@ export interface CreateNeedRequest {
   contact_phone?: string;
   starts_at?: string;
   ends_at?: string;
+  /**
+   * OPT-IN, default OFF (card-on-task, FeatureDecisions 2026-06-17; behind `isCardOnTaskEnabled()`):
+   * attach the recipient's Continuity Card so the helper who CLAIMS this need can see what helps. The
+   * api refuses it (422) unless its own CARD_ON_TASK_ENABLED is on, and records the card-share consent.
+   */
+  attach_card?: boolean;
+}
+
+/**
+ * The Continuity Card attached to a Village need, served ONLY to the live claimer (or owner). Mirrors
+ * the api's NeedCard (GET /api/v1/village/needs/{need_id}/card). `card` is the SAFE card content (the
+ * first-name-only, non-clinical ceiling, with the staleness line); `helper_note` is the api's GOVERNED
+ * calm framing ("keep it to yourself, follow the family's lead"). The client returns null on a 404 (no
+ * card attached / no live claim / the feature off), so the caller renders nothing.
+ */
+export interface NeedCard {
+  card: CardContent;
+  helper_note: string;
 }
 
 /**

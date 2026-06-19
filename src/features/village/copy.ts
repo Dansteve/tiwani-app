@@ -62,6 +62,15 @@ export const VILLAGE_COPY = {
   "consent.share_with_village":
     "I confirm I have the authority to share these details with the people in this person's village, so they can offer practical help.",
 
+  // Card-on-task (FeatureDecisions 2026-06-17; shown only behind isCardOnTaskEnabled). The attach
+  // toggle label + the CARD-SHARE consent the owner confirms (mirrors the api's
+  // consent.share_card_on_task, which the api stores verbatim when the need posts). The helper-facing
+  // note is the api's (NeedCard.helper_note), so it is not held here. {name} is rendered at display.
+  "card.attach_label": "Share {name}'s support card with the helper",
+  "card.attach_hint": "Only the person who picks this up will see it, so they know what helps.",
+  "consent.share_card_on_task":
+    "I confirm I may share {name}'s support card with the one helper who picks up this task, so they know what helps. The card carries no sensitive details, I can stop sharing it at any time, and only the helper doing this task can see it.",
+
   // The roster (the visible "who is in the village" list).
   "roster.title": "Who is in the village",
   "roster.intro":

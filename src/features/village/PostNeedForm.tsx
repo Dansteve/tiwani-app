@@ -30,7 +30,8 @@ import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
-import { villageCopy } from "@/features/village/copy";
+import { isCardOnTaskEnabled } from "@/lib/env";
+import { villageCopy, renderWithName } from "@/features/village/copy";
 import {
   loadRecentNeeds,
   removeRecentNeed,
@@ -54,6 +55,9 @@ interface FormState {
   contact_phone: string;
   starts_at: string;
   ends_at: string;
+  // OPT-IN, default OFF (card-on-task; only shown behind isCardOnTaskEnabled): attach the recipient's
+  // Continuity Card so the helper who claims this need can see what helps.
+  attach_card: boolean;
 }
 
 const EMPTY: FormState = {
@@ -65,6 +69,7 @@ const EMPTY: FormState = {
   contact_phone: "",
   starts_at: "",
   ends_at: "",
+  attach_card: false,
 };
 
 // Build the api payload from the form: drop empty optionals (the api treats absent as "not set"), convert
@@ -89,6 +94,8 @@ function toPayload(recipientId: string, form: FormState): CreateNeedRequest {
     contact_phone: trimmed(form.contact_phone),
     starts_at: toIso(form.starts_at),
     ends_at: toIso(form.ends_at),
+    // Only sent when ON (the api refuses an attach unless its own flag is on, and records the consent).
+    attach_card: form.attach_card || undefined,
   };
 }
 
@@ -335,6 +342,35 @@ export function PostNeedForm({ recipientId, recipientFirstName, onPosted }: Post
             </fieldset>
           </div>
         </details>
+
+        {/* Attach the recipient's support card (card-on-task; shown only behind isCardOnTaskEnabled).
+            OPT-IN, default OFF. When ON, the owner confirms the governed card-share consent shown below;
+            the api records it verbatim and serves the card ONLY to the helper who claims this task. */}
+        {isCardOnTaskEnabled() ? (
+          <div className="rounded-lg border border-border p-3">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={form.attach_card}
+                onChange={(e) => set("attach_card", e.target.checked)}
+                className="mt-0.5 size-5 shrink-0 accent-primary"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">
+                  {renderWithName(villageCopy("card.attach_label"), recipientFirstName)}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  {villageCopy("card.attach_hint")}
+                </span>
+              </span>
+            </label>
+            {form.attach_card ? (
+              <p className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">
+                {renderWithName(villageCopy("consent.share_card_on_task"), recipientFirstName)}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {/* The consent gate (shown only when the api says consent is needed). The governed consent line is
             shown verbatim; recording it re-submits the need. */}
