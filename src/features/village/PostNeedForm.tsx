@@ -4,6 +4,11 @@
 // OWNER + CONSENT-gated (FeatureDecisions.md 2026-06-12 refinement 1 + the api contract): a clear, bounded
 // ask converts where a vague "let me know" does not, so the form nudges for the what / when / where.
 //
+// Mobile-short by design (the owner's "the form is long on mobile" feedback): only the required ask + an
+// optional one-liner show by default; the timing / place / contact fields collapse under an expandable
+// section. A device-local "recent requests" row lets the Coordinator reuse a recurring task in one tap
+// (recentNeeds.ts; the owner's own device, never sent to the server).
+//
 // Submit -> api.createNeed (POST /api/v1/village/needs). The api validates owner + consent + a non-empty
 // title; on success it broadcasts the need to the roster and returns the GOVERNED posted confirmation,
 // which the app shows VERBATIM (message). The form maps the api's errors to calm states:
@@ -14,9 +19,9 @@
 //   - 403 not-owner -> a calm "only the Coordinator can post" (the screen also gates this, but defend here).
 // On a successful post the parent refetches the board (the new need appears in the owner's list).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Send } from "lucide-react";
+import { ChevronDown, RotateCcw, Send, X } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api/client";
 import type { CreateNeedRequest, NeedActionResult } from "@/lib/api/types";
@@ -26,6 +31,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { villageCopy } from "@/features/village/copy";
+import {
+  loadRecentNeeds,
+  removeRecentNeed,
+  saveRecentNeed,
+  type RecentNeed,
+} from "@/features/village/recentNeeds";
 
 interface PostNeedFormProps {
   recipientId: string;
@@ -81,21 +92,56 @@ function toPayload(recipientId: string, form: FormState): CreateNeedRequest {
   };
 }
 
+// The recurring fields of a need, for reuse (NOT the times: a time is always set fresh per task).
+function toRecentNeed(form: FormState): RecentNeed {
+  return {
+    title: form.title,
+    detail: form.detail,
+    area_label: form.area_label,
+    location_text: form.location_text,
+    contact_name: form.contact_name,
+    contact_phone: form.contact_phone,
+  };
+}
+
 export function PostNeedForm({ recipientId, recipientFirstName, onPosted }: PostNeedFormProps) {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [titleError, setTitleError] = useState<string | null>(null);
   // The consent gate: when the api returns 409 no-consent, we hold the attempted payload and show the
   // consent line; recording consent then re-submits it.
   const [needsConsent, setNeedsConsent] = useState(false);
+  // The collapsible "timing, place & contact" section: collapsed by default so the mobile form is short
+  // (just the required ask). Auto-opens when a reused recent request brings optional details with it.
+  const [showMore, setShowMore] = useState(false);
+  // The Coordinator's device-local recent requests, for one-tap reuse of a recurring task.
+  const [recents, setRecents] = useState<RecentNeed[]>([]);
+
+  useEffect(() => {
+    setRecents(loadRecentNeeds(recipientId));
+  }, [recipientId]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  // Reuse a recent request: prefill the recurring fields (never the task-specific times), clear any error,
+  // and open the optional section if the recent carries place/contact so the owner sees what came back.
+  function applyRecent(recent: RecentNeed) {
+    setForm({ ...EMPTY, ...recent });
+    setTitleError(null);
+    const hasOptional = Boolean(
+      recent.area_label || recent.location_text || recent.contact_name || recent.contact_phone
+    );
+    if (hasOptional) setShowMore(true);
+  }
+
   const postMutation = useMutation({
     mutationFn: (payload: CreateNeedRequest) => api.createNeed(payload),
     onSuccess: (result) => {
+      // Remember this need on the owner's device for one-tap reuse next time (device-local, never sent).
+      setRecents(saveRecentNeed(recipientId, toRecentNeed(form)));
       setForm(EMPTY);
+      setShowMore(false);
       setNeedsConsent(false);
       onPosted(result);
     },
@@ -145,6 +191,38 @@ export function PostNeedForm({ recipientId, recipientFirstName, onPosted }: Post
         <p className="mt-0.5 text-sm text-muted-foreground">{villageCopy("need.post_intro")}</p>
       </div>
 
+      {/* Recent requests: one-tap reuse of a recurring task (device-local; the times are always set
+          fresh). The chip prefills the form; the x forgets it. */}
+      {recents.length > 0 ? (
+        <div className="mb-4">
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">Reuse a recent request</p>
+          <ul className="flex flex-wrap gap-2">
+            {recents.map((recent) => (
+              <li key={recent.title} className="inline-flex">
+                <span className="inline-flex items-center overflow-hidden rounded-full border border-border bg-secondary">
+                  <button
+                    type="button"
+                    onClick={() => applyRecent(recent)}
+                    className="inline-flex min-h-11 max-w-[14rem] items-center gap-1.5 py-1 pl-3 pr-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <RotateCcw className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <span className="truncate">{recent.title}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRecents(removeRecentNeed(recipientId, recent.title))}
+                    aria-label={`Forget the recent request "${recent.title}"`}
+                    className="inline-flex min-h-11 items-center px-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <X className="size-3.5 shrink-0" aria-hidden="true" />
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <form onSubmit={submit} className="space-y-4" noValidate>
         {/* What (required). */}
         <Field
@@ -168,74 +246,95 @@ export function PostNeedForm({ recipientId, recipientFirstName, onPosted }: Post
           />
         </div>
 
-        {/* When (the bounded window: a specific offer converts). datetime-local keeps it native + accessible. */}
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-foreground">
-            {villageCopy("need.post_when_label")}
-          </legend>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field
-              type="datetime-local"
-              label="From"
-              value={form.starts_at}
-              onChange={(e) => set("starts_at", e.target.value)}
-            />
-            <Field
-              type="datetime-local"
-              label="Until"
-              value={form.ends_at}
-              onChange={(e) => set("ends_at", e.target.value)}
-            />
-          </div>
-        </fieldset>
+        {/* The optional timing / place / contact, collapsed by default so the mobile form stays short: the
+            required ask above is all that is needed to post. Expands for a bounded offer, and auto-opens
+            when a reused recent brings place/contact with it. Controlled <details> (open + onToggle). */}
+        <details
+          open={showMore}
+          onToggle={(e) => setShowMore((e.currentTarget as HTMLDetailsElement).open)}
+          className="group rounded-lg border border-border"
+        >
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-4 py-2 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&::-webkit-details-marker]:hidden">
+            Add timing, place &amp; contact
+            <span className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
+              optional
+              <ChevronDown
+                className="size-4 shrink-0 transition-transform group-open:rotate-180"
+                aria-hidden="true"
+              />
+            </span>
+          </summary>
 
-        {/* Where. The area_label is the COARSE area shown on the board to everyone; location_text is the
-            EXACT place revealed by the api only to whoever claims it (the visibility ceiling). The labels
-            below make that split explicit so the owner knows what the village sees vs the claimer. */}
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-foreground">
-            {villageCopy("need.post_where_label")}
-          </legend>
-          <Field
-            label="Area shown to the village"
-            hint="A general area only. This is visible to everyone in the village."
-            placeholder="e.g. near the school"
-            value={form.area_label}
-            onChange={(e) => set("area_label", e.target.value)}
-          />
-          <Field
-            label="Exact place (shared only with whoever helps)"
-            hint="Only the person who claims this will see the exact place."
-            placeholder="e.g. Main pool entrance, Elm Road"
-            value={form.location_text}
-            onChange={(e) => set("location_text", e.target.value)}
-          />
-        </fieldset>
+          <div className="space-y-4 px-4 pb-4 pt-1">
+            {/* When (the bounded window: a specific offer converts). datetime-local is native + accessible. */}
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium text-foreground">
+                {villageCopy("need.post_when_label")}
+              </legend>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field
+                  type="datetime-local"
+                  label="From"
+                  value={form.starts_at}
+                  onChange={(e) => set("starts_at", e.target.value)}
+                />
+                <Field
+                  type="datetime-local"
+                  label="Until"
+                  value={form.ends_at}
+                  onChange={(e) => set("ends_at", e.target.value)}
+                />
+              </div>
+            </fieldset>
 
-        {/* Who to contact (shared only with the claimer, like the exact place). */}
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-foreground">
-            {villageCopy("need.post_contact_label")}
-          </legend>
-          <p className="text-xs text-muted-foreground">
-            Shared only with the person who helps, not the whole village.
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field
-              label="Name"
-              placeholder="Who to ask for"
-              value={form.contact_name}
-              onChange={(e) => set("contact_name", e.target.value)}
-            />
-            <Field
-              type="tel"
-              label="Phone"
-              placeholder="A number to reach you"
-              value={form.contact_phone}
-              onChange={(e) => set("contact_phone", e.target.value)}
-            />
+            {/* Where. The area_label is the COARSE area shown on the board to everyone; location_text is
+                the EXACT place revealed by the api only to whoever claims it (the visibility ceiling). */}
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium text-foreground">
+                {villageCopy("need.post_where_label")}
+              </legend>
+              <Field
+                label="Area shown to the village"
+                hint="A general area only. This is visible to everyone in the village."
+                placeholder="e.g. near the school"
+                value={form.area_label}
+                onChange={(e) => set("area_label", e.target.value)}
+              />
+              <Field
+                label="Exact place (shared only with whoever helps)"
+                hint="Only the person who claims this will see the exact place."
+                placeholder="e.g. Main pool entrance, Elm Road"
+                value={form.location_text}
+                onChange={(e) => set("location_text", e.target.value)}
+              />
+            </fieldset>
+
+            {/* Who to contact (shared only with the claimer, like the exact place). */}
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium text-foreground">
+                {villageCopy("need.post_contact_label")}
+              </legend>
+              <p className="text-xs text-muted-foreground">
+                Shared only with the person who helps, not the whole village.
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field
+                  label="Name"
+                  placeholder="Who to ask for"
+                  value={form.contact_name}
+                  onChange={(e) => set("contact_name", e.target.value)}
+                />
+                <Field
+                  type="tel"
+                  label="Phone"
+                  placeholder="A number to reach you"
+                  value={form.contact_phone}
+                  onChange={(e) => set("contact_phone", e.target.value)}
+                />
+              </div>
+            </fieldset>
           </div>
-        </fieldset>
+        </details>
 
         {/* The consent gate (shown only when the api says consent is needed). The governed consent line is
             shown verbatim; recording it re-submits the need. */}

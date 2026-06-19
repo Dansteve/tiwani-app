@@ -51,13 +51,14 @@ export function TotalPressureCard({ total, scores }: TotalPressureCardProps) {
           >
             How much this asks today
           </p>
-          {/* The total is calm + neutral (text-primary teal) in EVERY band: a high number must not read
-              as a red alarm. The band colour lives in the chip + the amber "Highest" bar, not here. */}
+          {/* The total is calm + neutral (text-primary teal) in EVERY band, and deliberately MODEST in
+              size (text-2xl, not a big text-4xl "grade") so it informs without reading like an exam
+              score. The band colour lives in the chip + the amber "Highest" bar, never here. */}
           <p className="mt-1 leading-none">
-            <span className="text-4xl font-bold tabular-nums text-primary">
+            <span className="text-2xl font-semibold tabular-nums text-primary">
               {formatScore(total)}
             </span>
-            <span className="text-lg font-medium text-muted-foreground"> / {TOTAL_MAX}</span>
+            <span className="text-base font-medium text-muted-foreground"> / {TOTAL_MAX}</span>
           </p>
         </div>
         {/* The band chip: colour + icon + label, never colour alone. */}

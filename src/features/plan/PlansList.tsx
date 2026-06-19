@@ -19,7 +19,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { CalendarCheck, CalendarClock, Eye, FilePlus2, Loader2 } from "lucide-react";
+import { CalendarCheck, CalendarClock, Eye, FilePlus2, Loader2, Plus } from "lucide-react";
 
 import { api } from "@/lib/api/client";
 import type { ChapterCode, PlanSummary } from "@/lib/api/types";
@@ -58,17 +58,30 @@ export function PlansList() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
+      <header className="space-y-3">
         <div className="flex items-start justify-between gap-3">
-          <h1 data-tour="plans-header" className="text-2xl font-semibold md:text-3xl">
-            Your prepared plans
-          </h1>
+          <div className="space-y-1">
+            <h1 data-tour="plans-header" className="text-2xl font-semibold md:text-3xl">
+              Your prepared plans
+            </h1>
+            <p className="text-base text-muted-foreground">
+              The plans you have already prepared. Open one again any time, without preparing it afresh.
+            </p>
+          </div>
           {/* On-demand "Show me around" for this screen (the intro + the list of prepared plans). */}
           <PageTour page="plans" buttonClassName="-mt-1" />
         </div>
-        <p className="text-base text-muted-foreground">
-          The plans you have already prepared. Open one again any time, without preparing it afresh.
-        </p>
+        {/* The "+ prepare a new plan" affordance: prepared plans accumulate here, so the Coordinator needs
+            a clear, always-present way to start a fresh one (a chapter is chosen on the dashboard, the same
+            target as the empty-state button). Full-width on mobile, a 44px tap target. */}
+        <Link
+          href="/dashboard"
+          data-tour="plans-prepare-new"
+          className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full sm:w-auto")}
+        >
+          <Plus className="size-4 shrink-0" aria-hidden="true" />
+          Prepare a new plan
+        </Link>
       </header>
 
       <ChapterFilter selected={chapter} onSelect={setChapter} />
