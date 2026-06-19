@@ -22,6 +22,7 @@
 // interpolates nothing. The Erosion Alert copy is the api's, verbatim.
 
 import { useQuery } from "@tanstack/react-query";
+import { ChevronDown, AlertCircle } from "lucide-react";
 
 import { api } from "@/lib/api/client";
 import { chapterLabel, CHAPTERS } from "@/lib/format";
@@ -126,25 +127,56 @@ export function CheckInHistoryView() {
               {/* The overall series first (the headline picture), then each chapter. */}
               <CheckInHistorySeries series={data.overall} scopeLabel="Overall" />
 
-              <section aria-label="By Life Chapter" className="space-y-4">
+              <section aria-label="By Life Chapter" className="space-y-3">
                 <h2 className="text-lg font-semibold">By Life Chapter</h2>
+                {/* Each chapter is a collapsible accordion (native details/summary), COLLAPSED by default,
+                    so the view stays short no matter how many check-ins accrue over time. The summary
+                    shows the chapter, its reading count, and a calm amber indicator when the chapter has an
+                    active alert; expanding reveals that chapter's governed alert banner (if any) and its
+                    discrete-dot series (rendered bare, the accordion is the card). */}
                 {chapterSeries.map((series) => {
                   const chapter = series.scope as ChapterCode;
                   const cardAlert = alerts.cardAlertByChapter.get(chapter);
+                  const count = series.reading_count;
                   return (
-                    <div key={chapter} className="space-y-2">
-                      {/* The chapter's L1 alert (its governed warm framing) sits directly above its series,
-                          so a declining chapter is paired with support, not a bare line. */}
-                      {cardAlert ? (
-                        <AlertBanner
-                          alert={cardAlert}
-                          variant="card"
-                          onDismiss={() => alerts.dismiss(chapter)}
-                          isDismissing={alerts.dismissingChapter === chapter}
-                        />
-                      ) : null}
-                      <CheckInHistorySeries series={series} scopeLabel={chapterLabel(chapter)} />
-                    </div>
+                    <details
+                      key={chapter}
+                      className="group overflow-hidden rounded-xl border border-border bg-card"
+                    >
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate">{chapterLabel(chapter)}</span>
+                          {cardAlert ? (
+                            <AlertCircle
+                              className="size-4 shrink-0 text-status-pressure"
+                              aria-label="has an update to look at"
+                            />
+                          ) : null}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-2 text-xs font-normal text-muted-foreground">
+                          <span>
+                            {count > 0
+                              ? `${count} ${count === 1 ? "check-in" : "check-ins"}`
+                              : "No check-ins yet"}
+                          </span>
+                          <ChevronDown
+                            className="size-4 shrink-0 transition-transform group-open:rotate-180"
+                            aria-hidden="true"
+                          />
+                        </span>
+                      </summary>
+                      <div className="space-y-2 border-t border-border px-4 py-4">
+                        {cardAlert ? (
+                          <AlertBanner
+                            alert={cardAlert}
+                            variant="card"
+                            onDismiss={() => alerts.dismiss(chapter)}
+                            isDismissing={alerts.dismissingChapter === chapter}
+                          />
+                        ) : null}
+                        <CheckInHistorySeries series={series} scopeLabel={chapterLabel(chapter)} bare />
+                      </div>
+                    </details>
                   );
                 })}
               </section>

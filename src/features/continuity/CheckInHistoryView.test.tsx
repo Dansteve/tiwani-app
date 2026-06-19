@@ -170,6 +170,17 @@ describe("CheckInHistoryView", () => {
     renderView();
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not load your check-in history/i);
   });
+
+  it("renders each Life Chapter as a collapsible accordion with a reading-count summary", async () => {
+    renderView();
+    // Wait for the data to load (the chapter summaries appear), then assert the accordion structure.
+    await screen.findAllByText("No check-ins yet");
+    // The six chapters are native <details> accordions (collapsed by default keeps the view short over time).
+    expect(document.querySelectorAll("details")).toHaveLength(6);
+    // Each summary shows its count: the five empty chapters say so, the declining travel one has 3.
+    expect(screen.getAllByText("No check-ins yet")).toHaveLength(5);
+    expect(screen.getAllByText(/3 check-ins/).length).toBeGreaterThanOrEqual(1);
+  });
 });
 
 describe("CheckInHistoryView accessibility (axe)", () => {
