@@ -23,7 +23,7 @@ export function PulseScreen() {
   const hasPending = (pendingQuery.data ?? []).length > 0;
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6">
+    <div className="space-y-6">
       <header className="flex items-start justify-between gap-3">
         {/* The intro is the coach-marks anchor for the Pulse tour (what a check-in is, why it matters). */}
         <div data-tour="pulse-intro">
