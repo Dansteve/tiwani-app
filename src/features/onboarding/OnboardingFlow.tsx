@@ -11,7 +11,7 @@
 // holds no scoring logic: it just sends the coded payload and lets the api build the plan.
 
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
@@ -63,6 +63,7 @@ const STEP_META: Record<number, StepMeta> = {
 
 export function OnboardingFlow() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   // The machine with resume + persist wired in (hydrates from sessionStorage on mount, saves on
   // change); the screen just renders state and dispatches.
   const [state, dispatch] = useOnboardingMachine();
@@ -70,13 +71,21 @@ export function OnboardingFlow() {
   const submit = useMutation({
     mutationFn: (finalState: OnboardingState) =>
       api.completeOnboarding(buildPayload(finalState)),
+    // Path-independent success work; the per-call onSuccess (handleContinue / handleSkip) does the
+    // routing, so each path lands in ONE place and the browser back never re-enters onboarding.
     onSuccess: () => {
       clearSavedOnboarding();
-      // Onboarding just completed: arm the one-shot signal so the dashboard opens the "Show me around"
-      // tour exactly once on arrival (the tour anchors live on the dashboard, reached after the first
-      // plan). It auto-opens once, then clears; a returning, already-onboarded user is never re-shown it.
+      // Onboarding created the care recipient and completed the profile, so refresh every read it
+      // changes: the recipient list + shell switcher, the profile (onboarding_complete + greeting), and
+      // the dashboard chapters/LCI. Without this the new recipient does not show until a page refresh.
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["recipients"] });
+      queryClient.invalidateQueries({ queryKey: ["children"] });
+      queryClient.invalidateQueries({ queryKey: ["child"] });
+      queryClient.invalidateQueries({ queryKey: ["chapters"] });
+      queryClient.invalidateQueries({ queryKey: ["lci"] });
+      // Arm the one-shot signal so the dashboard opens the "Show me around" tour exactly once on arrival.
       signalJustOnboarded(sessionOneShotStore());
-      router.push("/plan");
     },
   });
 
@@ -85,28 +94,23 @@ export function OnboardingFlow() {
       dispatch({ type: "next" });
       return;
     }
-    // Final step with a chosen activity: submit the whole coded payload once.
-    submit.mutate(state);
+    // Final step with a chosen activity: submit the coded payload once, then into the first plan.
+    // replace (not push) so the browser back button does not return into the completed onboarding.
+    submit.mutate(state, { onSuccess: () => router.replace("/plan") });
   }
 
   function handleSkip() {
     // Skip from any step. If they have entered the required basics (name + support level), persist
     // what they have so the profile exists; otherwise just leave onboarding for later.
     if (state.name.trim().length > 0 && state.supportLevel) {
-      submit.mutate(state, {
-        onSuccess: () => {
-          clearSavedOnboarding();
-          // The basics were saved (a care recipient now exists): treat this as onboarding completed and
-          // arm the one-shot dashboard-tour signal, so the tour opens once on the dashboard.
-          signalJustOnboarded(sessionOneShotStore());
-          router.push("/dashboard");
-        },
-      });
+      // The shared mutation onSuccess does the invalidation + tour signal; this only picks the
+      // destination (replace, not push, so the browser back does not return into onboarding).
+      submit.mutate(state, { onSuccess: () => router.replace("/dashboard") });
       return;
     }
     // A plain skip with no basics created nothing: do NOT arm the tour signal (nothing was onboarded).
     clearSavedOnboarding();
-    router.push("/dashboard");
+    router.replace("/dashboard");
   }
 
   const meta = STEP_META[state.step];

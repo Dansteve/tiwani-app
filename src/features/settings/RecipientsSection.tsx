@@ -64,10 +64,15 @@ export function RecipientsSection() {
   const create = useMutation({
     mutationFn: (payload: CareRecipientCreate) => api.createChild(payload),
     onSuccess: () => {
-      // The new recipient must appear in this owned list AND in the shell switcher, so refresh BOTH the
-      // owner-scoped ["children"] read here and the provider's ["recipients"] (owned + shared) list.
+      // The new recipient must appear in this owned list, the shell switcher, AND the dashboard/editor, so
+      // refresh the owner-scoped ["children"], the provider's ["recipients"], and the profile/child/
+      // chapters/LCI reads the new recipient changes (so nothing waits on a manual page refresh).
       queryClient.invalidateQueries({ queryKey: ["children"] });
       queryClient.invalidateQueries({ queryKey: ["recipients"] });
+      queryClient.invalidateQueries({ queryKey: ["child"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["chapters"] });
+      queryClient.invalidateQueries({ queryKey: ["lci"] });
       setName("");
       setSupportLevel("SL-MED");
       setAdding(false);

@@ -41,7 +41,8 @@ export function SignInForm() {
       return;
     }
     // Signed-in routing: the app decides where to land based on onboarding_complete; default home.
-    router.push("/dashboard");
+    // replace (not push) so the browser back does not return to the sign-in form once signed in.
+    router.replace("/dashboard");
   }
 
   // Passwordless: email a one-time sign-in link (the magic_link template). Reuses the email field; the

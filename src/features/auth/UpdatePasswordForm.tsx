@@ -74,7 +74,7 @@ export function UpdatePasswordForm() {
           </Link>
         }
       >
-        <Button type="button" className="w-full" onClick={() => router.push("/dashboard")}>
+        <Button type="button" className="w-full" onClick={() => router.replace("/dashboard")}>
           Continue to TIWANI
         </Button>
       </AuthShell>

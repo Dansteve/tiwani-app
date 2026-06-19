@@ -9,10 +9,11 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { axeRuleViolations } from "@/test/axe";
 
-// Mock the Next router (the flow calls router.push on submit/skip).
+// Mock the Next router (the flow calls router.replace on submit/skip, so back never re-enters onboarding).
 const push = vi.fn();
+const replace = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push, replace }),
 }));
 
 // Mock the api client so no real request is made.
@@ -40,6 +41,7 @@ function renderFlow() {
 
 beforeEach(() => {
   push.mockClear();
+  replace.mockClear();
   window.sessionStorage.clear();
 });
 
@@ -129,14 +131,14 @@ describe("OnboardingFlow (rendered)", () => {
       tags: [SENSORY[0].code],
       first_activity: { chapter: "school", activity_type: "Parents evening" },
     });
-    // On success it routes into the first plan.
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/plan"));
+    // On success it routes into the first plan (replace, so back does not re-enter onboarding).
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/plan"));
   });
 
   it("skips from step 1 without an api call when basics are not entered", () => {
     renderFlow();
     fireEvent.click(screen.getByRole("button", { name: /skip for now/i }));
-    expect(push).toHaveBeenCalledWith("/dashboard");
+    expect(replace).toHaveBeenCalledWith("/dashboard");
   });
 
   it("renders the back control on step 2 and returns to step 1", () => {

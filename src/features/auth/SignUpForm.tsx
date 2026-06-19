@@ -50,7 +50,8 @@ export function SignUpForm() {
       setEmailSent(true);
       return;
     }
-    router.push("/onboarding");
+    // replace (not push) so the browser back does not return to the sign-up form after the account exists.
+    router.replace("/onboarding");
   }
 
   if (emailSent) {
