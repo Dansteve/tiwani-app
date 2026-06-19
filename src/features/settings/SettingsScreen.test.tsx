@@ -68,8 +68,8 @@ vi.mock("@/components/LogoutButton", () => ({
   LogoutButton: () => <button type="button">Sign out</button>,
 }));
 
-// The Profile tab's "Replay the tour" button uses the Next router; mock it so the screen renders (its
-// own click behaviour is pinned in ReplayTourButton.test).
+// Some Settings controls use the Next router (e.g. the page tour, the close-account flow); mock it so
+// the screen renders in jsdom.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
@@ -251,21 +251,21 @@ describe("SettingsScreen tabs", () => {
     expect(screen.queryByTestId("data-export-section")).not.toBeInTheDocument();
   });
 
-  it("keeps the Account sign-out + Appearance + Replay tour under the Profile tab", async () => {
+  it("keeps the Account sign-out + Appearance under the Profile tab (no redundant replay-tour card)", async () => {
     renderScreen();
     await screen.findByDisplayValue("Sam");
     // Sign-out (the stubbed LogoutButton) and the theme control sit with the Coordinator's own profile.
     expect(screen.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
     expect(screen.getByRole("radiogroup", { name: /theme/i })).toBeInTheDocument();
-    // The "Replay the tour" control (the Settings way back into the dashboard coach-marks) is here too.
-    expect(screen.getByRole("button", { name: /replay the tour/i })).toBeInTheDocument();
+    // The dashboard "Replay the tour" card was removed (every screen has its own "Show me around").
+    expect(screen.queryByRole("button", { name: /replay the tour/i })).not.toBeInTheDocument();
   });
 
   it("offers the page's own 'Show me around' tour, anchored on the tabs", async () => {
     const { container } = renderScreen();
     await screen.findByDisplayValue("Sam");
-    // The Settings-page tour button (distinct from the dashboard "Replay the tour" card) sits in the
-    // header, and its step points at the tabs anchor (present for everyone, so it works under the ceiling).
+    // The Settings-page tour button sits in the header, and its step points at the tabs anchor
+    // (present for everyone, so it works under the viewer ceiling).
     expect(screen.getByRole("button", { name: /show me around/i })).toBeInTheDocument();
     expect(container.querySelector('[data-tour="settings-tabs"]')).not.toBeNull();
   });

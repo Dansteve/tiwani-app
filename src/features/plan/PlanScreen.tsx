@@ -164,7 +164,7 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   // request is in flight; the app computes nothing.
   if (planMutation.isPending) {
     return (
-      <div className="mx-auto w-full max-w-2xl">
+      <div className="w-full">
         <EngineReveal chapterLabel={chapterLabel(chapter)} />
       </div>
     );
@@ -173,7 +173,7 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   // Phase 2: the plan came back, render it.
   if (planMutation.data) {
     return (
-      <div className="mx-auto w-full max-w-2xl">
+      <div className="w-full">
         <PreparationPlanView plan={planMutation.data} onPrepareAnother={prepareAnother} />
       </div>
     );
@@ -181,7 +181,7 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
 
   // Phase 1: the prepare inputs.
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-4">
+    <div className="w-full space-y-4">
       {/* The "Show me around" tour for the Plan screen (on-demand, calm). It points at the activity
           picker, the today-flags, and the build button via their data-tour anchors below. */}
       <div className="flex justify-end">

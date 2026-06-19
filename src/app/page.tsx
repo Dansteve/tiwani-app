@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { HomeLink } from "@/components/HomeLink";
 import { Wordmark } from "@/components/Wordmark";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
+import { AuthHashNotice } from "@/features/auth/AuthHashNotice";
 
 // The app entry: a calm, on-brand welcome. Get started goes to sign-up (then onboarding after the
 // account is made, never straight to the dashboard, Product.md §4.1); returning Coordinators sign in.
@@ -22,6 +23,8 @@ export default function Home() {
         </HomeLink>
         <ThemeToggle variant="icon" className="-mr-2 ml-auto" />
       </div>
+      {/* A bounced/expired auth email link lands here (the Site URL) with the reason in the URL hash. */}
+      <AuthHashNotice />
       <Wordmark className="text-xl" />
       <h1 className="mt-6 text-3xl font-semibold md:text-4xl">
         Keep life holding.

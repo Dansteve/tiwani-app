@@ -46,7 +46,6 @@ import { DataExportSection } from "@/features/settings/DataExportSection";
 import { PrivacySection } from "@/features/settings/PrivacySection";
 import { DangerZoneSection } from "@/features/settings/DangerZoneSection";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
-import { ReplayTourButton } from "@/features/tour/ReplayTourButton";
 import { PageTour } from "@/features/tour/PageTour";
 import { useRecipient } from "@/state/RecipientProvider";
 
@@ -158,20 +157,6 @@ export function SettingsScreen() {
             </CardHeader>
             <CardContent>
               <ThemeToggle variant="segmented" />
-            </CardContent>
-          </Card>
-
-          {/* Show me around (replay the tour). Re-runs the first-run dashboard walkthrough for anyone who
-              skipped it: it clears the seen flag and opens the tour on the dashboard. */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Show me around</CardTitle>
-              <CardDescription>
-                Replay the quick tour of your dashboard, a calm walkthrough of where everything is.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ReplayTourButton />
             </CardContent>
           </Card>
 
