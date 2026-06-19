@@ -28,6 +28,12 @@ export interface AuthContextValue {
   loading: boolean;
   /** True when Supabase env is configured; false in skeleton mode. */
   configured: boolean;
+  /**
+   * True once a password-reset link has been opened (the PASSWORD_RECOVERY event), until sign-out. The
+   * set-new-password screen reads it to show the form for a genuine recovery rather than the
+   * expired-link state.
+   */
+  recovering: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -36,6 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const configured = Boolean(env.supabaseUrl && env.supabaseAnonKey);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(configured);
+  // Set when a password-reset link is opened (PASSWORD_RECOVERY), cleared on sign-out. The
+  // set-new-password screen reads this to know it is a genuine recovery, not a stray visit.
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     // Route api-client auth through the Supabase session token regardless of config; the provider
@@ -55,8 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, next) => {
+    } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
+      // A reset link fires PASSWORD_RECOVERY with a one-time session; arm the set-new-password screen.
+      if (event === "PASSWORD_RECOVERY") setRecovering(true);
+      else if (event === "SIGNED_OUT") setRecovering(false);
     });
 
     return () => {
@@ -66,8 +78,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [configured]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ session, loading, configured }),
-    [session, loading, configured]
+    () => ({ session, loading, configured, recovering }),
+    [session, loading, configured, recovering]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

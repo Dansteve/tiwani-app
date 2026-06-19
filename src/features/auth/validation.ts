@@ -66,6 +66,26 @@ export function validateSignIn(values: {
   return errors;
 }
 
+export interface NewPasswordErrors {
+  password?: string;
+  confirm?: string;
+}
+
+/** Validate the set-new-password form (the recovery completion): min length, and a matching confirm. */
+export function validateNewPassword(values: {
+  password: string;
+  confirm: string;
+}): NewPasswordErrors {
+  const errors: NewPasswordErrors = {};
+  if (!isValidPassword(values.password)) {
+    errors.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+  }
+  if (values.confirm !== values.password) {
+    errors.confirm = "Both passwords need to match.";
+  }
+  return errors;
+}
+
 /** True when any field in an error map carries a message (works on the typed error shapes above). */
 export function hasErrors<T extends object>(errors: T): boolean {
   return Object.values(errors).some(Boolean);

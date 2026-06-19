@@ -15,17 +15,18 @@ import { Alert } from "@/components/ui/alert";
 import { AuthShell } from "@/features/auth/AuthShell";
 import { GoogleButton } from "@/features/auth/GoogleButton";
 import { useAuthActions } from "@/features/auth/useAuthActions";
-import { validateSignIn, hasErrors, type SignInErrors } from "@/features/auth/validation";
+import { validateSignIn, isValidEmail, hasErrors, type SignInErrors } from "@/features/auth/validation";
 
 export function SignInForm() {
   const router = useRouter();
-  const { pending, signIn } = useAuthActions();
+  const { pending, signIn, signInWithMagicLink } = useAuthActions();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<SignInErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [googleComingSoon, setGoogleComingSoon] = useState(false);
+  const [magicSent, setMagicSent] = useState(false);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -41,6 +42,22 @@ export function SignInForm() {
     }
     // Signed-in routing: the app decides where to land based on onboarding_complete; default home.
     router.push("/dashboard");
+  }
+
+  // Passwordless: email a one-time sign-in link (the magic_link template). Reuses the email field; the
+  // confirmation reads the same whether or not an account exists (no enumeration).
+  async function sendMagicLink() {
+    setFormError(null);
+    if (!isValidEmail(email)) {
+      setErrors((prev) => ({ ...prev, email: "Enter your email to get a sign-in link." }));
+      return;
+    }
+    const result = await signInWithMagicLink(email);
+    if (!result.ok) {
+      setFormError(result.error ?? "Could not send the sign-in link.");
+      return;
+    }
+    setMagicSent(true);
   }
 
   return (
@@ -79,7 +96,11 @@ export function SignInForm() {
           name="email"
           autoComplete="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            // A new address invalidates the "we sent a link" notice (it would name the old one).
+            if (magicSent) setMagicSent(false);
+          }}
           error={errors.email}
         />
         <div className="flex flex-col gap-1.5">
@@ -120,6 +141,28 @@ export function SignInForm() {
           Google sign-in is coming soon. For now, use your email and password.
         </p>
       ) : null}
+
+      {/* Passwordless sign-in: email a one-time link instead of a password. */}
+      <div className="mt-3">
+        {magicSent ? (
+          <p
+            role="status"
+            className="rounded-md border border-primary/25 bg-accent/40 px-4 py-3 text-sm text-foreground"
+          >
+            Check your email for a sign-in link. If an account exists for {email}, it is on its way.
+          </p>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={pending}
+            onClick={() => void sendMagicLink()}
+          >
+            Email me a sign-in link
+          </Button>
+        )}
+      </div>
     </AuthShell>
   );
 }

@@ -22,7 +22,7 @@ export function stubSession(): Session {
 
 /** A resolved, authenticated AuthContextValue (session present, not loading, configured). */
 export function authContextWithSession(): AuthContextValue {
-  return { session: stubSession(), loading: false, configured: true };
+  return { session: stubSession(), loading: false, configured: true, recovering: false };
 }
 
 /**

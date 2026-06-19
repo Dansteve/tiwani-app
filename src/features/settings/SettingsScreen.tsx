@@ -37,6 +37,8 @@ import {
 import { TabsList, TabPanel, type TabItem } from "@/components/ui/tabs";
 import { Alert } from "@/components/ui/alert";
 import { ProfileSection } from "@/features/settings/ProfileSection";
+import { ChangeEmailSection } from "@/features/settings/ChangeEmailSection";
+import { ChangePasswordSection } from "@/features/settings/ChangePasswordSection";
 import { CareRecipientSection } from "@/features/settings/CareRecipientSection";
 import { RecipientsSection } from "@/features/settings/RecipientsSection";
 import { PlansBillingSection } from "@/features/settings/PlansBillingSection";
@@ -139,7 +141,11 @@ export function SettingsScreen() {
           ) : profileQuery.isError ? (
             <SectionError>We could not load your profile just now. Please try again shortly.</SectionError>
           ) : profileQuery.data ? (
-            <ProfileSection profile={profileQuery.data} />
+            <>
+              <ProfileSection profile={profileQuery.data} />
+              <ChangeEmailSection currentEmail={profileQuery.data.email} />
+              <ChangePasswordSection currentEmail={profileQuery.data.email} />
+            </>
           ) : null}
 
           {/* Appearance (theme). A device preference, set on this device and remembered here. */}

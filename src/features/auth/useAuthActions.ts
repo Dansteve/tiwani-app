@@ -118,15 +118,161 @@ export function useAuthActions() {
       try {
         const supabase = getSupabaseClient();
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          // Land on the set-new-password screen, which reads the one-time recovery session from the link.
           redirectTo:
             typeof window !== "undefined"
-              ? `${window.location.origin}/sign-in`
+              ? `${window.location.origin}/update-password`
               : undefined,
         });
         if (error) return { ok: false, error: messageFrom(error, "Could not send the reset email.") };
         return { ok: true };
       } catch (error) {
         return { ok: false, error: messageFrom(error, "Could not send the reset email.") };
+      } finally {
+        setPending(false);
+      }
+    },
+    []
+  );
+
+  const updatePassword = useCallback(
+    async (password: string): Promise<AuthResult> => {
+      setPending(true);
+      try {
+        const supabase = getSupabaseClient();
+        // The caller is in a one-time recovery session (opened from the reset link); set the new
+        // password on it. Supabase keeps them signed in, so the screen can route on into the app.
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) return { ok: false, error: messageFrom(error, "Could not update your password.") };
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: messageFrom(error, "Could not update your password.") };
+      } finally {
+        setPending(false);
+      }
+    },
+    []
+  );
+
+  const signInWithMagicLink = useCallback(
+    async (email: string): Promise<AuthResult> => {
+      setPending(true);
+      try {
+        const supabase = getSupabaseClient();
+        // A passwordless sign-in for an EXISTING account: Supabase emails a one-time link + code (the
+        // magic_link template). shouldCreateUser is false so it never creates an account, because
+        // sign-up requires a first name (Product.md §4.1); this only signs in someone who has one.
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: false,
+            emailRedirectTo:
+              typeof window !== "undefined"
+                ? `${window.location.origin}/dashboard`
+                : undefined,
+          },
+        });
+        if (error) return { ok: false, error: messageFrom(error, "Could not send the sign-in link.") };
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: messageFrom(error, "Could not send the sign-in link.") };
+      } finally {
+        setPending(false);
+      }
+    },
+    []
+  );
+
+  const changeEmail = useCallback(
+    async (email: string): Promise<AuthResult> => {
+      setPending(true);
+      try {
+        const supabase = getSupabaseClient();
+        // Start an email change (Supabase identity): it emails a confirmation to the new address (the
+        // email_change template); the change applies only once that link is opened. The link returns
+        // to the app. The api profile email follows on the next read after confirmation.
+        const { error } = await supabase.auth.updateUser(
+          { email },
+          {
+            emailRedirectTo:
+              typeof window !== "undefined"
+                ? `${window.location.origin}/dashboard`
+                : undefined,
+          }
+        );
+        if (error) return { ok: false, error: messageFrom(error, "Could not start the email change.") };
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: messageFrom(error, "Could not start the email change.") };
+      } finally {
+        setPending(false);
+      }
+    },
+    []
+  );
+
+  const reauthenticate = useCallback(async (): Promise<AuthResult> => {
+    setPending(true);
+    try {
+      const supabase = getSupabaseClient();
+      // Email a one-time confirmation code (the reauthentication template) to the signed-in user, to
+      // confirm identity before a sensitive action. The code is consumed by confirmReauthentication.
+      const { error } = await supabase.auth.reauthenticate();
+      if (error) return { ok: false, error: messageFrom(error, "Could not send the confirmation code.") };
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: messageFrom(error, "Could not send the confirmation code.") };
+    } finally {
+      setPending(false);
+    }
+  }, []);
+
+  const confirmReauthentication = useCallback(
+    async (nonce: string): Promise<AuthResult> => {
+      setPending(true);
+      try {
+        const supabase = getSupabaseClient();
+        // Validate the emailed code by attaching the nonce to a harmless metadata write: it succeeds
+        // only when the code is valid (and not expired), so a caller can gate a sensitive action on it.
+        const { error } = await supabase.auth.updateUser({
+          nonce,
+          data: { reauthenticated_at: new Date().toISOString() },
+        });
+        if (error) return { ok: false, error: messageFrom(error, "That code did not match. Please try again.") };
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: messageFrom(error, "That code did not match. Please try again.") };
+      } finally {
+        setPending(false);
+      }
+    },
+    []
+  );
+
+  const changePassword = useCallback(
+    async (params: {
+      email: string;
+      currentPassword: string;
+      newPassword: string;
+    }): Promise<AuthResult> => {
+      setPending(true);
+      try {
+        const supabase = getSupabaseClient();
+        // Confirm it is really the account holder by re-checking the CURRENT password (Supabase
+        // validates it on sign-in), so a stranger on an unlocked device cannot reset it; then set the
+        // new one. A wrong current password is rejected before any change. No credential is stored.
+        const { error: verifyError } = await supabase.auth.signInWithPassword({
+          email: params.email,
+          password: params.currentPassword,
+        });
+        if (verifyError) {
+          return { ok: false, error: "Your current password does not match. Please try again." };
+        }
+        const { error } = await supabase.auth.updateUser({ password: params.newPassword });
+        if (error) return { ok: false, error: messageFrom(error, "Could not update your password.") };
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: messageFrom(error, "Could not update your password.") };
       } finally {
         setPending(false);
       }
@@ -150,5 +296,18 @@ export function useAuthActions() {
     }
   }, []);
 
-  return { pending, signUp, signIn, signInWithGoogle, requestPasswordReset, signOut };
+  return {
+    pending,
+    signUp,
+    signIn,
+    signInWithGoogle,
+    signInWithMagicLink,
+    requestPasswordReset,
+    updatePassword,
+    changePassword,
+    changeEmail,
+    reauthenticate,
+    confirmReauthentication,
+    signOut,
+  };
 }

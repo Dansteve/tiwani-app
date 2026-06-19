@@ -87,7 +87,7 @@ export function ProfileSection({ profile }: { profile: UserProfile }) {
             value={profile.email}
             readOnly
             disabled
-            hint="Your email is read-only. It is the account you sign in with."
+            hint="The account you sign in with. Change it in Email address below."
           />
 
           {mutation.isError ? (

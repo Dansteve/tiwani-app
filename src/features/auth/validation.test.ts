@@ -9,6 +9,7 @@ import {
   isValidFirstName,
   validateSignUp,
   validateSignIn,
+  validateNewPassword,
   hasErrors,
   MIN_PASSWORD_LENGTH,
 } from "@/features/auth/validation";
@@ -53,6 +54,25 @@ describe("auth validation", () => {
     expect(errors.password).toBeDefined();
 
     const ok = validateSignIn({ email: "ada@example.com", password: "x" });
+    expect(hasErrors(ok)).toBe(false);
+  });
+});
+
+describe("validateNewPassword (the recovery completion)", () => {
+  it("requires at least the minimum length", () => {
+    const errors = validateNewPassword({ password: "short", confirm: "short" });
+    expect(errors.password).toContain(String(MIN_PASSWORD_LENGTH));
+    expect(hasErrors(errors)).toBe(true);
+  });
+
+  it("requires the confirm to match", () => {
+    const errors = validateNewPassword({ password: "longenough1", confirm: "different1" });
+    expect(errors.password).toBeUndefined();
+    expect(errors.confirm).toBeDefined();
+  });
+
+  it("passes a long, matching password", () => {
+    const ok = validateNewPassword({ password: "longenough1", confirm: "longenough1" });
     expect(hasErrors(ok)).toBe(false);
   });
 });
