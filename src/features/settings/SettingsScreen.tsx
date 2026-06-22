@@ -46,7 +46,7 @@ import { DataExportSection } from "@/features/settings/DataExportSection";
 import { PrivacySection } from "@/features/settings/PrivacySection";
 import { DangerZoneSection } from "@/features/settings/DangerZoneSection";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
-import { PageTour } from "@/features/tour/PageTour";
+import { PageHeader } from "@/components/PageHeader";
 import { useRecipient } from "@/state/RecipientProvider";
 
 // The tabs, in display order. Profile is first (the default active tab). "Plans & billing" is the
@@ -106,17 +106,13 @@ export function SettingsScreen() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold md:text-3xl">Settings</h1>
-          <p className="mt-1 text-base text-muted-foreground">
-            Your profile and the person you care for. Editable any time.
-          </p>
-        </div>
-        {/* On-demand "Show me around" for Settings (one step on the tabs). Distinct from the "Replay the
-            tour" card in the Profile tab, which re-runs the dashboard walkthrough. */}
-        <PageTour page="settings" buttonClassName="mt-1" />
-      </header>
+      {/* The consistent sticky page header. The Settings tour anchors on the tabs below (settings-tabs),
+          distinct from the "Replay the tour" card in the Profile tab, which re-runs the dashboard walkthrough. */}
+      <PageHeader
+        title="Settings"
+        subtitle="Your profile and the person you care for. Editable any time."
+        tour="settings"
+      />
 
       {/* The coach-marks anchor for the "everything in one place" step (the tabs are present for everyone,
           so this works under the viewer ceiling too). */}

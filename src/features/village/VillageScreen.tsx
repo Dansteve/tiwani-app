@@ -41,7 +41,7 @@ import { CoveredNeedsList } from "@/features/village/CoveredNeedsList";
 import { OpenNeedsList } from "@/features/village/OpenNeedsList";
 import { RosterPanel } from "@/features/village/RosterPanel";
 import { ShareRoster } from "@/features/sharing/ShareRoster";
-import { PageTour } from "@/features/tour/PageTour";
+import { PageHeader } from "@/components/PageHeader";
 
 const VILLAGE_TABS = [
   // The tour anchors: "post" is owner-only (its step is optional and drops for a viewer, since this tab
@@ -76,20 +76,22 @@ export function VillageScreen({ prefillNeed = null }: { prefillNeed?: string | n
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold md:text-3xl">Village</h1>
-          <p className="mt-1 text-base text-muted-foreground">
-            {restricted
-              ? "Pick up a specific way to help, when you can."
-              : "Share a specific need with the people around you, and let someone pick it up."}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {/* Owner: invite helpers INTO this recipient's village. The share-three-ways flow (a join
-              link, a copy-able code, or email) lives on /sharing. Hidden for a viewer (they cannot
-              invite) and until a recipient exists. */}
-          {!restricted && activeChildId ? (
+      {/* The consistent sticky page header. The owner "Invite to help" link is a page action shown beside
+          the title; the Village tour works for a viewer too (the owner-only "post a need" step auto-drops,
+          its tab is absent under the ceiling). */}
+      <PageHeader
+        title="Village"
+        subtitle={
+          restricted
+            ? "Pick up a specific way to help, when you can."
+            : "Share a specific need with the people around you, and let someone pick it up."
+        }
+        tour="village"
+        actions={
+          // Owner: invite helpers INTO this recipient's village. The share-three-ways flow (a join link,
+          // a copy-able code, or email) lives on /sharing. Hidden for a viewer (they cannot invite) and
+          // until a recipient exists.
+          !restricted && activeChildId ? (
             <Link
               href="/sharing"
               data-tour="village-invite"
@@ -98,12 +100,9 @@ export function VillageScreen({ prefillNeed = null }: { prefillNeed?: string | n
               <UserPlus className="size-4 shrink-0" aria-hidden="true" />
               Invite to help
             </Link>
-          ) : null}
-          {/* On-demand "Show me around" for the Village. Works for a viewer too: the owner-only "post a
-              need" step auto-drops (its tab is absent under the ceiling). */}
-          <PageTour page="village" buttonClassName="mt-0" />
-        </div>
-      </header>
+          ) : undefined
+        }
+      />
 
       {/* Helping with someone else? The way IN to another person's village (a link or code they sent).
           The no-recipient empty state has its own prominent button; this subtle line covers the owner

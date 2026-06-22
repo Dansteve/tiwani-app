@@ -22,6 +22,7 @@
 // interpolates nothing. The Erosion Alert copy is the api's, verbatim.
 
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { ChevronDown, AlertCircle } from "lucide-react";
 
 import { api } from "@/lib/api/client";
@@ -29,11 +30,13 @@ import { chapterLabel, CHAPTERS } from "@/lib/format";
 import type { ChapterCode, LciSeries } from "@/lib/api/types";
 import { useRecipient } from "@/state/RecipientProvider";
 import { recipientKey } from "@/state/selectedRecipient";
+import { useBackAction } from "@/state/BackActionProvider";
 import { hasAnyReading } from "@/features/continuity/historyPresentation";
 import { CheckInHistorySeries } from "@/features/continuity/CheckInHistorySeries";
 import { AlertSurface } from "@/features/alerts/AlertSurface";
 import { AlertBanner } from "@/features/alerts/AlertBanner";
 import { useAlerts } from "@/features/alerts/useAlerts";
+import { PageHeader } from "@/components/PageHeader";
 import { Alert } from "@/components/ui/alert";
 
 // The persistent honesty hedge (the researcher's mandatory finding): a calm, plain line shown on the view
@@ -52,6 +55,11 @@ export function CheckInHistoryView() {
   // The active care recipient scopes the history read (in the key, so a switch refetches, and in the call).
   const { activeChildId, ready } = useRecipient();
   const childKey = recipientKey(activeChildId);
+
+  // This sub-page is reached from /continuity, so register the shell back control (the owner's intelligent
+  // back): it shows on its own row in the desktop page header and in the mobile toolbar, returning there.
+  const router = useRouter();
+  useBackAction({ label: "Continuity", onBack: () => router.push("/continuity") });
 
   const historyQuery = useQuery({
     queryKey: ["lci", "history", childKey],
@@ -73,12 +81,11 @@ export function CheckInHistoryView() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold md:text-3xl">Your check-in history</h1>
-        <p className="mt-1 text-base text-muted-foreground">
-          Your picture so far, built from each check-in you have completed.
-        </p>
-      </header>
+      {/* The consistent sticky page header (no tour on this sub-page). */}
+      <PageHeader
+        title="Your check-in history"
+        subtitle="Your picture so far, built from each check-in you have completed."
+      />
 
       {/* The persistent hedge: on the view, not a tooltip. It sits at the top so it frames everything
           below, and uses a calm muted tone (an honest caption, never an alarm). */}

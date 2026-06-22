@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
 import { PulsePrompt } from "@/features/pulse/PulsePrompt";
-import { PageTour } from "@/features/tour/PageTour";
+import { PageHeader } from "@/components/PageHeader";
 import { Alert } from "@/components/ui/alert";
 
 export function PulseScreen() {
@@ -24,17 +24,15 @@ export function PulseScreen() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-start justify-between gap-3">
-        {/* The intro is the coach-marks anchor for the Pulse tour (what a check-in is, why it matters). */}
-        <div data-tour="pulse-intro">
-          <h1 className="text-2xl font-semibold md:text-3xl">Check-in</h1>
-          <p className="mt-1 text-base text-muted-foreground">
-            A quick word on how an activity went keeps your resilience picture honest.
-          </p>
-        </div>
-        {/* On-demand "Show me around" for the Pulse screen. */}
-        <PageTour page="pulse" buttonClassName="mt-1" />
-      </header>
+      {/* The consistent sticky page header. The wrapper carries the "pulse-intro" coach-marks anchor (what a
+          check-in is, why it matters), so the Pulse tour still points at the header. */}
+      <div data-tour="pulse-intro">
+        <PageHeader
+          title="Check-in"
+          subtitle="A quick word on how an activity went keeps your resilience picture honest."
+          tour="pulse"
+        />
+      </div>
 
       {pendingQuery.isError ? (
         <Alert variant="destructive">

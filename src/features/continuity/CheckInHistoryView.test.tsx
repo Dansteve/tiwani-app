@@ -99,6 +99,10 @@ vi.mock("@/lib/api/client", () => ({
 
 vi.mock("@/state/AuthProvider", async () => (await import("@/test/authMock")).authProviderSessionMock());
 
+// The view registers a shell back action via useRouter (next/navigation); mock it so the hook resolves
+// outside the Next app-router runtime (the tests assert the view, not the navigation target).
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
 import { CheckInHistoryView, HISTORY_HEDGE } from "@/features/continuity/CheckInHistoryView";
 import { RecipientProvider } from "@/state/RecipientProvider";
 

@@ -3,3 +3,16 @@
 @import '../styles/fonts.css';
 @import '../styles/tailwind.css';
 @import '../styles/theme.css';
+
+/* Tailwind v4's preflight no longer sets cursor: pointer on native buttons, so every button, choice
+   card, tab, and disclosure was showing the default arrow (a weak affordance + an accessibility gap).
+   Restore the pointer on interactive controls app-wide; disabled controls keep the default arrow. */
+@layer base {
+  button:not(:disabled):not([aria-disabled='true']),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab']:not([aria-disabled='true']),
+  label[for],
+  summary {
+    cursor: pointer;
+  }
+}

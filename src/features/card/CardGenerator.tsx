@@ -35,7 +35,7 @@ import {
   resolvePublicName,
   type PublicNameMode,
 } from "@/features/card/publicCardName";
-import { PageTour } from "@/features/tour/PageTour";
+import { PageHeader } from "@/components/PageHeader";
 
 interface CardGeneratorProps {
   /** The prepared activity_record id from ?activity= (the card is generated for this id). */
@@ -145,15 +145,12 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
   if (card) {
     return (
       <div className="space-y-8">
-        <header className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Continuity Card
-          </p>
-          <h1 className="text-2xl font-semibold md:text-3xl">Ready to share</h1>
-          <p className="text-base text-muted-foreground">
-            Here is the one-page summary a helper will see. Send them the link below.
-          </p>
-        </header>
+        {/* The consistent sticky page header for the post-generate "ready" phase (no tour here). */}
+        <PageHeader
+          eyebrow="Continuity Card"
+          title="Ready to share"
+          subtitle="Here is the one-page summary a helper will see. Send them the link below."
+        />
 
         {/* The preview is the PUBLIC card a helper will see (api.getCard, name-stripped or the owner's
             chosen label), so picking "No name" shows no name here too and the preview matches the live
@@ -198,57 +195,51 @@ function GenerateForActivity({ activityId }: { activityId: string }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6">
-      <header className="space-y-1">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Continuity Card
-          </p>
-          {/* The on-demand "Show me around" tour for the Card screen (points at the generate button and
-              the cards-you-have-shared link below). */}
-          <PageTour page="card" buttonClassName="-mt-1" />
-        </div>
-        <h1 className="text-2xl font-semibold md:text-3xl">Create a Continuity Card</h1>
-        <p className="text-base text-muted-foreground">
-          A one-page support summary you can share with a babysitter, teacher, or respite carer. It
-          shows only their first name, what helps, and what to do if things get difficult, no account
-          needed to open it.
-        </p>
-      </header>
-
-      {mutation.isError ? (
-        <Alert variant="destructive">
-          {mutation.error instanceof ApiError && mutation.error.status === 404
-            ? "We could not find that prepared activity. Try preparing it again, then create the card."
-            : "We could not create the card just now. Please try again."}
-        </Alert>
-      ) : null}
-
-      <PublicNameChooser
-        mode={nameMode}
-        onModeChange={setNameMode}
-        customName={customName}
-        onCustomNameChange={setCustomName}
-        recipientFirstName={recipientFirstName}
+    <div className="w-full space-y-6">
+      {/* The consistent sticky page header (the on-demand "Show me around" tour points at the generate
+          button and the cards-you-have-shared link below). */}
+      <PageHeader
+        eyebrow="Continuity Card"
+        title="Create a Continuity Card"
+        subtitle="A one-page support summary you can share with a babysitter, teacher, or respite carer. It shows only their first name, what helps, and what to do if things get difficult, no account needed to open it."
+        tour="card"
       />
 
-      <button
-        type="button"
-        onClick={() => mutation.mutate()}
-        disabled={mutation.isPending}
-        className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full")}
-        // The coach-marks anchor for the "make a Continuity Card" step.
-        data-tour="card-generate"
-      >
-        <FileText className="size-4 shrink-0" aria-hidden="true" />
-        {mutation.isPending ? "Creating the card..." : "Create Continuity Card"}
-      </button>
+      <div className="mx-auto w-full max-w-xl space-y-6">
+        {mutation.isError ? (
+          <Alert variant="destructive">
+            {mutation.error instanceof ApiError && mutation.error.status === 404
+              ? "We could not find that prepared activity. Try preparing it again, then create the card."
+              : "We could not create the card just now. Please try again."}
+          </Alert>
+        ) : null}
 
-      <p className="text-center text-sm text-muted-foreground" data-tour="card-history-link">
-        <Link href="/card" className="font-medium text-primary underline-offset-4 hover:underline">
-          View the cards you have already shared
-        </Link>
-      </p>
+        <PublicNameChooser
+          mode={nameMode}
+          onModeChange={setNameMode}
+          customName={customName}
+          onCustomNameChange={setCustomName}
+          recipientFirstName={recipientFirstName}
+        />
+
+        <button
+          type="button"
+          onClick={() => mutation.mutate()}
+          disabled={mutation.isPending}
+          className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full")}
+          // The coach-marks anchor for the "make a Continuity Card" step.
+          data-tour="card-generate"
+        >
+          <FileText className="size-4 shrink-0" aria-hidden="true" />
+          {mutation.isPending ? "Creating the card..." : "Create Continuity Card"}
+        </button>
+
+        <p className="text-center text-sm text-muted-foreground" data-tour="card-history-link">
+          <Link href="/card" className="font-medium text-primary underline-offset-4 hover:underline">
+            View the cards you have already shared
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

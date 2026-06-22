@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { LciPanel } from "@/features/continuity/LciPanel";
 import { CheckInHistoryButton } from "@/features/continuity/CheckInHistoryButton";
-import { PageTour } from "@/features/tour/PageTour";
+import { PageHeader } from "@/components/PageHeader";
 import { useRecipient } from "@/state/RecipientProvider";
 import { recipientKey } from "@/state/selectedRecipient";
 import { Alert } from "@/components/ui/alert";
@@ -44,18 +44,14 @@ export function ContinuityScreen() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold md:text-3xl">Life Continuity</h1>
-          <p className="mt-1 text-base text-muted-foreground">
-            A signal from your check-ins of whether life is holding steady or feeling stretched, not a
-            clinical or validated measurement.
-          </p>
-        </div>
-        {/* On-demand "Show me around" for the Continuity screen, shown once there is a picture to tour
-            (the overall + per-chapter reads have landed). */}
-        {showPanel ? <PageTour page="continuity" buttonClassName="mt-1" /> : null}
-      </header>
+      {/* The consistent sticky page header. The "Show me around" tour is shown only once there is a picture
+          to tour (the overall + per-chapter reads have landed), so it never points at nothing: the tour
+          prop is passed only when showPanel is true. */}
+      <PageHeader
+        title="Life Continuity"
+        subtitle="A signal from your check-ins of whether life is holding steady or feeling stretched, not a clinical or validated measurement."
+        tour={showPanel ? "continuity" : undefined}
+      />
 
       {isError ? (
         <Alert variant="destructive">

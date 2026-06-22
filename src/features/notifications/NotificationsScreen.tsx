@@ -25,6 +25,7 @@ import { buildRedeemUrl } from "@/features/sharing/shareLink";
 import { useUnacknowledgedCovered } from "@/features/village/useCoveredNotices";
 import { villageCopy } from "@/features/village/copy";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 import type { CoveredNotice } from "@/lib/api/types";
 
@@ -46,12 +47,11 @@ export function NotificationsScreen() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold md:text-3xl">Notifications</h1>
-        <p className="mt-2 text-base text-muted-foreground">
-          Anything that needs a look will show up here.
-        </p>
-      </header>
+      {/* The consistent sticky page header (no tour on this page). */}
+      <PageHeader
+        title="Notifications"
+        subtitle="Anything that needs a look will show up here."
+      />
 
       {hasInvite ? <InviteNotice token={token} /> : null}
 

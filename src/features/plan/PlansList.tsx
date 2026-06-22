@@ -28,7 +28,7 @@ import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { chapterLabel, CHAPTERS, formatCardDate, tierLabel } from "@/lib/format";
 import { PreparationPlanView } from "@/features/plan/PreparationPlanView";
-import { PageTour } from "@/features/tour/PageTour";
+import { PageHeader } from "@/components/PageHeader";
 
 // The page size the list requests. The api defaults + caps this server-side (the database-load fix), so
 // this is only the app's preferred page; a smaller cap from the api still works (the app pages what it
@@ -58,31 +58,27 @@ export function PlansList() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h1 data-tour="plans-header" className="text-2xl font-semibold md:text-3xl">
-              Your prepared plans
-            </h1>
-            <p className="text-base text-muted-foreground">
-              The plans you have already prepared. Open one again any time, without preparing it afresh.
-            </p>
-          </div>
-          {/* On-demand "Show me around" for this screen (the intro + the list of prepared plans). */}
-          <PageTour page="plans" buttonClassName="-mt-1" />
-        </div>
-        {/* The "+ prepare a new plan" affordance: prepared plans accumulate here, so the Coordinator needs
-            a clear, always-present way to start a fresh one (a chapter is chosen on the dashboard, the same
-            target as the empty-state button). Full-width on mobile, a 44px tap target. */}
-        <Link
-          href="/dashboard"
-          data-tour="plans-prepare-new"
-          className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full sm:w-auto")}
-        >
-          <Plus className="size-4 shrink-0" aria-hidden="true" />
-          Prepare a new plan
-        </Link>
-      </header>
+      {/* The consistent sticky page header. The wrapper carries the "plans-header" coach-marks anchor (the
+          intro step of the prepared-plans tour), so the tour still points at the header. */}
+      <div data-tour="plans-header">
+        <PageHeader
+          title="Your prepared plans"
+          subtitle="The plans you have already prepared. Open one again any time, without preparing it afresh."
+          tour="plans"
+        />
+      </div>
+
+      {/* The "+ prepare a new plan" affordance: prepared plans accumulate here, so the Coordinator needs
+          a clear, always-present way to start a fresh one (a chapter is chosen on the dashboard, the same
+          target as the empty-state button). Full-width on mobile, a 44px tap target. */}
+      <Link
+        href="/dashboard"
+        data-tour="plans-prepare-new"
+        className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full sm:w-auto")}
+      >
+        <Plus className="size-4 shrink-0" aria-hidden="true" />
+        Prepare a new plan
+      </Link>
 
       <ChapterFilter selected={chapter} onSelect={setChapter} />
 
