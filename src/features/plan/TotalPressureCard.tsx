@@ -24,11 +24,17 @@ import { DimensionBars } from "@/features/plan/DimensionBars";
 interface TotalPressureCardProps {
   total: number;
   scores: DimensionScores;
+  /**
+   * Quiet mode for the gentle view (PreparationPlanView with "go gentler today" on): render the calm
+   * number + band + headline but OMIT the four-dimension breakdown, so the gentle view is less
+   * numbers-forward. The full breakdown returns the moment the carer toggles the gentle view off.
+   */
+  compact?: boolean;
 }
 
 const TOTAL_MAX = 20;
 
-export function TotalPressureCard({ total, scores }: TotalPressureCardProps) {
+export function TotalPressureCard({ total, scores, compact = false }: TotalPressureCardProps) {
   const band = pressureBand(total);
   const presentation = PRESSURE_PRESENTATION[band];
   const BandIcon = presentation.icon;
@@ -79,10 +85,13 @@ export function TotalPressureCard({ total, scores }: TotalPressureCardProps) {
       <p className="mt-3 text-sm font-medium text-foreground">{pressureCopy(band)}</p>
       {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
 
-      {/* The four dimensions, broken out + located (the highest in amber). */}
-      <div className="mt-4 border-t border-current/15 pt-4">
-        <DimensionBars scores={scores} />
-      </div>
+      {/* The four dimensions, broken out + located (the highest in amber). Omitted in the gentle view's
+          quiet mode (compact): the full breakdown returns when the carer toggles the gentle view off. */}
+      {compact ? null : (
+        <div className="mt-4 border-t border-current/15 pt-4">
+          <DimensionBars scores={scores} />
+        </div>
+      )}
     </section>
   );
 }

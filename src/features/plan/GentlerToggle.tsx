@@ -8,9 +8,10 @@
 // api and never fed to the engine/LCI). Default OFF.
 //
 // An accessible switch (role="switch" + aria-checked), 44px, colour + label + icon (never colour alone),
-// modelled on the repo's ThemeToggle / StrategyCard controls. The copy is the carer's choice, never a
-// verdict: "Want a lighter-touch plan for today?" / "Lead with the calmest option" (never "you seem...",
-// "having a hard day?", "do less", or "scale back"); it passes the §4.9 non-clinical bar.
+// modelled on the repo's ThemeToggle / StrategyCard controls. The copy is HONEST about what it does (it
+// re-presents the SAME plan, it does NOT make a lighter plan) and is the carer's choice, never a verdict:
+// "Show the calmest approach first?" / "Same plan, shown gently" (never "you seem...", "having a hard
+// day?", "do less", or "scale back"); it passes the §4.9 non-clinical bar.
 
 import { cn } from "@/lib/utils";
 
@@ -25,9 +26,10 @@ export function GentlerToggle({ on, onToggle }: GentlerToggleProps) {
   return (
     <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-secondary/40 p-4">
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-foreground">Want a lighter-touch plan for today?</p>
+        <p className="text-sm font-semibold text-foreground">Show the calmest approach first?</p>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          Lead with the calmest option. The full plan stays right here.
+          Same plan, shown gently: it leads with the steadiest way through, with the full detail one tap
+          away.
         </p>
       </div>
 

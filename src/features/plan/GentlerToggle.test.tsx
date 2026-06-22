@@ -32,8 +32,8 @@ describe("GentlerToggle (user-flipped, never an app verdict)", () => {
 
   it("offers the carer a choice, never a verdict: no mood read, no 'how are you feeling'", () => {
     render(<GentlerToggle on={false} onToggle={vi.fn()} />);
-    // It frames the carer's choice ("Want a lighter-touch plan for today?"), it does not assess them.
-    expect(screen.getByText(/want a lighter-touch plan for today/i)).toBeInTheDocument();
+    // It frames the carer's choice ("Show the calmest approach first?"), it does not assess them.
+    expect(screen.getByText(/show the calmest approach first/i)).toBeInTheDocument();
     const banned =
       /\b(how are you feeling|you seem|having a (tough|bad|rough|hard) day|struggling|overwhelmed|do less)\b/i;
     expect(document.body.textContent ?? "").not.toMatch(banned);

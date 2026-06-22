@@ -17,6 +17,8 @@ function read(name: string): string {
       return process.env.NEXT_PUBLIC_WEBSITE_URL ?? "";
     case "NEXT_PUBLIC_CARD_ON_TASK_ENABLED":
       return process.env.NEXT_PUBLIC_CARD_ON_TASK_ENABLED ?? "";
+    case "NEXT_PUBLIC_GENTLER_ENABLED":
+      return process.env.NEXT_PUBLIC_GENTLER_ENABLED ?? "";
     default:
       return "";
   }
@@ -31,6 +33,18 @@ function read(name: string): string {
  */
 export function isCardOnTaskEnabled(): boolean {
   const v = read("NEXT_PUBLIC_CARD_ON_TASK_ENABLED").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "on";
+}
+
+/**
+ * The "go gentler today" view control GATE (default OFF): the optional, user-flipped re-presentation of the
+ * plan result (lead with the calmest approach; the SAME plan, nothing recomputed, a quieter score). It is a
+ * care-adjacent copy surface, so it stays OFF until the psychiatrist copy sign-off clears the wording; if
+ * the board rejects it, leaving the flag OFF keeps it hidden with no code change. True only for an explicit
+ * truthy build value ("1" / "true" / "yes" / "on").
+ */
+export function isGentlerEnabled(): boolean {
+  const v = read("NEXT_PUBLIC_GENTLER_ENABLED").trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes" || v === "on";
 }
 

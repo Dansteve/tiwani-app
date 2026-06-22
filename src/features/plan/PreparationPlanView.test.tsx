@@ -29,7 +29,15 @@ vi.mock("@/lib/api/client", () => ({
   },
 }));
 
+// The "go gentler today" control is flag-gated (env.isGentlerEnabled, default OFF). Force it ON for these
+// tests so the control renders; one test flips it back OFF to assert the "hide it" gate.
+vi.mock("@/lib/env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/env")>();
+  return { ...actual, isGentlerEnabled: vi.fn(() => true) };
+});
+
 import { PreparationPlanView } from "@/features/plan/PreparationPlanView";
+import { isGentlerEnabled } from "@/lib/env";
 
 function makePlan(overrides: Partial<PreparationPlan> = {}): PreparationPlan {
   const scores: DimensionScores = { temporal: 2, sensory: 3, logistical: 2, human: 1 };
@@ -381,8 +389,10 @@ describe("PreparationPlanView 'go gentler today' control (the board's SAFE shape
     renderPlan(makePlan({ total: 11, tier: "Modified" }));
 
     expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "false");
-    // Off by default: no calmer intro yet, and the total pressure card leads the approach.
-    expect(screen.queryByText(/a calmer way through this one today/i)).not.toBeInTheDocument();
+    // Off by default: no gentle intro yet (none of the per-lead headlines), and the score leads the approach.
+    expect(
+      screen.queryByText(/leads with the gentler approach|on the lighter side|with the calmest part first/i)
+    ).not.toBeInTheDocument();
     const order = sectionTops();
     expect(order.total).toBeLessThan(order.approach);
   });
@@ -394,8 +404,9 @@ describe("PreparationPlanView 'go gentler today' control (the board's SAFE shape
     fireEvent.click(screen.getByRole("switch"));
     expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "true");
 
-    // The calm framing appears and the recommended approach now leads, the big score beneath it.
-    expect(screen.getByText(/a calmer way through this one today/i)).toBeInTheDocument();
+    // The calm framing appears (the pivot-case headline for tier Pivot) and the recommended approach now
+    // leads, the quiet score beneath it.
+    expect(screen.getByText(/already leads with the gentler approach/i)).toBeInTheDocument();
     const order = sectionTops();
     expect(order.approach).toBeLessThan(order.total);
 
@@ -439,6 +450,21 @@ describe("PreparationPlanView 'go gentler today' control (the board's SAFE shape
     const banned =
       /\b(how are you feeling|you seem|having a (tough|bad|rough|hard) day|struggling|overwhelmed|burn ?out|do less|less with your life|scale back|cut back|give up)\b/i;
     expect(document.body.textContent ?? "").not.toMatch(banned);
+  });
+
+  it("is hidden entirely when the feature flag is off (the board-reject 'hide it' switch)", () => {
+    // env.isGentlerEnabled is forced ON for this file; flip it OFF for this one render. The control must
+    // disappear and the plan must still render in its normal order (no switch, the score still present).
+    const mockedFlag = vi.mocked(isGentlerEnabled);
+    mockedFlag.mockReturnValue(false);
+    try {
+      renderPlan(makePlan({ total: 11, tier: "Modified" }));
+      expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+      expect(screen.getByText("How much this asks today")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /modified participation/i })).toBeInTheDocument();
+    } finally {
+      mockedFlag.mockReturnValue(true);
+    }
   });
 });
 

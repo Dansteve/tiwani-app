@@ -49,6 +49,7 @@ import { StrategyRemovedUndo } from "@/features/plan/StrategyRemovedUndo";
 import { ActionDock } from "@/features/plan/ActionDock";
 import { GentlerToggle } from "@/features/plan/GentlerToggle";
 import { GentlerIntro } from "@/features/plan/GentlerIntro";
+import { isGentlerEnabled } from "@/lib/env";
 // gentlerFraming (the pure copy logic) is consumed by GentlerIntro; the view only owns the toggle state.
 
 interface PreparationPlanViewProps {
@@ -146,6 +147,13 @@ export function PreparationPlanView({
   // breakdown section renders only when the api supplied them. Bound here so TypeScript narrows it.
   const explanations = plan.dimension_explanations;
 
+  // The "go gentler today" control is flag-gated (default OFF, env.isGentlerEnabled): a care-adjacent copy
+  // surface that stays hidden until the psychiatrist copy sign-off clears it (leaving the flag off is the
+  // "hide it" switch if the board rejects it). gentlerOn is the EFFECTIVE state: the flag AND the carer's
+  // transient choice. When the flag is off, the toggle never renders and the result keeps its normal order.
+  const gentlerAvailable = isGentlerEnabled();
+  const gentlerOn = gentlerAvailable && gentler;
+
   return (
     <div className="space-y-6">
       {showInlineBack ? (
@@ -160,18 +168,19 @@ export function PreparationPlanView({
         <PageHeader eyebrow={chapterLabel(plan.chapter)} title={plan.activity_name} />
       )}
 
-      {/* The OPTIONAL, user-flipped "go gentler today" control (default OFF). It re-presents the SAME plan;
-          it stores nothing and changes no value. */}
-      <GentlerToggle on={gentler} onToggle={setGentler} />
+      {/* The OPTIONAL, user-flipped "go gentler today" control, flag-gated (default OFF). It re-presents the
+          SAME plan; it stores nothing and changes no value. Hidden entirely when the flag is off. */}
+      {gentlerAvailable ? <GentlerToggle on={gentler} onToggle={setGentler} /> : null}
 
-      {gentler ? (
+      {gentlerOn ? (
         <>
           {/* GENTLER VIEW: the calm intro the carer chose, then LEAD with the engine's own approach (the
-              Continuity Pivot when the engine recommended it), the big pressure score beneath it. The same
-              tier and the same total, only surfaced in a calmer order. */}
+              Continuity Pivot when the engine recommended it), the pressure score beneath it in QUIET mode
+              (compact: the number + band, the four-dimension breakdown set aside until the view is toggled
+              off). The same tier and the same total, only surfaced in a calmer order. */}
           <GentlerIntro tier={plan.tier} total={plan.total} />
           <RecommendedApproach tier={plan.tier} />
-          <TotalPressureCard total={plan.total} scores={plan.scores} />
+          <TotalPressureCard total={plan.total} scores={plan.scores} compact />
         </>
       ) : (
         <>
@@ -210,8 +219,9 @@ export function PreparationPlanView({
       {/* REMOVED STRATEGIES (re-allow): renders only once something has been removed this session. */}
       <RemovedStrategies removed={removed} onAllow={allow} allowingId={allowingId} />
 
-      {/* WHY THIS SCORE (omitted on a stored re-read, where dimension_explanations is null). */}
-      {explanations ? (
+      {/* WHY THIS SCORE (omitted on a stored re-read where dimension_explanations is null, AND in the gentle
+          view, where the deep breakdown is set aside until the carer toggles the view off). */}
+      {explanations && !gentlerOn ? (
         <section aria-labelledby="dimensions-label">
           <details className="group rounded-2xl border border-border bg-card">
             <summary

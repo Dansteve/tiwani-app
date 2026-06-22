@@ -43,15 +43,17 @@ export function gentlerLead(tier: ParticipationTier, total: number): GentlerLead
 }
 
 /**
- * The calm headline the carer reads when they turn the lighter view on. The carer's own choice, never the
- * app's verdict: it frames the plan, it never claims the carer is struggling, says nothing about how they
- * feel, and never tells them to "do less". Verbatim, governed-by-this-module copy (the §4.9 non-clinical
- * bar: no clinical words, no carer-assessment).
+ * The calm headline the carer reads when they turn the gentle view on, ONE per lead so it reflects what the
+ * engine's OWN fields say (the gentler-approach case, the already-light case, or the honest same-plan case)
+ * rather than a generic line. Every headline names "this one" so it is always about THIS activity, never
+ * about narrowing life. The carer's own choice, never the app's verdict: it frames the plan, never claims
+ * the carer is struggling, says nothing about how they feel, and never tells them to "do less". Verbatim,
+ * governed-by-this-module copy (the §4.9 non-clinical bar: no clinical words, no carer-assessment).
  */
 const GENTLER_HEADLINE: Record<GentlerLead, string> = {
-  pivot: "A calmer way through this one today",
-  low: "A calmer way through this one today",
-  as_is: "A calmer way through this one today",
+  pivot: "This one already leads with the gentler approach",
+  low: "This one is already on the lighter side",
+  as_is: "This one, with the calmest part first",
 };
 
 export function gentlerHeadline(lead: GentlerLead): string {
@@ -69,10 +71,10 @@ export function gentlerHeadline(lead: GentlerLead): string {
  */
 const GENTLER_SUBLINE: Record<GentlerLead, string> = {
   pivot:
-    "Leading with the gentler approach this plan already suggests. The full plan is still here whenever you want it.",
-  low: "This one is already on the lighter side. The full plan is still here whenever you want it.",
+    "We have put that approach first. The full plan is still here whenever you want it.",
+  low: "We have led with the calmest framing. The full plan is still here, exactly as it was.",
   as_is:
-    "Same plan, shown gently: the calmest part first. Nothing has changed, and the full plan is still here.",
+    "Nothing has changed: it is the exact same plan, shown gently. Tap off for the full view any time.",
 };
 
 export function gentlerSubline(lead: GentlerLead): string {
