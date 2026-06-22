@@ -64,7 +64,7 @@ type VillageTab = (typeof VILLAGE_TABS)[number]["value"];
 
 const TABS_ID = "village";
 
-export function VillageScreen() {
+export function VillageScreen({ prefillNeed = null }: { prefillNeed?: string | null } = {}) {
   const { activeChildId, activeRecipient, activeRole, isLoading } = useRecipient();
   // A viewer/editor (a recipient SHARED with the caller) gets the help + roster tabs only, not the owner
   // posting surface. null/owner gets the full set. The recipient switcher resolves the role.
@@ -129,6 +129,7 @@ export function VillageScreen() {
           restricted={restricted}
           tab={effectiveTab}
           onTabChange={setTab}
+          prefillNeed={prefillNeed}
         />
       )}
     </div>
@@ -141,12 +142,14 @@ function VillageForRecipient({
   restricted,
   tab,
   onTabChange,
+  prefillNeed,
 }: {
   recipientId: string;
   recipientFirstName: string;
   restricted: boolean;
   tab: VillageTab;
   onTabChange: (tab: VillageTab) => void;
+  prefillNeed?: string | null;
 }) {
   const tabs = restricted ? VIEWER_VILLAGE_TABS : VILLAGE_TABS;
   return (
@@ -173,6 +176,7 @@ function VillageForRecipient({
             recipientId={recipientId}
             recipientFirstName={recipientFirstName}
             onPosted={() => onTabChange("post")}
+            initialTitle={prefillNeed ?? undefined}
           />
           <OwnerNeedsList recipientId={recipientId} />
           {/* The COORDINATOR's "this is handled, you can let it go" relief section: a need that reached

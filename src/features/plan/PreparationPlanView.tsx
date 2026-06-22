@@ -39,8 +39,13 @@ import { ActionDock } from "@/features/plan/ActionDock";
 
 interface PreparationPlanViewProps {
   plan: PreparationPlan;
-  /** Return to the prepare inputs to try a different activity or flags. */
-  onPrepareAnother: () => void;
+  /** Inline header back target (collapse an inline open, or return to the prepare inputs). */
+  onPrepareAnother?: () => void;
+  /**
+   * Show the inline header back. Default true (the inline re-opens in Your plans / the "already prepared"
+   * steer). The plan FLOW passes false: it uses the shell-owned back button (consistent placement) instead.
+   */
+  showInlineBack?: boolean;
 }
 
 // The four dimensions in a stable display order, with the human label for each (the "Why this score"
@@ -52,7 +57,11 @@ const DIMENSION_ORDER: { key: PressureDimension; label: string }[] = [
   { key: "human", label: "People" },
 ];
 
-export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanViewProps) {
+export function PreparationPlanView({
+  plan,
+  onPrepareAnother,
+  showInlineBack = true,
+}: PreparationPlanViewProps) {
   // The Strategy Library actions (Task 9): suppress (remove) + allow (re-allow), the optimistic hidden-set
   // keyed by library_item_id, and the session record that feeds the re-allow section. The api owns the
   // persistent suppression; this hook is the in-view layer. A strategy with no library_item_id is hidden
@@ -122,7 +131,7 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
       <PlanResultHeader
         chapter={plan.chapter}
         activityName={plan.activity_name}
-        onBack={onPrepareAnother}
+        onBack={showInlineBack ? onPrepareAnother : undefined}
       />
 
       {/* TOTAL PRESSURE SCORE + the four dimensions broken out (the highest in amber). */}
@@ -198,8 +207,8 @@ export function PreparationPlanView({ plan, onPrepareAnother }: PreparationPlanV
         </section>
       ) : null}
 
-      {/* ACTION DOCK: Export Continuity Card + Delegate Logistics. */}
-      <ActionDock activityId={plan.activity_id} />
+      {/* ACTION DOCK: Export Continuity Card + Delegate Logistics (the activity name prefills the need). */}
+      <ActionDock activityId={plan.activity_id} activityName={plan.activity_name} />
     </div>
   );
 }

@@ -334,10 +334,11 @@ describe("PreparationPlanView action dock", () => {
     expect(links[0]).toHaveAttribute("href", "/card/new?activity=act_1");
   });
 
-  it("offers a Delegate Logistics action linking to the Village post-a-need flow", () => {
+  it("offers a Delegate Logistics action linking to the Village post-a-need flow (prefilling the need)", () => {
     renderPlan(makePlan());
     const link = screen.getByRole("link", { name: /delegate logistics/i });
-    expect(link).toHaveAttribute("href", "/village");
+    // The activity name is passed as ?need= to PREFILL the post-a-need title (safe governed label only).
+    expect(link).toHaveAttribute("href", "/village?need=A%20birthday%20party");
   });
 
   it("no longer shows the old separate 'Share' / 'Export Continuity Card' actions (one create name)", () => {

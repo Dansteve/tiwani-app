@@ -2,6 +2,7 @@ import { AppShell } from "@/components/AppShell";
 import { OnboardingGuard } from "@/components/OnboardingGuard";
 import { AccountStatusGuard } from "@/components/AccountStatusGuard";
 import { RoleRouteGuard } from "@/components/RoleRouteGuard";
+import { BackActionProvider } from "@/state/BackActionProvider";
 
 // Shared layout for the authenticated product surface: the responsive shell (sidebar to bottom
 // tabs) wraps every in-app segment. OnboardingGuard sends an unauthenticated caller to /sign-in (and
@@ -14,12 +15,14 @@ import { RoleRouteGuard } from "@/components/RoleRouteGuard";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AppShell>
-      <OnboardingGuard>
-        <AccountStatusGuard>
-          <RoleRouteGuard>{children}</RoleRouteGuard>
-        </AccountStatusGuard>
-      </OnboardingGuard>
-    </AppShell>
+    <BackActionProvider>
+      <AppShell>
+        <OnboardingGuard>
+          <AccountStatusGuard>
+            <RoleRouteGuard>{children}</RoleRouteGuard>
+          </AccountStatusGuard>
+        </OnboardingGuard>
+      </AppShell>
+    </BackActionProvider>
   );
 }

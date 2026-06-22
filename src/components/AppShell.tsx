@@ -17,6 +17,7 @@ import {
   Share2,
   Users,
   Bell,
+  ArrowLeft,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { isActive, NavDot, type NavItem } from "@/components/appNav";
 import { SecondaryNavMenu } from "@/components/SecondaryNavMenu";
 import { ShellPageTour } from "@/features/tour/ShellPageTour";
+import { useBackActionBar } from "@/state/BackActionProvider";
 
 // "Plan" is intentionally NOT a nav entry: it pointed back to the dashboard's chapters and duplicated
 // "Your plans" (the history, in SECONDARY_NAV) plus each dashboard chapter's own "Prepare" link. The
@@ -85,6 +87,10 @@ const VIEWER_NAV: NavItem[] = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { activeRole } = useRecipient();
+  // The shell-owned back control for multi-step flows: a flow registers its back action via useBackAction;
+  // we render the button in the mobile top toolbar (below) and fixed top-right on desktop. Hidden when the
+  // current screen registered no back action.
+  const { label: backLabel, invoke: invokeBack } = useBackActionBar();
 
   // A pending invite to open (a token stashed before the sign-in bounce) puts a coral "new" dot on the
   // Notifications nav item, where the notice itself now lives (it moved off the cramped dashboard
@@ -114,6 +120,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
+      {/* The back control for a multi-step flow, fixed top-right on desktop (the owner's spec). Shown only
+          when the current screen registered a back action; on mobile the same action renders in the top
+          toolbar below. */}
+      {backLabel ? (
+        <div className="fixed right-4 top-4 z-40 hidden lg:block">
+          <button
+            type="button"
+            onClick={invokeBack}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <ArrowLeft className="size-4 shrink-0" aria-hidden="true" />
+            {backLabel}
+          </button>
+        </div>
+      ) : null}
+
       {/* Desktop sidebar (lg and up). */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar px-4 py-6 lg:flex">
         <div className="flex items-center justify-between gap-2 pl-2">
@@ -210,6 +232,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               The desktop sidebar carries the full mark + switcher + nav, and each screen keeps its own
               "Show me around" there (PageTour is desktopOnly), so this whole bar is lg:hidden. */}
           <div className="sticky top-0 z-30 -mx-4 mb-6 flex items-center gap-2 border-b border-border bg-background px-4 py-2.5 lg:hidden">
+            {/* The back control for a multi-step flow, in the mobile header toolbar (the owner's spec).
+                Shown only when the current screen registered a back action. */}
+            {backLabel ? (
+              <button
+                type="button"
+                onClick={invokeBack}
+                aria-label={`Back to ${backLabel}`}
+                className="-ml-1 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <ArrowLeft className="size-5 shrink-0" aria-hidden="true" />
+              </button>
+            ) : null}
             <Link href="/dashboard" aria-label="TIWANI dashboard" className="shrink-0">
               <Wordmark mark className="text-xl" />
             </Link>

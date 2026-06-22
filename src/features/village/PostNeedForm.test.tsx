@@ -52,6 +52,22 @@ function typeTitle(value: string) {
 }
 
 describe("PostNeedForm", () => {
+  it("prefills the title from initialTitle (the plan's Delegate Logistics safe handoff)", () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <PostNeedForm
+          recipientId="child_1"
+          recipientFirstName="Ada"
+          onPosted={onPosted}
+          initialTitle="School gate drop-off: routine"
+        />
+      </QueryClientProvider>
+    );
+    // Safe logistics only: the seeded activity label seeds the "what"; everything else stays empty.
+    expect(screen.getByLabelText(/what do you need\?/i)).toHaveValue("School gate drop-off: routine");
+  });
+
   it("requires a title: an empty submit shows a field error and never calls the api", async () => {
     renderForm();
 

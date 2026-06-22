@@ -17,6 +17,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { UserPlus } from "lucide-react";
 
@@ -36,6 +37,7 @@ import { matchExistingPlan } from "@/features/plan/existingPlanMatch";
 import { EngineReveal } from "@/features/plan/EngineReveal";
 import { LastTimeHereNote } from "@/features/plan/LastTimeHereNote";
 import { PageTour } from "@/features/tour/PageTour";
+import { useBackAction } from "@/state/BackActionProvider";
 
 interface PlanScreenProps {
   /** The chapter from the URL query (?chapter=). Validated against the six Life Chapters. */
@@ -84,6 +86,7 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   // resolves to that one, and a null id lets the api fall back to the sole recipient). Same source the
   // dashboard/LCI/alerts reads scope by, so a plan is never made for the wrong recipient.
   const { activeChildId } = useRecipient();
+  const router = useRouter();
 
   const activitiesQuery = useQuery({
     queryKey: ["chapter-activities", chapter],
@@ -159,6 +162,18 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
     planMutation.reset();
   }
 
+  // The shell back control (the owner's spec: a back on multi-step pages, fixed top-right on web / in the
+  // mobile header toolbar). At the prepare inputs, back returns to the chapters (the dashboard the chapter
+  // card came from); at the result, back returns to the inputs (try a different activity); during the
+  // engine run there is no back. The shell owns the placement; this just declares the step's action.
+  useBackAction(
+    planMutation.data
+      ? { label: "Back", onBack: prepareAnother }
+      : planMutation.isPending
+        ? null
+        : { label: "Chapters", onBack: () => router.push("/dashboard") }
+  );
+
   // Phase 1b: the LCE is running. Show the engine "working": a first-run step-by-step reveal of the REAL
   // §4.4 sequence (EngineReveal), a quick spinner on later runs. It narrates the api's process while the
   // request is in flight; the app computes nothing.
@@ -174,7 +189,7 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   if (planMutation.data) {
     return (
       <div className="w-full">
-        <PreparationPlanView plan={planMutation.data} onPrepareAnother={prepareAnother} />
+        <PreparationPlanView plan={planMutation.data} showInlineBack={false} />
       </div>
     );
   }

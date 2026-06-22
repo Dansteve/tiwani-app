@@ -44,6 +44,11 @@ interface PostNeedFormProps {
   recipientFirstName: string;
   /** Called after a need is successfully posted, so the parent refetches the owner board. */
   onPosted: (result: NeedActionResult) => void;
+  /**
+   * Optional prefilled need title, e.g. the activity name from the plan's "Delegate Logistics". SAFE
+   * logistics only (the seeded, governed activity label); the owner edits and adds timing before posting.
+   */
+  initialTitle?: string;
 }
 
 interface FormState {
@@ -111,8 +116,18 @@ function toRecentNeed(form: FormState): RecentNeed {
   };
 }
 
-export function PostNeedForm({ recipientId, recipientFirstName, onPosted }: PostNeedFormProps) {
-  const [form, setForm] = useState<FormState>(EMPTY);
+export function PostNeedForm({
+  recipientId,
+  recipientFirstName,
+  onPosted,
+  initialTitle,
+}: PostNeedFormProps) {
+  // A prefilled title (from the plan's "Delegate Logistics") seeds the "what" once on mount; the form is
+  // keyed by recipientId, so switching recipient re-inits. Everything else stays empty (safe logistics
+  // only: never the profile, scores, location, or the card).
+  const [form, setForm] = useState<FormState>(() =>
+    initialTitle && initialTitle.trim().length > 0 ? { ...EMPTY, title: initialTitle } : EMPTY
+  );
   const [titleError, setTitleError] = useState<string | null>(null);
   // The consent gate: when the api returns 409 no-consent, we hold the attempted payload and show the
   // consent line; recording consent then re-submits it.

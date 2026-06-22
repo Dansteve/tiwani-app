@@ -101,6 +101,9 @@ const listPlans = vi.fn();
 const getPlan = vi.fn();
 const getLastOutcome = vi.fn();
 
+// The router mock: PlanScreen's useRouter backs the "Chapters" -> /dashboard shell back action.
+const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
+
 vi.mock("@/lib/api/client", () => ({
   ApiError: class ApiError extends Error {
     status?: number;
@@ -123,10 +126,12 @@ vi.mock("@/lib/api/client", () => ({
 
 // RecipientProvider gates its recipients read on an authenticated session; give it one (shared helper).
 vi.mock("@/state/AuthProvider", async () => (await import("@/test/authMock")).authProviderSessionMock());
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: pushMock }) }));
 
 import { ApiError } from "@/lib/api/client";
 import { PlanScreen } from "@/features/plan/PlanScreen";
 import { RecipientProvider } from "@/state/RecipientProvider";
+import { BackActionProvider, useBackActionBar } from "@/state/BackActionProvider";
 
 function renderScreen(chapterParam: string | null) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -148,6 +153,7 @@ beforeEach(() => {
   listPlans.mockReset();
   getPlan.mockReset();
   getLastOutcome.mockReset();
+  pushMock.mockReset();
   getChapterActivities.mockResolvedValue(ACTIVITIES);
   preparePlan.mockResolvedValue(PLAN);
   getRecipients.mockResolvedValue(RECIPIENTS);
@@ -158,6 +164,38 @@ beforeEach(() => {
   // appears when a picked activity is already prepared). The guard tests override this per case.
   listPlans.mockResolvedValue(planPage([]));
   getPlan.mockResolvedValue(STORED_PLAN);
+});
+
+// A tiny probe that renders the shell-owned back control the way AppShell does (useBackActionBar), so a
+// test can assert what the current screen registered + that invoking it runs the registered handler.
+function BackBarProbe() {
+  const { label, invoke } = useBackActionBar();
+  if (!label) return null;
+  return (
+    <button type="button" onClick={invoke}>
+      back:{label}
+    </button>
+  );
+}
+
+describe("PlanScreen back control (the shell-owned back for the multi-step flow)", () => {
+  it("registers a back from the prepare inputs to the chapters (dashboard)", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <BackActionProvider>
+          <RecipientProvider>
+            <BackBarProbe />
+            <PlanScreen chapterParam="social" />
+          </RecipientProvider>
+        </BackActionProvider>
+      </QueryClientProvider>
+    );
+    // The inputs phase registers a back labelled "Chapters"; invoking it returns to the dashboard.
+    const back = await screen.findByRole("button", { name: "back:Chapters" });
+    fireEvent.click(back);
+    expect(pushMock).toHaveBeenCalledWith("/dashboard");
+  });
 });
 
 describe("PlanScreen prepare flow", () => {
