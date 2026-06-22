@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
 import { ReactivationInterstitial } from "@/features/account/ReactivationInterstitial";
+import { ContentSkeleton } from "@/components/ContentSkeleton";
 
 export function AccountStatusGuard({ children }: { children: React.ReactNode }) {
   const { data, isLoading } = useQuery({
@@ -23,8 +24,9 @@ export function AccountStatusGuard({ children }: { children: React.ReactNode }) 
     retry: false,
   });
 
-  // While the status is in flight, render nothing: do not flash the dashboard to a closed account.
-  if (isLoading) return null;
+  // While the status is in flight, show a calm content skeleton (never the dashboard, so a closed account
+  // is never flashed the app surface): a load reads as "loading", not a blank flash.
+  if (isLoading) return <ContentSkeleton />;
 
   // A closed account sees the reactivation interstitial in place of the whole app surface.
   if (data?.deleted) {

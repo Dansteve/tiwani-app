@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api, ApiError } from "@/lib/api/client";
 import { useAuth } from "@/state/AuthProvider";
+import { ContentSkeleton } from "@/components/ContentSkeleton";
 
 export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -45,8 +46,10 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
     if (unauthenticated) router.replace("/sign-in");
   }, [unauthenticated, router]);
 
-  // Render nothing while auth resolves, while the profile loads for a signed-in user, or while
-  // redirecting an unauthenticated caller.
-  if (authLoading || (Boolean(session) && isLoading) || unauthenticated) return null;
+  // While redirecting an unauthenticated caller, render nothing (the redirect is in flight).
+  if (unauthenticated) return null;
+  // While auth resolves, or the profile loads for a signed-in user, show a calm content skeleton (the
+  // shell is already painted around it), so a cold load reads as "loading", not a blank flash.
+  if (authLoading || (Boolean(session) && isLoading)) return <ContentSkeleton />;
   return <>{children}</>;
 }

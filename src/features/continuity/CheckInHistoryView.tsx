@@ -124,8 +124,28 @@ export function CheckInHistoryView() {
             </div>
           ) : (
             <>
-              {/* The overall series first (the headline picture), then each chapter. */}
-              <CheckInHistorySeries series={data.overall} scopeLabel="Overall" />
+              {/* The overall series first (the headline picture), in a collapsible accordion (default
+                  OPEN) so it can be collapsed to JUST ITS HEADER like the chapters below, the table part
+                  hides (the owner's "overall should also be collapsible, just the table part" ask). */}
+              <details className="group overflow-hidden rounded-xl border border-border bg-card" open>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                  <span className="truncate">Overall</span>
+                  <span className="flex shrink-0 items-center gap-2 text-xs font-normal text-muted-foreground">
+                    <span>
+                      {data.overall.reading_count > 0
+                        ? `${data.overall.reading_count} ${data.overall.reading_count === 1 ? "check-in" : "check-ins"}`
+                        : "No check-ins yet"}
+                    </span>
+                    <ChevronDown
+                      className="size-4 shrink-0 transition-transform group-open:rotate-180"
+                      aria-hidden="true"
+                    />
+                  </span>
+                </summary>
+                <div className="border-t border-border px-4 py-4">
+                  <CheckInHistorySeries series={data.overall} scopeLabel="Overall" bare />
+                </div>
+              </details>
 
               <section aria-label="By Life Chapter" className="space-y-3">
                 <h2 className="text-lg font-semibold">By Life Chapter</h2>
