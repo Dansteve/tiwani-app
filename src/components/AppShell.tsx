@@ -120,11 +120,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      {/* The back control for a multi-step flow, fixed top-right on desktop (the owner's spec). Shown only
-          when the current screen registered a back action; on mobile the same action renders in the top
-          toolbar below. */}
+      {/* The back control for a multi-step flow, fixed TOP-LEFT on desktop (just past the sidebar, the
+          owner's revised placement; keeps it clear of the top-right "Show me around"). Shown only when the
+          current screen registered a back action; on mobile the same action renders in the top toolbar. */}
       {backLabel ? (
-        <div className="fixed right-4 top-4 z-40 hidden lg:block">
+        <div className="fixed left-64 top-4 z-40 hidden lg:block">
           <button
             type="button"
             onClick={invokeBack}

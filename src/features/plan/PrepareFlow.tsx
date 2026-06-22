@@ -48,7 +48,10 @@ export function PrepareFlow({
 }: PrepareFlowProps) {
   return (
     <div className="space-y-8">
-      <header className="space-y-1">
+      {/* The page header is STICKY on desktop (the owner's "fixed header row" request): it pins to the top
+          and the activity list scrolls under it. Desktop only (lg:) so it never collides with the mobile
+          top toolbar; -mx-4/px-4 + a bottom divider make the pinned bar span the content width cleanly. */}
+      <header className="space-y-1 lg:sticky lg:top-0 lg:z-10 lg:-mx-4 lg:border-b lg:border-border lg:bg-background lg:px-4 lg:pb-3 lg:pt-2">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {chapterLabel(chapter)}
         </p>
