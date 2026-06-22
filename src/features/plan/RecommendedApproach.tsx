@@ -27,9 +27,9 @@ export function RecommendedApproach({ tier }: RecommendedApproachProps) {
       </p>
       <div className="mt-1 flex items-center gap-2">
         <Zap className="size-5 shrink-0 text-accent" aria-hidden="true" />
-        <h3 id="recommended-approach-label" className="text-lg font-semibold text-foreground">
+        <h2 id="recommended-approach-label" className="text-lg font-semibold text-foreground">
           {tierLabel(tier)}
-        </h3>
+        </h2>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">{tierExplanation(tier)}</p>
     </section>

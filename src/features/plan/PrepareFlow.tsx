@@ -10,12 +10,11 @@ import { ChoiceCard } from "@/components/ChoiceCard";
 import { TagPill } from "@/components/TagPill";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
-import { chapterLabel, tierLabel } from "@/lib/format";
-import type { ChapterActivity, ChapterCode, TodayFlagCode } from "@/lib/api/types";
+import { tierLabel } from "@/lib/format";
+import type { ChapterActivity, TodayFlagCode } from "@/lib/api/types";
 import { TODAY_FLAGS } from "@/features/plan/todayFlags";
 
 interface PrepareFlowProps {
-  chapter: ChapterCode;
   activities: ChapterActivity[] | undefined;
   isLoadingActivities: boolean;
   isActivitiesError: boolean;
@@ -34,7 +33,6 @@ interface PrepareFlowProps {
 }
 
 export function PrepareFlow({
-  chapter,
   activities,
   isLoadingActivities,
   isActivitiesError,
@@ -48,29 +46,15 @@ export function PrepareFlow({
 }: PrepareFlowProps) {
   return (
     <div className="space-y-8">
-      {/* The page header is STICKY on desktop (the owner's "fixed header row" request): it pins to the top
-          and the activity list scrolls under it. Desktop only (lg:) so it never collides with the mobile
-          top toolbar; -mx-4/px-4 + a bottom divider make the pinned bar span the content width cleanly. */}
-      <header className="space-y-1 lg:sticky lg:top-0 lg:z-10 lg:-mx-4 lg:border-b lg:border-border lg:bg-background lg:px-4 lg:pb-3 lg:pt-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {chapterLabel(chapter)}
-        </p>
-        <h2 className="text-xl font-semibold md:text-2xl">What are you preparing for?</h2>
-        <p className="text-sm text-muted-foreground">
-          Pick the activity, tell us how today is going if you like, and we will build your plan in a
-          few seconds.
-        </p>
-      </header>
-
       <section
         aria-labelledby="activity-picker-label"
         className="space-y-3"
         // The dashboard-style coach-marks anchor: the tour points at the activity picker (the first step).
         data-tour="plan-activity-picker"
       >
-        <h3 id="activity-picker-label" className="text-base font-semibold">
+        <h2 id="activity-picker-label" className="text-base font-semibold">
           Choose an activity
-        </h3>
+        </h2>
 
         {isActivitiesError ? (
           <Alert variant="destructive">
@@ -121,9 +105,9 @@ export function PrepareFlow({
         data-tour="plan-today-flags"
       >
         <div>
-          <h3 id="today-flags-label" className="text-base font-semibold">
+          <h2 id="today-flags-label" className="text-base font-semibold">
             How is today going? <span className="font-normal text-muted-foreground">(optional)</span>
-          </h3>
+          </h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Tap anything that is true today. It only changes this plan, never the saved profile, and
             it resets tonight.

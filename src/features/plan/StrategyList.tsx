@@ -41,9 +41,9 @@ export function StrategyList({ strategies, onRemove, onDismissLabel }: StrategyL
 
   return (
     <section aria-labelledby="strategies-label" className="space-y-3">
-      <h3 id="strategies-label" className="text-base font-semibold">
+      <h2 id="strategies-label" className="text-base font-semibold">
         {heading}
-      </h3>
+      </h2>
 
       {strategies.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">

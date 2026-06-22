@@ -26,11 +26,12 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 import { Alert } from "@/components/ui/alert";
-import { formatScore } from "@/lib/format";
+import { chapterLabel, formatScore } from "@/lib/format";
 import type { ChapterCode, PlanStrategy, PreparationPlan, PressureDimension } from "@/lib/api/types";
 import { useStrategyActions } from "@/features/plan/useStrategyActions";
 import { RemovedStrategies } from "@/features/plan/RemovedStrategies";
 import { PlanResultHeader } from "@/features/plan/PlanResultHeader";
+import { PageHeader } from "@/components/PageHeader";
 import { TotalPressureCard } from "@/features/plan/TotalPressureCard";
 import { RecommendedApproach } from "@/features/plan/RecommendedApproach";
 import { StrategyList, type RankedStrategy } from "@/features/plan/StrategyList";
@@ -128,11 +129,17 @@ export function PreparationPlanView({
 
   return (
     <div className="space-y-6">
-      <PlanResultHeader
-        chapter={plan.chapter}
-        activityName={plan.activity_name}
-        onBack={showInlineBack ? onPrepareAnother : undefined}
-      />
+      {showInlineBack ? (
+        <PlanResultHeader
+          chapter={plan.chapter}
+          activityName={plan.activity_name}
+          onBack={onPrepareAnother}
+        />
+      ) : (
+        // The plan FLOW result: the consistent sticky page header. The back comes from the shell back
+        // context (registered by PlanScreen for the result phase); chapter eyebrow + the activity name.
+        <PageHeader eyebrow={chapterLabel(plan.chapter)} title={plan.activity_name} />
+      )}
 
       {/* TOTAL PRESSURE SCORE + the four dimensions broken out (the highest in amber). */}
       <TotalPressureCard total={plan.total} scores={plan.scores} />

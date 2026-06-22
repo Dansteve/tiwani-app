@@ -120,23 +120,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      {/* The back control for a multi-step flow, fixed TOP-LEFT on desktop (just past the sidebar, the
-          owner's revised placement; keeps it clear of the top-right "Show me around"). Shown only when the
-          current screen registered a back action; on mobile the same action renders in the top toolbar. */}
-      {backLabel ? (
-        <div className="fixed left-64 top-4 z-40 hidden lg:block">
-          <button
-            type="button"
-            onClick={invokeBack}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            <ArrowLeft className="size-4 shrink-0" aria-hidden="true" />
-            {backLabel}
-          </button>
-        </div>
-      ) : null}
-
-      {/* Desktop sidebar (lg and up). */}
+      {/* Desktop sidebar (lg and up). The back control for a multi-step flow now lives in the page's
+          sticky PageHeader (top-left of the action row, beside "Show me around") on desktop; on mobile it
+          stays in the top toolbar below. */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar px-4 py-6 lg:flex">
         <div className="flex items-center justify-between gap-2 pl-2">
           <Link href="/dashboard" aria-label="TIWANI dashboard">

@@ -31,9 +31,9 @@ export function RemovedStrategies({ removed, onAllow, allowingId }: RemovedStrat
   return (
     <section aria-labelledby="removed-strategies-label" className="space-y-3">
       <div className="space-y-1">
-        <h3 id="removed-strategies-label" className="text-base font-semibold">
+        <h2 id="removed-strategies-label" className="text-base font-semibold">
           Removed strategies
-        </h3>
+        </h2>
         <p className="text-sm text-muted-foreground">
           You removed these. Bring one back any time.
         </p>

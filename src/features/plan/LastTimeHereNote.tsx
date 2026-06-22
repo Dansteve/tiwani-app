@@ -56,12 +56,12 @@ export function LastTimeHereNote({ chapter, childId, compact = false }: LastTime
           className="size-4 shrink-0 text-muted-foreground"
           aria-hidden="true"
         />
-        <h3
+        <h2
           id="last-time-here-label"
           className="text-sm font-semibold text-foreground"
         >
           Last time here
-        </h3>
+        </h2>
       </div>
       <ul className={`${compact ? "mt-1.5" : "mt-2"} space-y-1`}>
         {notes.map((note) => (

@@ -36,7 +36,7 @@ import { ExistingPlanNotice } from "@/features/plan/ExistingPlanNotice";
 import { matchExistingPlan } from "@/features/plan/existingPlanMatch";
 import { EngineReveal } from "@/features/plan/EngineReveal";
 import { LastTimeHereNote } from "@/features/plan/LastTimeHereNote";
-import { PageTour } from "@/features/tour/PageTour";
+import { PageHeader } from "@/components/PageHeader";
 import { useBackAction } from "@/state/BackActionProvider";
 
 interface PlanScreenProps {
@@ -197,20 +197,21 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   // Phase 1: the prepare inputs.
   return (
     <div className="w-full space-y-4">
-      {/* The "Show me around" tour for the Plan screen (on-demand, calm). It points at the activity
-          picker, the today-flags, and the build button via their data-tour anchors below. */}
-      <div className="flex justify-end">
-        <PageTour page="plan" />
-      </div>
+      {/* The consistent sticky page header: the back control (left) + "Show me around" (right) on one
+          row, then the title, with a full-width divider (the owner's header spec). */}
+      <PageHeader
+        eyebrow={chapterLabel(chapter)}
+        title="What are you preparing for?"
+        subtitle="Pick the activity, tell us how today is going if you like, and we will build your plan in a few seconds."
+        tour="plan"
+      />
 
       {/* "What helped last time" (ProductReview.md item 5): a calm, FACTUAL recall of the family's OWN
-          prior outcome in this chapter, surfaced before the picker. It renders nothing on a first-time
-          chapter (the api returns null) or when there is nothing grounded to recall, so it never gets in
-          the way. Scoped to the active recipient, like the prepare flow. */}
+          prior outcome in this chapter, surfaced before the picker. Renders nothing on a first-time
+          chapter or when there is nothing grounded to recall. Scoped to the active recipient. */}
       <LastTimeHereNote chapter={chapter} childId={activeChildId} />
 
       <PrepareFlow
-        chapter={chapter}
         activities={activitiesQuery.data}
         isLoadingActivities={activitiesQuery.isLoading}
         isActivitiesError={activitiesQuery.isError}
