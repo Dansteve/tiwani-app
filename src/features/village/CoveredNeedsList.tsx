@@ -48,7 +48,7 @@ export function CoveredNeedsList() {
                 <div className="pt-2">
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => acknowledge(notice.need_id)}
                   >
