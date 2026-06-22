@@ -197,8 +197,8 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   // Phase 1: the prepare inputs.
   return (
     <div className="w-full space-y-4">
-      {/* The consistent sticky page header: the back control (left) + "Show me around" (right) on one
-          row, then the title, with a full-width divider (the owner's header spec). */}
+      {/* The consistent sticky page header: "Show me around" sits beside the title; when this flow
+          registers a back, it shows on its own row above the title. No divider (the owner's header spec). */}
       <PageHeader
         eyebrow={chapterLabel(chapter)}
         title="What are you preparing for?"
