@@ -254,3 +254,62 @@ describe("the Cards list tour (teaches the GROUPED list + Load more)", () => {
     }
   });
 });
+
+describe("the Plan tour (phase-adaptive: inputs vs the Fusion result)", () => {
+  it("only targets real /plan anchors (inputs + the two Fusion result surfaces)", () => {
+    const liveAnchors = new Set([
+      "plan-activity-picker",
+      "plan-today-flags",
+      "plan-generate",
+      "plan-enrichment",
+      "plan-situated",
+    ]);
+    for (const step of TOURS.plan) {
+      expect(liveAnchors.has(step.target), `${step.id} -> ${step.target}`).toBe(true);
+    }
+  });
+
+  it("shows the inputs steps on the prepare phase (the result surfaces drop)", () => {
+    const ids = resolveVisibleSteps(
+      TOURS.plan,
+      rootWith(["plan-activity-picker", "plan-today-flags", "plan-generate"])
+    ).map((s) => s.id);
+    expect(ids).toEqual(["activity", "today", "generate"]);
+  });
+
+  it("drops the Generate step when the duplicate-plans steer hides it", () => {
+    // With an already-prepared activity the Generate button (and its anchor) is replaced by the steer, so
+    // that step drops rather than pointing at nothing.
+    const ids = resolveVisibleSteps(
+      TOURS.plan,
+      rootWith(["plan-activity-picker", "plan-today-flags"])
+    ).map((s) => s.id);
+    expect(ids).toEqual(["activity", "today"]);
+  });
+
+  it("teaches the Fusion surfaces on the result phase (the inputs steps drop)", () => {
+    // A fresh plan whose gate is not yet met carries BOTH the enrichment question and situated strategies;
+    // the input-phase anchors are gone, so only the two result steps resolve, in page order.
+    const ids = resolveVisibleSteps(
+      TOURS.plan,
+      rootWith(["plan-enrichment", "plan-situated"])
+    ).map((s) => s.id);
+    expect(ids).toEqual(["enrichment", "situated"]);
+  });
+
+  it("shows only the situated step on a complete plan (no enrichment question)", () => {
+    const ids = resolveVisibleSteps(TOURS.plan, rootWith(["plan-situated"])).map((s) => s.id);
+    expect(ids).toEqual(["situated"]);
+  });
+
+  it("shows only the enrichment step on an incomplete plan with no situated strategies", () => {
+    const ids = resolveVisibleSteps(TOURS.plan, rootWith(["plan-enrichment"])).map((s) => s.id);
+    expect(ids).toEqual(["enrichment"]);
+  });
+
+  it("resolves to nothing when the Fusion flag is off or a plain plan carries neither", () => {
+    // Every plan step is optional, so with no anchors present the tour has nothing to show (the button
+    // no-ops via hasVisibleSteps rather than opening an empty overlay).
+    expect(resolveVisibleSteps(TOURS.plan, rootWith([]))).toEqual([]);
+  });
+});

@@ -52,9 +52,11 @@ describe("useCoachMarks", () => {
   });
 
   it("start() opens the tour on demand, even after it has been seen (the on-demand button)", async () => {
-    // A secondary page (Plan) is on-demand only: autoStart false, but the button still opens it.
-    window.localStorage.setItem(seenKey("plan"), "1");
-    const { result } = renderHook(() => useCoachMarks("plan", false));
+    // A secondary page (Settings) is on-demand only: autoStart false, but the button still opens it. It
+    // carries a non-optional step, so it always resolves at least one step in jsdom (unlike the phase-gated
+    // Plan / Card tours, whose anchors are absent here, covered separately below).
+    window.localStorage.setItem(seenKey("settings"), "1");
+    const { result } = renderHook(() => useCoachMarks("settings", false));
     await new Promise((r) => setTimeout(r, 10));
     expect(result.current.open).toBe(false);
     act(() => result.current.start());
@@ -69,15 +71,15 @@ describe("useCoachMarks", () => {
     expect(window.localStorage.getItem(DASHBOARD_KEY)).toBe("1");
   });
 
-  it("each page tracks its own seen flag (the dashboard being seen does not block the Plan tour)", async () => {
-    // The dashboard has been seen, but the Plan page's on-demand tour is unaffected: start() still opens,
-    // and closing it sets only the Plan flag.
+  it("each page tracks its own seen flag (the dashboard being seen does not block another page's tour)", async () => {
+    // The dashboard has been seen, but Settings' on-demand tour is unaffected: start() still opens, and
+    // closing it sets only the Settings flag.
     window.localStorage.setItem(DASHBOARD_KEY, "1");
-    const { result } = renderHook(() => useCoachMarks("plan", false));
+    const { result } = renderHook(() => useCoachMarks("settings", false));
     act(() => result.current.start());
     expect(result.current.open).toBe(true);
     act(() => result.current.close());
-    expect(window.localStorage.getItem(seenKey("plan"))).toBe("1");
+    expect(window.localStorage.getItem(seenKey("settings"))).toBe("1");
   });
 
   it("auto-opens at most once: closing then re-rendering does not reopen", async () => {

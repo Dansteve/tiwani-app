@@ -215,7 +215,9 @@ export function PreparationPlanView({
       ) : (
         // The plan FLOW result: the consistent sticky page header. The back comes from the shell back
         // context (registered by PlanScreen for the result phase); chapter eyebrow + the activity name.
-        <PageHeader eyebrow={chapterLabel(plan.chapter)} title={plan.activity_name} />
+        // tour="plan" makes the "Show me around" reachable on the RESULT, where its optional situated /
+        // enrichment steps teach the Fusion surfaces (the input-phase steps drop, being presence-gated).
+        <PageHeader eyebrow={chapterLabel(plan.chapter)} title={plan.activity_name} tour="plan" />
       )}
 
       {/* The OPTIONAL, user-flipped "go gentler today" control, flag-gated (default OFF). It re-presents the

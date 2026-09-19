@@ -33,7 +33,8 @@ describe("onboarding state machine", () => {
     const state = run([
       // Step 1: about the child.
       { type: "set_name", value: "  Ada  " },
-      { type: "set_age_band", value: "8 to 11" },
+      { type: "set_nickname", value: "  Bear  " },
+      { type: "set_age_band", value: "8-10" },
       { type: "set_support_level", value: "SL-MED" },
       { type: "next" },
       // Step 2: challenges (Sensory + Transitions multi, Communication + Recovery single).
@@ -52,10 +53,11 @@ describe("onboarding state machine", () => {
 
     const payload = buildPayload(state);
 
-    // Name is trimmed; support level is the coded value; age band carried through.
+    // Name + nickname are trimmed; support level is the coded value; age band carried through.
     expect(payload.name).toBe("Ada");
+    expect(payload.nickname).toBe("Bear");
     expect(payload.support_level_code).toBe("SL-MED");
-    expect(payload.age_band).toBe("8 to 11");
+    expect(payload.age_band).toBe("8-10");
 
     // Tags merge all four families in the stable order (Sensory, Transitions, Communication, Recovery).
     expect(payload.tags).toEqual([
@@ -192,6 +194,30 @@ describe("onboarding state machine", () => {
     expect(payload.tags).toEqual([]);
     expect(payload.first_activity).toBeUndefined();
     expect(payload.age_band).toBeUndefined();
+    expect(payload.nickname).toBeUndefined();
+  });
+
+  it("includes the nickname only when entered (trimmed), and omits a blank one", () => {
+    const base: OnboardingAction[] = [
+      { type: "set_name", value: "Ada" },
+      { type: "set_support_level", value: "SL-LOW" },
+    ];
+    // A blank / whitespace-only nickname is omitted (it is optional personalisation, not a required field).
+    const blank = buildPayload(run([...base, { type: "set_nickname", value: "   " }]));
+    expect(blank.nickname).toBeUndefined();
+
+    // An entered nickname is trimmed and carried on the payload.
+    const named = buildPayload(run([...base, { type: "set_nickname", value: "  Bear  " }]));
+    expect(named.nickname).toBe("Bear");
+  });
+
+  it("treats the nickname as optional: it never gates advancing past step 1", () => {
+    // Step 1 gates on name + support level only; a missing nickname must not block Continue.
+    const ready = run([
+      { type: "set_name", value: "Ada" },
+      { type: "set_support_level", value: "SL-LOW" },
+    ]);
+    expect(canAdvance(ready)).toBe(true);
   });
 
   it("refuses to build a payload before the required step-1 fields are set", () => {

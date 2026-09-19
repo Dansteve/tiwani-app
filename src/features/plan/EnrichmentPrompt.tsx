@@ -46,6 +46,8 @@ export function EnrichmentPrompt({ enrichment, onEnrich, isEnriching = false }: 
     <section
       aria-labelledby="enrichment-label"
       className="space-y-3 rounded-2xl border border-primary/25 bg-primary/10 p-5"
+      // Coach-marks anchor: the plan tour points its (optional, flag-gated) "enrichment" step here.
+      data-tour="plan-enrichment"
     >
       <div className="flex items-start gap-3">
         <HelpCircle className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />

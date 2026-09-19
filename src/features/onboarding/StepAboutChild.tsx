@@ -32,6 +32,15 @@ export function StepAboutChild({ state, dispatch }: StepProps) {
         autoFocus
       />
 
+      <Field
+        label="What do you call them at home? (optional)"
+        name="childNickname"
+        autoComplete="off"
+        value={state.nickname ?? ""}
+        onChange={(e) => dispatch({ type: "set_nickname", value: e.target.value })}
+        hint="A nickname or pet name, if you use one. Just to make things feel a little warmer."
+      />
+
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-sm font-medium text-foreground">
           Age band <span className="font-normal text-muted-foreground">(optional)</span>

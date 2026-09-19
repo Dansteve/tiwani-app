@@ -95,13 +95,15 @@ describe("PageTour", () => {
 
   it("each page wires its own seen flag (closing one page's tour does not mark another)", async () => {
     const user = userEvent.setup();
-    render(<PageTour page="plan" />);
+    // An always-openable on-demand page (its tour carries a non-optional step); the Plan / Card tours are
+    // phase-gated and resolve to nothing in jsdom, so they are covered in steps.test.ts instead.
+    render(<PageTour page="continuity" />);
     await user.click(screen.getByRole("button", { name: /show me around/i }));
     await user.click(screen.getByRole("button", { name: /done/i }));
 
-    expect(window.localStorage.getItem(seenKey("plan"))).toBe("1");
-    // No other page's flag was touched.
-    const others: TourPageId[] = ["dashboard", "card", "settings", "village"];
+    expect(window.localStorage.getItem(seenKey("continuity"))).toBe("1");
+    // No other page's flag was touched (including the phase-gated Plan tour).
+    const others: TourPageId[] = ["dashboard", "card", "settings", "village", "plan"];
     for (const page of others) {
       expect(window.localStorage.getItem(seenKey(page))).toBeNull();
     }
