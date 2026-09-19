@@ -31,7 +31,7 @@ const ADE: CareRecipientProfile = {
   id: "child-1",
   user_id: "user-1",
   name: "Ade",
-  age_band: "5 to 7",
+  age_band: "5-7",
   support_level_code: "SL-MED",
   tags: ["SN-NOISE", "SN-CROWD", "TR-CHANGE"],
   created_at: "2025-01-01T00:00:00Z",
@@ -165,7 +165,7 @@ describe("SettingsScreen", () => {
     expect(await screen.findByDisplayValue("Ade")).toBeInTheDocument();
 
     // The seeded recipient's coded values are reflected in the selectors (pressed = selected).
-    expect(screen.getByRole("button", { name: "5 to 7" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "5-7" })).toHaveAttribute("aria-pressed", "true");
     expect(
       screen.getByRole("button", { name: /considerable support/i })
     ).toHaveAttribute("aria-pressed", "true");

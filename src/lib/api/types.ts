@@ -788,6 +788,11 @@ export interface CareRecipientCreate {
 /** The onboarding payload, posted once at the end of the three-screen flow (Product.md §4.2). */
 export interface OnboardingPayload {
   name: string;
+  /**
+   * What the family calls them at home: optional personalisation, sent only when entered. The api ignores
+   * it today (its OnboardingPayload does not read it yet); persisting nickname is a follow-up api bit.
+   */
+  nickname?: string;
   age_band?: string;
   support_level_code: SupportLevelCode;
   tags: TagCode[];

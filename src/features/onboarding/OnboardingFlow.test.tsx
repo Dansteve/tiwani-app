@@ -101,8 +101,11 @@ describe("OnboardingFlow (rendered)", () => {
     const { api } = await import("@/lib/api/client");
     renderFlow();
 
-    // Step 1.
+    // Step 1 (name + the optional nickname + support level).
     fireEvent.change(screen.getByLabelText("Their name"), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText(/what do you call them at home/i), {
+      target: { value: "Bear" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /substantial support/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
 
@@ -127,6 +130,7 @@ describe("OnboardingFlow (rendered)", () => {
     const payload = (api.completeOnboarding as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(payload).toMatchObject({
       name: "Ada",
+      nickname: "Bear",
       support_level_code: "SL-HIGH",
       tags: [SENSORY[0].code],
       first_activity: { chapter: "school", activity_type: "Parents evening" },

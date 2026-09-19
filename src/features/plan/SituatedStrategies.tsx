@@ -66,6 +66,8 @@ export function SituatedStrategies({
     <section
       aria-labelledby="situated-strategies-label"
       className="space-y-3 rounded-2xl border border-border bg-secondary/40 p-4"
+      // Coach-marks anchor: the plan tour points its (optional, flag-gated) "situated" step here.
+      data-tour="plan-situated"
     >
       <div>
         <h2 id="situated-strategies-label" className="text-base font-semibold text-foreground">

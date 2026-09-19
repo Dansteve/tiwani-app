@@ -77,8 +77,15 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-// The Plan screen (PrepareFlow): how a plan is built. The activity picker and the today-flags are always
-// present once the inputs load; the Generate button is the core action.
+// The Plan screen tour is PHASE-ADAPTIVE (like the Card tour): it runs on both the prepare INPUTS
+// (PrepareFlow) and the plan RESULT (PreparationPlanView), which are two states of the same /plan screen.
+// Every step is optional so the tour resolves to whichever phase's anchors are on the page right now:
+//   Inputs phase: the activity picker + today-flags + Generate (Generate drops when the duplicate-plans
+//     steer hides it), while the result-only situated / enrichment steps drop.
+//   Result phase: the Fusion surfaces (situated strategies + the enrichment question), which are
+//     themselves flag-gated (isFusionEnabled) and only present when the plan carries them; the input
+//     steps drop. When the fusion flag is off (or a plain plan carries neither), nothing resolves and the
+//     "Show me around" button no-ops rather than opening an empty overlay (hasVisibleSteps).
 const PLAN_TOUR_STEPS: TourStep[] = [
   {
     id: "activity",
@@ -86,6 +93,7 @@ const PLAN_TOUR_STEPS: TourStep[] = [
     title: "Choose the activity",
     body: "Pick what you are preparing for. Each one already knows roughly how much support it usually takes.",
     placement: "bottom",
+    optional: true,
   },
   {
     id: "today",
@@ -93,6 +101,7 @@ const PLAN_TOUR_STEPS: TourStep[] = [
     title: "How is today going?",
     body: "Tap anything that is true just for today. It shapes this plan only, and never changes the saved profile.",
     placement: "top",
+    optional: true,
   },
   {
     id: "generate",
@@ -100,6 +109,27 @@ const PLAN_TOUR_STEPS: TourStep[] = [
     title: "Build the plan",
     body: "TIWANI puts together a calm, practical plan in a few seconds, with the strategies most likely to help.",
     placement: "top",
+    optional: true,
+  },
+  {
+    id: "enrichment",
+    target: "plan-enrichment",
+    title: "One quick question",
+    body: "When a plan could fit them better, TIWANI asks which part is hardest. Your answer tailors this plan right away.",
+    placement: "bottom",
+    // Result-only + flag-gated: shown only when the plan carries the enrichment question (the gate is not
+    // yet met). Drops on the inputs phase and whenever the Fusion surface is off.
+    optional: true,
+  },
+  {
+    id: "situated",
+    target: "plan-situated",
+    title: "Help for the hardest moments",
+    body: "Some strategies are matched to the exact moments that tend to be toughest, so the right support is ready when it is needed.",
+    placement: "top",
+    // Result-only + flag-gated: shown only when the plan carries situated strategies. Drops on the inputs
+    // phase and whenever the Fusion surface is off.
+    optional: true,
   },
 ];
 

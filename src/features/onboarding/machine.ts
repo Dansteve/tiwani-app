@@ -61,14 +61,18 @@ export const SUPPORT_LEVELS: SupportLevelOption[] = [
 
 // --- Age band (step 1, optional) ---
 
-/** Optional age bands. Stored as the label string (the api's age_band is a free string, nullable). */
+/**
+ * Optional age bands, aligned to the Tag Architecture v1.0 bands (BuildPlan-PRDv2.md; FusionBuildIssues
+ * G7). Stored as the label string (the api's age_band is a free string, nullable), so the value the app
+ * sends IS the canonical band. Shared with the Settings care-recipient form (one source, not two).
+ */
 export const AGE_BANDS: string[] = [
-  "Under 5",
-  "5 to 7",
-  "8 to 11",
-  "12 to 15",
-  "16 to 18",
-  "Over 18",
+  "2-4",
+  "5-7",
+  "8-10",
+  "11-12",
+  "13-16",
+  "17+",
 ];
 
 // --- The machine state ---
@@ -81,6 +85,8 @@ export interface OnboardingState {
   step: OnboardingStep;
   // Step 1
   name: string;
+  // What the family calls them at home (optional, personalisation only; never an engine input).
+  nickname: string;
   ageBand: string | null;
   supportLevel: SupportLevelCode | null;
   // Step 2 (kept by family so single vs multi and the cap are simple to enforce)
@@ -96,6 +102,7 @@ export interface OnboardingState {
 export const initialOnboardingState: OnboardingState = {
   step: 1,
   name: "",
+  nickname: "",
   ageBand: null,
   supportLevel: null,
   sensory: [],
@@ -110,6 +117,7 @@ export const initialOnboardingState: OnboardingState = {
 
 export type OnboardingAction =
   | { type: "set_name"; value: string }
+  | { type: "set_nickname"; value: string }
   | { type: "set_age_band"; value: string | null }
   | { type: "set_support_level"; value: SupportLevelCode }
   | { type: "toggle_sensory"; code: TagCode }
@@ -159,6 +167,8 @@ export function onboardingReducer(
   switch (action.type) {
     case "set_name":
       return { ...state, name: action.value };
+    case "set_nickname":
+      return { ...state, nickname: action.value };
     case "set_age_band":
       return { ...state, ageBand: action.value };
     case "set_support_level":
@@ -262,6 +272,12 @@ export function buildPayload(state: OnboardingState): OnboardingPayload {
 
   if (state.ageBand) {
     payload.age_band = state.ageBand;
+  }
+
+  // Nickname: optional personalisation, included only when the family entered one (trimmed). Guarded with
+  // ?? so a state hydrated from a pre-nickname saved session (no nickname key) never throws.
+  if ((state.nickname ?? "").trim().length > 0) {
+    payload.nickname = state.nickname.trim();
   }
 
   if (state.chapter && (state.activityType ?? "").trim().length > 0) {
