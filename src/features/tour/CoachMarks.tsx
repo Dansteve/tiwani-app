@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   type TourStep,
+  type TourPlacement,
   DASHBOARD_TOUR_STEPS,
   findTourTarget,
   resolveVisibleSteps,
@@ -223,45 +224,53 @@ export function CoachMarks({ open, onClose, steps = DASHBOARD_TOUR_STEPS }: Coac
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const width = Math.min(TOOLTIP_MAX_WIDTH, vw - VIEWPORT_MARGIN * 2);
-    // Estimate height generously for the first paint; the clamp below keeps it on screen regardless.
-    const estHeight = 200;
-
-    const placement = step?.placement ?? "bottom";
-    let top: number;
-    let left: number;
+    // A generous height estimate for the overlap test + the clamp; the card grows down from `top`, and the
+    // clamp keeps it on screen regardless of the exact height.
+    const estHeight = 220;
 
     const centreX = targetRect.left + targetRect.width / 2;
     const centreY = targetRect.top + targetRect.height / 2;
+    const clampLeft = (l: number) => Math.min(Math.max(VIEWPORT_MARGIN, l), vw - width - VIEWPORT_MARGIN);
+    const clampTop = (t: number) => Math.min(Math.max(VIEWPORT_MARGIN, t), vh - estHeight - VIEWPORT_MARGIN);
 
-    switch (placement) {
-      case "top":
-        top = targetRect.top - estHeight - TOOLTIP_GAP;
-        left = centreX - width / 2;
-        break;
-      case "left":
-        top = centreY - estHeight / 2;
-        left = targetRect.left - width - TOOLTIP_GAP;
-        break;
-      case "right":
-        top = centreY - estHeight / 2;
-        left = targetRect.left + targetRect.width + TOOLTIP_GAP;
-        break;
-      case "bottom":
-      default:
-        top = targetRect.top + targetRect.height + TOOLTIP_GAP;
-        left = centreX - width / 2;
-        break;
+    // The clamped card position for one placement (below / above / beside the target).
+    function place(pl: TourPlacement): { top: number; left: number } {
+      switch (pl) {
+        case "top":
+          return { top: clampTop(targetRect!.top - estHeight - TOOLTIP_GAP), left: clampLeft(centreX - width / 2) };
+        case "left":
+          return { top: clampTop(centreY - estHeight / 2), left: clampLeft(targetRect!.left - width - TOOLTIP_GAP) };
+        case "right":
+          return { top: clampTop(centreY - estHeight / 2), left: clampLeft(targetRect!.left + targetRect!.width + TOOLTIP_GAP) };
+        case "bottom":
+        default:
+          return { top: clampTop(targetRect!.top + targetRect!.height + TOOLTIP_GAP), left: clampLeft(centreX - width / 2) };
+      }
     }
 
-    // If a side/vertical placement would push the card off the top or bottom, fall back to centring it
-    // vertically; then clamp both axes inside the margin so it is always fully on screen (mobile-safe).
-    if (top < VIEWPORT_MARGIN) top = VIEWPORT_MARGIN;
-    if (top + estHeight > vh - VIEWPORT_MARGIN) {
-      top = Math.max(VIEWPORT_MARGIN, vh - estHeight - VIEWPORT_MARGIN);
-    }
-    left = Math.min(Math.max(VIEWPORT_MARGIN, left), vw - width - VIEWPORT_MARGIN);
+    // Would a card at this position cover the spotlighted element (its padded ring)? If so, that placement
+    // is no good: the tooltip must never sit on top of the thing it is describing (the bug on wide views).
+    const pad = SPOTLIGHT_PADDING;
+    const tgtTop = targetRect.top - pad;
+    const tgtLeft = targetRect.left - pad;
+    const tgtRight = targetRect.left + targetRect.width + pad;
+    const tgtBottom = targetRect.top + targetRect.height + pad;
+    const overlaps = (p: { top: number; left: number }) =>
+      !(p.left + width <= tgtLeft || tgtRight <= p.left || p.top + estHeight <= tgtTop || tgtBottom <= p.top);
 
-    return { top, left, width, maxWidth: TOOLTIP_MAX_WIDTH };
+    // Try the step's preferred side first, then the others, and take the first that clears the target.
+    const preferred = step?.placement ?? "bottom";
+    const order: TourPlacement[] = [preferred, "bottom", "top", "right", "left"];
+    let chosen = place(preferred);
+    for (const pl of order) {
+      const p = place(pl);
+      if (!overlaps(p)) {
+        chosen = p;
+        break;
+      }
+    }
+
+    return { top: chosen.top, left: chosen.left, width, maxWidth: TOOLTIP_MAX_WIDTH };
   }, [targetRect, step]);
 
   // The spotlight ring style: a fixed box around the target with padding, a brand ring, and a large
