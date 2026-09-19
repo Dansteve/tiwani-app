@@ -22,7 +22,7 @@ import type {
 } from "@/lib/api/types";
 
 const ACTIVITIES: ChapterActivity[] = [
-  { activity_code: "SOC-BIRTHDAY", activity_name: "A birthday party", tier: "Modified" },
+  { activity_code: "SOC-BIRTHDAY", activity_name: "A birthday party", tier: "Adapted" },
   { activity_code: "SOC-PLAYDATE", activity_name: "A playdate", tier: "Full" },
 ];
 
@@ -71,7 +71,7 @@ const STORED_PLAN: PreparationPlan = {
   activity_name: "A birthday party",
   scores: { temporal: 2, sensory: 3, logistical: 2, human: 1 },
   total: 11,
-  tier: "Modified",
+  tier: "Adapted",
   strategies: [{ title: "Arrive early", detail: "Get there before it gets busy." }],
   dimension_explanations: null,
   scheduled_pulse_at: "2025-06-12T17:00:00Z",
@@ -82,7 +82,7 @@ const EXISTING_SUMMARY: PlanSummary = {
   activity_id: "act_existing",
   chapter: "social",
   activity_name: "A birthday party",
-  tier: "Modified",
+  tier: "Adapted",
   total: 11,
   created_at: "2025-06-01T00:00:00Z",
   pulse_exists: false,
@@ -330,7 +330,7 @@ describe("PlanScreen duplicate-plans guard", () => {
 
     // Re-opened by activity_id (the READ endpoint), and the stored plan re-renders.
     await waitFor(() => expect(getPlan).toHaveBeenCalledWith("act_existing", expect.anything()));
-    expect(await screen.findByRole("heading", { name: "Modified Participation" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Adapted" })).toBeInTheDocument();
     expect(screen.getByText("Arrive early")).toBeInTheDocument();
 
     // The crux of the fix: opening NEVER prepares afresh, so no new activity_record is created.

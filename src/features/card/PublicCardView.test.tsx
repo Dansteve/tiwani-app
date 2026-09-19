@@ -14,7 +14,7 @@ const CONTENT: CardContent = {
   child_first_name: "Ada",
   activity_name: "Swimming lesson",
   chapter: "social",
-  tier: "Modified",
+  tier: "Adapted",
   tier_label: "Take it at their pace",
   intro: "Ada does best when things are calm and predictable.",
   strategies: [

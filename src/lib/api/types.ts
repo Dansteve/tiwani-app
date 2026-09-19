@@ -22,10 +22,15 @@ export type ChapterCode =
   | "travel"
   | "culture";
 
-/** Participation tiers (Product.md §4.4). */
+/**
+ * Participation tiers (Product.md §4.4; the three routes in Product2.md / the Canonical Glossary).
+ * The middle tier's enum VALUE is "Adapted" (Green -> Full, Amber -> Adapted, Red -> Pivot); the earlier
+ * "Modified" value is retired by the PRD v2.0 / LCE Addendum reconciliation (BuildPlan-PRDv2.md, the
+ * locked contract). The label is "Adapted" (lib/format.tierLabel).
+ */
 export type ParticipationTier =
   | "Full"
-  | "Modified"
+  | "Adapted"
   | "Pivot";
 
 /** The four LCE pressure dimensions (each scored 1 to 5). */
@@ -166,12 +171,81 @@ export interface AlsoWorkedIn {
   label: string;
 }
 
+/**
+ * A strategy's PROVENANCE (LCE Addendum v1.1 §3, the Fusion Layer): where the line came from.
+ *   scenario_base      the generic scenario matrix strategy (derived_from is []).
+ *   dimension_transfer a strategy transferred from another chapter by a shared pressure dimension.
+ *   situated_fusion    a SITUATED strategy: a profile tag fused to a specific scenario MOMENT (the
+ *                      Fusion Layer output); it carries a `moment` id + a user-readable `moment_label`.
+ * The app RENDERS provenance (it groups situated strategies by their moment); the api owns the gate
+ * counts (profile_derived / situated), the app never re-derives them.
+ */
+export type StrategySource =
+  | "scenario_base"
+  | "dimension_transfer"
+  | "situated_fusion";
+
+/**
+ * A single strategy line on a Preparation Plan (Product.md §4.4 step 7 + the LCE Addendum Fusion Layer).
+ * The four provenance fields (source / derived_from / moment / moment_label) are ADDED by the PRD v2.0
+ * reconciliation (BuildPlan-PRDv2.md, the locked contract). They are OPTIONAL here for the same reason
+ * dimension_explanations is nullable: a stored plan re-read (GET /plans/{id}) and a not-yet-fused api may
+ * omit them, so the app degrades gracefully (a line with no `source` reads as a general strategy). The
+ * api sends them on a freshly fused plan; reconcile field-for-field on integration.
+ *   source        the provenance (scenario_base | dimension_transfer | situated_fusion).
+ *   derived_from  the active profile tag code(s) that produced the line ([] for scenario_base). The gate
+ *                 counts a strategy as "profile_derived" when this is non-empty; the api owns the count.
+ *   moment        the scenario moment id the line is attached to (required when source is situated_fusion,
+ *                 null otherwise); the app keys grouping off moment_label, not this raw id.
+ *   moment_label  the user-readable moment name ("First assembly"); the app renders situated strategies
+ *                 grouped under this heading. Null/absent for a non-situated line.
+ */
 export interface PlanStrategy {
   title: string;
   detail: string;
   library_item_id?: string;
   also_worked_in?: AlsoWorkedIn[];
   also_worked_in_chapter?: ChapterCode | null;
+  source?: StrategySource;
+  derived_from?: TagCode[];
+  moment?: string | null;
+  moment_label?: string | null;
+}
+
+/**
+ * The Specificity Gate result the engine attaches to a Plan (LCE Addendum v1.1 §4). A Plan is presented
+ * as COMPLETE only when `profile_derived >= 2` AND `situated >= 1`; otherwise the api triggers the
+ * enrichment loop. The api COMPUTES these counts (profile_derived = strategies with derived_from != [];
+ * situated = strategies with source == situated_fusion); the app RENDERS `complete` and never recomputes
+ * the gate. OPTIONAL on the plan for stored-read / deploy-window tolerance (mirrors dimension_explanations).
+ */
+export interface PlanSpecificity {
+  profile_derived: number;
+  situated: number;
+  complete: boolean;
+}
+
+/** One tappable option on an enrichment question (LCE Addendum v1.1 §5): a tag `code` + a human `label`. */
+export interface PlanEnrichmentOption {
+  code: string;
+  label: string;
+}
+
+/**
+ * The ONE value-first enrichment question the engine asks when the Specificity Gate fails (LCE Addendum
+ * v1.1 §5). Present on the plan ONLY when it is not complete and not yet exhausted (after one enrichment
+ * the api sends `getting_to_know: true` and no enrichment). The `question` is the api's GOVERNED, verbatim
+ * copy (with the child's name already substituted); the app renders it and authors no question wording. On
+ * a tap the app re-calls preparePlan with `enrichment_answer` = the selected option codes, and the engine
+ * adds them as the child's permanent (carer-confirmed) tags, then re-scores + re-gates in the same call.
+ *   question   the api-authored value-first question, shown verbatim.
+ *   dimension  the pressure dimension the question is about (a quiet eyebrow; the question carries meaning).
+ *   options    the tappable answers, each a { code, label }; the carer may pick one or more.
+ */
+export interface PlanEnrichment {
+  question: string;
+  dimension: PressureDimension;
+  options: PlanEnrichmentOption[];
 }
 
 /**
@@ -203,6 +277,24 @@ export interface PreparationPlan {
    */
   dimension_explanations: Record<PressureDimension, string> | null;
   scheduled_pulse_at: string;
+  /**
+   * The Specificity Gate result (LCE Addendum v1.1 §4). Present on a freshly prepared plan; OPTIONAL for a
+   * stored re-read / a not-yet-fused api (deploy-window tolerance). The app leads with `complete`: when it
+   * is false and `enrichment` is present, it renders the enrichment question instead of a complete Plan.
+   */
+  specificity?: PlanSpecificity;
+  /**
+   * The ONE value-first enrichment question, present ONLY when the gate failed and enrichment is not yet
+   * exhausted (LCE Addendum v1.1 §5); null/absent otherwise. On a tap the app re-calls preparePlan with
+   * `enrichment_answer` (the selected option codes) and re-renders the improved plan.
+   */
+  enrichment?: PlanEnrichment | null;
+  /**
+   * True when the Plan is still incomplete AFTER one enrichment (LCE Addendum v1.1 §5 step 6): the api ships
+   * the best-available Plan and the app frames it as a calm "Still getting to know [child]" state. Defaults
+   * to false / absent when the gate passed or enrichment has not been asked yet.
+   */
+  getting_to_know?: boolean;
 }
 
 /**
@@ -292,7 +384,7 @@ export interface PendingPulse {
  *   activity_name        the activity of the most recent prior COMPLETED pulse (the app names it).
  *   outcome_code         that pulse's two-tap outcome (well / okay / difficult); NEVER skipped (a skip
  *                        is not an outcome to recall).
- *   tier_recommended     the participation tier that plan used (Full / Modified / Pivot), the stored
+ *   tier_recommended     the participation tier that plan used (Full / Adapted / Pivot), the stored
  *                        value, so the app can say "the Continuity Pivot worked here" only when grounded.
  *   challenge_dimension  the biggest-pressure dimension the Coordinator named on that pulse (the app
  *                        renders "[dimension] was the biggest pressure last time"), or null.
@@ -535,7 +627,7 @@ export interface CardStrategy {
  *   child_first_name  the care recipient's first name only (never the full name).
  *   activity_name     the activity the helper is supporting.
  *   chapter           the Life Chapter code (context; the app may label it, it is not shown raw).
- *   tier              the participation tier code (Full / Modified / Pivot).
+ *   tier              the participation tier code (Full / Adapted / Pivot).
  *   tier_label        the tier in plain, warm words (what it means for the helper).
  *   intro             a short supportive intro line.
  *   strategies        the top strategies, each { title, detail }, for an outsider.
@@ -714,6 +806,13 @@ export interface PreparePlanRequest {
   chapter: ChapterCode;
   activity_code: string;
   today_flags?: TodayFlagCode[];
+  /**
+   * The enrichment answer (LCE Addendum v1.1 §5): the tag code(s) the carer tapped on the enrichment
+   * question. Sent ONLY on the enrichment re-run (absent on a first prepare). The api persists them as the
+   * child's permanent (carer-confirmed) tags, then re-scores + re-runs the Fusion Layer + the gate in the
+   * same call, returning the improved Plan. The app sends the selected codes and applies no score itself.
+   */
+  enrichment_answer?: TagCode[];
 }
 
 // --- Account data rights (data export + account closure) ---

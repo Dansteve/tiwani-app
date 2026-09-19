@@ -45,11 +45,14 @@ import { PageHeader } from "@/components/PageHeader";
 import { TotalPressureCard } from "@/features/plan/TotalPressureCard";
 import { RecommendedApproach } from "@/features/plan/RecommendedApproach";
 import { StrategyList, type RankedStrategy } from "@/features/plan/StrategyList";
+import { SituatedStrategies } from "@/features/plan/SituatedStrategies";
+import { EnrichmentPrompt } from "@/features/plan/EnrichmentPrompt";
+import { GettingToKnowNote } from "@/features/plan/GettingToKnowNote";
 import { StrategyRemovedUndo } from "@/features/plan/StrategyRemovedUndo";
 import { ActionDock } from "@/features/plan/ActionDock";
 import { GentlerToggle } from "@/features/plan/GentlerToggle";
 import { GentlerIntro } from "@/features/plan/GentlerIntro";
-import { isGentlerEnabled } from "@/lib/env";
+import { isGentlerEnabled, isFusionEnabled } from "@/lib/env";
 // gentlerFraming (the pure copy logic) is consumed by GentlerIntro; the view only owns the toggle state.
 
 interface PreparationPlanViewProps {
@@ -61,6 +64,21 @@ interface PreparationPlanViewProps {
    * steer). The plan FLOW passes false: it uses the shell-owned back button (consistent placement) instead.
    */
   showInlineBack?: boolean;
+  /**
+   * The active recipient's first name, for the "Still getting to know [child]" state (LCE Addendum §5).
+   * OPTIONAL: the plan flow (PlanScreen) passes it from the switcher; an inline re-open (Your plans) does
+   * not, so the note falls back to a gentle "them". Never derived from the plan (the plan carries no name).
+   */
+  childName?: string;
+  /**
+   * Re-run the plan with the carer's enrichment answer (the selected tag codes), LCE Addendum §5. Passed
+   * ONLY by the live prepare flow (PlanScreen owns the preparePlan mutation); a stored re-open omits it, so
+   * the enrichment question never shows on a re-opened plan (which is already complete). When absent, the
+   * gate/enrichment UI does not render.
+   */
+  onEnrich?: (codes: string[]) => void;
+  /** True while an enrichment re-run is in flight (disables the enrichment submit). */
+  isEnriching?: boolean;
 }
 
 // The four dimensions in a stable display order, with the human label for each (the "Why this score"
@@ -76,6 +94,9 @@ export function PreparationPlanView({
   plan,
   onPrepareAnother,
   showInlineBack = true,
+  childName,
+  onEnrich,
+  isEnriching = false,
 }: PreparationPlanViewProps) {
   // The Strategy Library actions (Task 9): suppress (remove) + allow (re-allow), the optimistic hidden-set
   // keyed by library_item_id, and the session record that feeds the re-allow section. The api owns the
@@ -154,6 +175,35 @@ export function PreparationPlanView({
   const gentlerAvailable = isGentlerEnabled();
   const gentlerOn = gentlerAvailable && gentler;
 
+  // The Fusion Layer / Specificity Gate surface (LCE Addendum v1.1), flag-gated (default OFF) pending the
+  // psychiatrist copy sign-off. When ON, SITUATED strategies (source === situated_fusion, with a moment
+  // label) are pulled out and grouped by moment; when OFF, every strategy renders in the flat general list
+  // exactly as before (a situated line has no special treatment). The split is a display arrangement by
+  // provenance, not a re-rank: api order is preserved within each group and within the general list.
+  const fusionOn = isFusionEnabled();
+  const isSituated = (s: PlanStrategy) => s.source === "situated_fusion" && Boolean(s.moment_label);
+  const situatedStrategies = fusionOn
+    ? visibleStrategies.filter(({ strategy }) => isSituated(strategy))
+    : [];
+  const generalStrategies = fusionOn
+    ? visibleStrategies.filter(({ strategy }) => !isSituated(strategy))
+    : visibleStrategies;
+  // Show the general list when it has rows OR there are no situated rows either (so the empty-state still
+  // shows for a truly empty plan, but a situated-only plan does not render a misleading "no strategies").
+  const showGeneralList = generalStrategies.length > 0 || situatedStrategies.length === 0;
+
+  // The gate outcome (LCE Addendum §4/§5). getting_to_know (still incomplete after one enrichment) and the
+  // enrichment question (incomplete, not yet exhausted) are mutually exclusive by the api's design; the app
+  // renders whichever the plan carries. The enrichment prompt needs onEnrich (the live prepare flow only).
+  const gettingToKnow = Boolean(plan.getting_to_know);
+  const showGettingToKnow = fusionOn && gettingToKnow;
+  const showEnrichment =
+    fusionOn &&
+    Boolean(onEnrich) &&
+    Boolean(plan.enrichment) &&
+    !gettingToKnow &&
+    (plan.specificity ? !plan.specificity.complete : true);
+
   return (
     <div className="space-y-6">
       {showInlineBack ? (
@@ -192,12 +242,42 @@ export function PreparationPlanView({
         </>
       )}
 
-      {/* STRATEGIES: the top 3 led, the rest under "Show more". */}
-      <StrategyList
-        strategies={visibleStrategies}
-        onRemove={removeStrategy}
-        onDismissLabel={dismissLabel}
-      />
+      {/* STILL GETTING TO KNOW [child] (LCE Addendum §5 step 6): shown around the best-available plan when
+          the gate still failed after one enrichment. Honest + non-alarming; flag-gated. Mutually exclusive
+          with the enrichment prompt below. */}
+      {showGettingToKnow ? <GettingToKnowNote childName={childName} /> : null}
+
+      {/* ENRICHMENT (LCE Addendum §5): the gate failed and one value-first question can improve the plan.
+          Rendered as tap options; on submit the parent re-runs the plan with the selected codes. Flag-gated
+          and only in the live prepare flow (onEnrich present). */}
+      {showEnrichment && plan.enrichment ? (
+        <EnrichmentPrompt
+          enrichment={plan.enrichment}
+          onEnrich={(codes) => onEnrich?.(codes)}
+          isEnriching={isEnriching}
+        />
+      ) : null}
+
+      {/* SITUATED STRATEGIES (the Fusion Layer, flag-gated): the profile-tag x moment strategies, grouped by
+          moment. Renders nothing when there are none or the flag is off (situatedStrategies is then []). */}
+      {situatedStrategies.length > 0 ? (
+        <SituatedStrategies
+          strategies={situatedStrategies}
+          onRemove={removeStrategy}
+          onDismissLabel={dismissLabel}
+        />
+      ) : null}
+
+      {/* STRATEGIES: the general list, the top 3 led, the rest under "Show more" (unchanged). With fusion
+          off this is EVERY strategy (situatedStrategies is []); with it on, the situated ones are grouped
+          above and this is the rest. Skipped only for a situated-ONLY plan (no misleading empty state). */}
+      {showGeneralList ? (
+        <StrategyList
+          strategies={generalStrategies}
+          onRemove={removeStrategy}
+          onDismissLabel={dismissLabel}
+        />
+      ) : null}
 
       {/* The OBVIOUS undo after a removal (Task 14): re-allow the just-removed strategy. The persistent
           "Removed strategies" section below remains the fallback once this has gone. */}

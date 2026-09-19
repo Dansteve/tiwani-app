@@ -477,6 +477,11 @@ export const api = {
    * the ACTIVE recipient from the switcher so the plan belongs to the recipient currently being viewed.
    * Omitted, the api defaults to the caller's sole recipient (single-recipient behaviour unchanged); a
    * child_id the caller does not own is a 409 (it is invisible under RLS, so the api reads it as "none").
+   *
+   * ENRICHMENT (LCE Addendum v1.1 §5): the payload may carry `enrichment_answer` (the tag codes the carer
+   * tapped on the plan's enrichment question). It is sent ONLY on the enrichment re-run; the api persists
+   * the codes as the child's permanent tags, then re-scores + re-runs the Fusion Layer + the gate in the
+   * SAME call and returns the improved plan. The app sends the codes on the same PreparePlanRequest body.
    */
   preparePlan(payload: PreparePlanRequest, childId?: string | null): Promise<PreparationPlan> {
     return http<PreparationPlan>(`/api/v1/plans${childQuery(childId)}`, {

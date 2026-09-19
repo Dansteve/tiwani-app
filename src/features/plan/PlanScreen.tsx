@@ -85,7 +85,7 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
   // child_id so the activity_record belongs to the recipient currently being viewed (single-recipient
   // resolves to that one, and a null id lets the api fall back to the sole recipient). Same source the
   // dashboard/LCI/alerts reads scope by, so a plan is never made for the wrong recipient.
-  const { activeChildId } = useRecipient();
+  const { activeChildId, activeRecipient } = useRecipient();
   const router = useRouter();
 
   const activitiesQuery = useQuery({
@@ -104,13 +104,21 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
     queryFn: ({ signal }) => api.listPlans(chapter, {}, signal),
   });
 
+  // The prepare mutation. The variables carry the OPTIONAL enrichment answer (LCE Addendum §5): a normal
+  // Generate passes {}, and tapping the plan's enrichment options passes { enrichmentAnswer: [codes] },
+  // which re-runs the SAME activity + flags with the codes so the engine re-scores + re-fuses + re-gates.
+  // enrichment_answer is only added to the body when present, so a first prepare sends the exact prior
+  // payload (no new key) and the app applies no tag effect itself.
   const planMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (vars: { enrichmentAnswer?: string[] }) =>
       api.preparePlan(
         {
           chapter,
           activity_code: selectedActivity as string,
           today_flags: selectedFlags.length > 0 ? selectedFlags : undefined,
+          ...(vars.enrichmentAnswer && vars.enrichmentAnswer.length > 0
+            ? { enrichment_answer: vars.enrichmentAnswer }
+            : {}),
         },
         activeChildId
       ),
@@ -148,18 +156,27 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
 
   function generate() {
     if (selectedActivity === null) return;
-    planMutation.mutate();
+    planMutation.mutate({});
   }
 
   function prepareFresh() {
     // The Coordinator deliberately chose to prepare a fresh plan for the matched activity: dismiss the
     // steer for it (so the Generate button shows) and kick off the engine run that creates a new record.
     setPrepareFreshFor(selectedActivity);
-    if (selectedActivity !== null) planMutation.mutate();
+    if (selectedActivity !== null) planMutation.mutate({});
   }
 
   function prepareAnother() {
     planMutation.reset();
+  }
+
+  // The enrichment re-run (LCE Addendum §5): the carer tapped the plan's enrichment options, so re-run the
+  // SAME activity + flags with the selected tag codes. The engine persists them (carer-confirmed) and
+  // returns the improved plan; PlanScreen re-renders it (the mutation is pending, so the EngineReveal /
+  // spinner shows briefly, then the better plan). The app sends only the codes; it applies no tag effect.
+  function enrich(codes: string[]) {
+    if (selectedActivity === null || codes.length === 0) return;
+    planMutation.mutate({ enrichmentAnswer: codes });
   }
 
   // The shell back control (the owner's spec: a back on multi-step pages, fixed top-right on web / in the
@@ -185,11 +202,18 @@ function PlanForChapter({ chapter }: { chapter: ChapterCode }) {
     );
   }
 
-  // Phase 2: the plan came back, render it.
+  // Phase 2: the plan came back, render it. childName feeds the "Still getting to know [child]" state and
+  // onEnrich wires the gate's enrichment question back to a re-run (LCE Addendum §5); both are inert unless
+  // the fusion flag is on and the plan carries the gate fields.
   if (planMutation.data) {
     return (
       <div className="w-full">
-        <PreparationPlanView plan={planMutation.data} showInlineBack={false} />
+        <PreparationPlanView
+          plan={planMutation.data}
+          showInlineBack={false}
+          childName={activeRecipient?.first_name}
+          onEnrich={enrich}
+        />
       </div>
     );
   }

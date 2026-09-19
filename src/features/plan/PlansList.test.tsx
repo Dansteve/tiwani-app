@@ -17,7 +17,7 @@ function plan(over: Partial<PlanSummary> = {}): PlanSummary {
     activity_id: "act_1",
     chapter: "social",
     activity_name: "Swimming lesson",
-    tier: "Modified",
+    tier: "Adapted",
     total: 11,
     created_at: "2025-06-01T00:00:00Z",
     pulse_exists: false,
@@ -41,7 +41,7 @@ const storedPlan: PreparationPlan = {
   activity_name: "Swimming lesson",
   scores: { temporal: 2, sensory: 3, logistical: 2, human: 1 },
   total: 11,
-  tier: "Modified",
+  tier: "Adapted",
   strategies: [{ title: "Arrive early", detail: "Get there before it gets busy." }],
   dimension_explanations: null,
   scheduled_pulse_at: "2025-06-12T17:00:00Z",
@@ -85,7 +85,7 @@ describe("PlansList", () => {
   it("renders each prepared plan with its chapter, tier, and prepared date the api returned", async () => {
     listPlans.mockResolvedValue(
       page([
-        plan({ activity_id: "a", activity_name: "Swimming lesson", chapter: "social", tier: "Modified" }),
+        plan({ activity_id: "a", activity_name: "Swimming lesson", chapter: "social", tier: "Adapted" }),
         plan({ activity_id: "b", activity_name: "School assembly", chapter: "school", tier: "Full" }),
       ])
     );
@@ -104,7 +104,7 @@ describe("PlansList", () => {
 
     // Chapter is labelled (not the raw code) and the tier label is shown, both from the api row.
     expect(
-      within(first).getByText(chapterTierLine("Social & Community", "Modified Participation"))
+      within(first).getByText(chapterTierLine("Social & Community", "Adapted"))
     ).toBeInTheDocument();
     expect(within(first).getByText(/prepared/i)).toBeInTheDocument();
 
@@ -167,7 +167,7 @@ describe("PlansList", () => {
     // Fetched by activity_id (re-opened, not re-prepared), and the plan re-renders.
     await waitFor(() => expect(getPlan).toHaveBeenCalledWith("act_1", expect.anything()));
     // The shared PreparationPlanView renders the tier and a strategy from the stored plan.
-    expect(await screen.findByRole("heading", { name: "Modified Participation" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Adapted" })).toBeInTheDocument();
     expect(screen.getByText("Arrive early")).toBeInTheDocument();
   });
 
@@ -180,7 +180,7 @@ describe("PlansList", () => {
     fireEvent.click(screen.getByRole("button", { name: /view plan/i }));
 
     // The plan opens (the tier renders) but the per-dimension breakdown is omitted.
-    expect(await screen.findByRole("heading", { name: "Modified Participation" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Adapted" })).toBeInTheDocument();
     expect(screen.queryByText("Why this score")).not.toBeInTheDocument();
   });
 
@@ -192,11 +192,11 @@ describe("PlansList", () => {
     await screen.findByText("Swimming lesson");
 
     fireEvent.click(screen.getByRole("button", { name: /view plan/i }));
-    expect(await screen.findByRole("heading", { name: "Modified Participation" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Adapted" })).toBeInTheDocument();
 
     // "Hide plan" collapses it; the plan detail is gone, the row remains.
     fireEvent.click(screen.getByRole("button", { name: /hide plan/i }));
-    expect(screen.queryByRole("heading", { name: "Modified Participation" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Adapted" })).not.toBeInTheDocument();
     expect(screen.getByText("Swimming lesson")).toBeInTheDocument();
   });
 

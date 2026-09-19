@@ -23,8 +23,13 @@ import { AlsoWorkedInLabel } from "@/features/plan/AlsoWorkedInLabel";
 
 interface StrategyCardProps {
   strategy: PlanStrategy;
-  /** 1-based rank shown on the card (the api's existing strategy order). */
-  rank: number;
+  /**
+   * 1-based rank shown on the card (the api's existing strategy order). OPTIONAL: the general "What helps"
+   * list passes it (the numbered lead/overflow layout); the situated-by-moment groups OMIT it (a small
+   * rank badge within a two-item moment group would imply a global ranking the group does not carry). When
+   * absent, the numbered badge + the "Strategy N:" sr-only prefix are dropped; the title carries the meaning.
+   */
+  rank?: number;
   /** The chapters still showing the "Also worked in" label (not locally dismissed). */
   alsoWorkedIn: ChapterCode[];
   /** Remove (suppress) this strategy. */
@@ -48,19 +53,22 @@ export function StrategyCard({
   return (
     <SwipeToRemove removeLabel={strategy.title} onRemove={onRemove}>
       <div className="flex w-full items-start gap-3 px-1.5 py-1">
-        {/* The rank badge (the api's order). Decorative number; the title carries the meaning. */}
-        <span
-          aria-hidden="true"
-          className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold tabular-nums text-primary"
-        >
-          {rank}
-        </span>
+        {/* The rank badge (the api's order). Decorative number; the title carries the meaning. Dropped for
+            a situated-by-moment card, which is grouped rather than globally ranked. */}
+        {rank !== undefined ? (
+          <span
+            aria-hidden="true"
+            className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold tabular-nums text-primary"
+          >
+            {rank}
+          </span>
+        ) : null}
 
         <div className="min-w-0 flex-1">
           <details className="group">
             <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-md text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&::-webkit-details-marker]:hidden">
               <span className="min-w-0">
-                <span className="sr-only">Strategy {rank}: </span>
+                {rank !== undefined ? <span className="sr-only">Strategy {rank}: </span> : null}
                 {strategy.title}
               </span>
               <ChevronDown

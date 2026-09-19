@@ -68,7 +68,7 @@ describe("pressureSubtitle (the supportive second line)", () => {
 describe("tierExplanation (plain-English meaning per tier)", () => {
   it("gives a non-empty plain-English line for every tier", () => {
     expect(tierExplanation("Full")).toMatch(/fully/i);
-    expect(tierExplanation("Modified")).toMatch(/adjust/i);
+    expect(tierExplanation("Adapted")).toMatch(/adjust/i);
     expect(tierExplanation("Pivot")).toMatch(/lighter version|steady/i);
   });
 

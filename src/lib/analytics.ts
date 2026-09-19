@@ -37,7 +37,7 @@ export function trackAppOpened(): Promise<void> {
   return track("app_opened");
 }
 
-// A preparation plan was generated. Carries ONLY the participation tier enum (Full / Modified / Pivot,
+// A preparation plan was generated. Carries ONLY the participation tier enum (Full / Adapted / Pivot,
 // Product.md §4.4), which is not tied to a person and is not a raw score: never the recipient, the
 // activity, the four dimension scores, or the total.
 export function trackPlanPrepared(tier: ParticipationTier): Promise<void> {

@@ -19,6 +19,8 @@ function read(name: string): string {
       return process.env.NEXT_PUBLIC_CARD_ON_TASK_ENABLED ?? "";
     case "NEXT_PUBLIC_GENTLER_ENABLED":
       return process.env.NEXT_PUBLIC_GENTLER_ENABLED ?? "";
+    case "NEXT_PUBLIC_FUSION_ENABLED":
+      return process.env.NEXT_PUBLIC_FUSION_ENABLED ?? "";
     default:
       return "";
   }
@@ -45,6 +47,20 @@ export function isCardOnTaskEnabled(): boolean {
  */
 export function isGentlerEnabled(): boolean {
   const v = read("NEXT_PUBLIC_GENTLER_ENABLED").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "on";
+}
+
+/**
+ * The Fusion Layer / Specificity Gate SIGN-OFF GATE (default OFF): the situated-strategy grouping, the
+ * enrichment question, and the "Still getting to know [child]" state (LCE Addendum v1.1 §1-5). These are
+ * new care-adjacent, user-facing copy surfaces, so they stay OFF until the psychiatrist copy sign-off
+ * clears the wording (BuildPlan-PRDv2.md, the gate note); leaving the flag OFF keeps them hidden with no
+ * code change, and the plan renders exactly as before (any situated line falls back to the general list).
+ * The api gates the same feature server-side; the app never enables it. True only for an explicit truthy
+ * build value ("1" / "true" / "yes" / "on").
+ */
+export function isFusionEnabled(): boolean {
+  const v = read("NEXT_PUBLIC_FUSION_ENABLED").trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes" || v === "on";
 }
 

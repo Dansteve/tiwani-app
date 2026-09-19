@@ -41,7 +41,7 @@ const base: CardContent = {
   child_first_name: "Ada",
   activity_name: "Swimming lesson",
   chapter: "social",
-  tier: "Modified",
+  tier: "Adapted",
   tier_label: "Take it at their pace",
   intro: "intro",
   strategies: [],
@@ -57,7 +57,7 @@ describe("cardTierLabel", () => {
 
   it("falls back to the canonical tier label when tier_label is empty", () => {
     expect(cardTierLabel({ ...base, tier_label: "" })).toBe(
-      "Modified Participation"
+      "Adapted"
     );
     expect(cardTierLabel({ ...base, tier: "Full", tier_label: "   " })).toBe(
       "Full Engagement"

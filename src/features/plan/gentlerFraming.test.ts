@@ -25,12 +25,12 @@ describe("gentlerLead (grounded in the api's own fields, never fabricated)", () 
   it("leads with the 'already light' framing when the engine did NOT recommend the Pivot and the total is low (<= 8)", () => {
     expect(gentlerLead("Full", 4)).toBe("low");
     expect(gentlerLead("Full", 8)).toBe("low");
-    expect(gentlerLead("Modified", 8)).toBe("low");
+    expect(gentlerLead("Adapted", 8)).toBe("low");
   });
 
   it("is honest (as_is) when there is no Pivot signal and the total is not low: it fabricates no tier change", () => {
-    expect(gentlerLead("Modified", 9)).toBe("as_is");
-    expect(gentlerLead("Modified", 13)).toBe("as_is");
+    expect(gentlerLead("Adapted", 9)).toBe("as_is");
+    expect(gentlerLead("Adapted", 13)).toBe("as_is");
     expect(gentlerLead("Full", 12)).toBe("as_is");
   });
 });
@@ -77,7 +77,7 @@ describe("gentler copy (governed: calm, this-one-only, never a carer verdict or 
     }
   });
 
-  const tiers: ParticipationTier[] = ["Full", "Modified", "Pivot"];
+  const tiers: ParticipationTier[] = ["Full", "Adapted", "Pivot"];
   it("resolves a lead + copy for every tier (no unhandled branch)", () => {
     for (const tier of tiers) {
       const lead = gentlerLead(tier, 11);

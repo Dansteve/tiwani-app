@@ -375,7 +375,7 @@ describe("PreparationPlanView 'go gentler today' control (the board's SAFE shape
   // ORDER relative to the total-pressure card without depending on layout details.
   function sectionTops(): { approach: number; total: number } {
     const approach = screen
-      .getByRole("heading", { name: /full engagement|modified participation|continuity pivot/i })
+      .getByRole("heading", { name: /full engagement|adapted|continuity pivot/i })
       .closest("section")!;
     const total = screen.getByText("How much this asks today").closest("section")!;
     // compareDocumentPosition: FOLLOWING means `approach` comes before `total` in the DOM.
@@ -386,7 +386,7 @@ describe("PreparationPlanView 'go gentler today' control (the board's SAFE shape
   }
 
   it("defaults OFF: the control is off and the score leads (the unchanged order)", () => {
-    renderPlan(makePlan({ total: 11, tier: "Modified" }));
+    renderPlan(makePlan({ total: 11, tier: "Adapted" }));
 
     expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "false");
     // Off by default: no gentle intro yet (none of the per-lead headlines), and the score leads the approach.
@@ -458,10 +458,10 @@ describe("PreparationPlanView 'go gentler today' control (the board's SAFE shape
     const mockedFlag = vi.mocked(isGentlerEnabled);
     mockedFlag.mockReturnValue(false);
     try {
-      renderPlan(makePlan({ total: 11, tier: "Modified" }));
+      renderPlan(makePlan({ total: 11, tier: "Adapted" }));
       expect(screen.queryByRole("switch")).not.toBeInTheDocument();
       expect(screen.getByText("How much this asks today")).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: /modified participation/i })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Adapted" })).toBeInTheDocument();
     } finally {
       mockedFlag.mockReturnValue(true);
     }

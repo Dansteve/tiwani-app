@@ -12,7 +12,7 @@ function outcome(overrides: Partial<LastOutcome> = {}): LastOutcome {
     chapter: "school",
     activity_name: "School drop-off",
     outcome_code: "okay",
-    tier_recommended: "Modified",
+    tier_recommended: "Adapted",
     challenge_dimension: null,
     worked_strategy: null,
     pivot_helped: false,

@@ -205,7 +205,7 @@ function planRow(id: string): PlanSummary {
     activity_id: id,
     chapter: "social",
     activity_name: "Swimming lesson",
-    tier: "Modified",
+    tier: "Adapted",
     total: 11,
     created_at: "2026-06-10T09:00:00Z",
     pulse_exists: false,

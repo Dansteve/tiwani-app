@@ -3,7 +3,7 @@
 // The RECOMMENDED APPROACH block (the owner's mockup): a lightning icon + the participation tier name +
 // a plain-English gloss of what it means for the Coordinator. It RENDERS the api's tier and recomputes
 // nothing; the label comes from lib/format.tierLabel and the gloss from bands.tierExplanation (the three
-// tiers Full Engagement / Modified Participation / Continuity Pivot map to their warm glosses). The
+// tiers Full Engagement / Adapted / Continuity Pivot map to their warm glosses). The
 // lightning icon is decorative (aria-hidden); the heading + gloss carry the meaning.
 
 import { Zap } from "lucide-react";

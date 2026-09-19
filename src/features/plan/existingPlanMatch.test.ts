@@ -8,7 +8,7 @@ import { matchExistingPlan } from "@/features/plan/existingPlanMatch";
 import type { ChapterActivity, PlanSummary } from "@/lib/api/types";
 
 const ACTIVITIES: ChapterActivity[] = [
-  { activity_code: "SOC-BIRTHDAY", activity_name: "A birthday party", tier: "Modified" },
+  { activity_code: "SOC-BIRTHDAY", activity_name: "A birthday party", tier: "Adapted" },
   { activity_code: "SOC-PLAYDATE", activity_name: "A playdate", tier: "Full" },
 ];
 
@@ -17,7 +17,7 @@ function plan(over: Partial<PlanSummary> = {}): PlanSummary {
     activity_id: "act_1",
     chapter: "social",
     activity_name: "A birthday party",
-    tier: "Modified",
+    tier: "Adapted",
     total: 11,
     created_at: "2025-06-01T00:00:00Z",
     pulse_exists: false,

@@ -54,7 +54,7 @@ export function pressureSubtitle(band: PressureBand): string | null {
 const TIER_EXPLANATIONS: Record<ParticipationTier, string> = {
   Full:
     "Take part fully. With a little preparation this should go well, no big changes needed.",
-  Modified:
+  Adapted:
     "Take part, with adjustments. Plan to adapt the activity so it stays within reach on the day.",
   Pivot:
     "A lighter version is the win today. Keeping things calm and steady is a good outcome here, not a compromise.",

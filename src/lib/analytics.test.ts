@@ -117,13 +117,13 @@ describe("the specific safe events are PII-free", () => {
   it("plan_prepared carries ONLY the participation tier enum, nothing else", async () => {
     const { setConsent, trackPlanPrepared } = await loadModules();
     setConsent("accepted");
-    await trackPlanPrepared("Modified");
+    await trackPlanPrepared("Adapted");
     expect(logEvent).toHaveBeenCalledTimes(1);
     const [, eventName, params] = logEvent.mock.calls[0] as [unknown, string, Record<string, unknown>];
     expect(eventName).toBe("plan_prepared");
     // The ONLY key is `tier`; no recipient id/name, no scores, no free text leaks in.
     expect(Object.keys(params)).toEqual(["tier"]);
-    expect(params.tier).toBe("Modified");
+    expect(params.tier).toBe("Adapted");
   });
 
   it("plan_prepared with no consent logs nothing (the gate holds for the specific events too)", async () => {

@@ -24,7 +24,7 @@ const RECORD: PulseRecord = {
   activity_id: "act_1",
   outcome_code: "well",
   challenge_dimension: "sensory",
-  tier_recommended: "Modified",
+  tier_recommended: "Adapted",
   chapter: "school",
   timestamp: "2026-06-11T10:05:00Z",
 };

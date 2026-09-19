@@ -18,7 +18,7 @@ const PUBLIC_CONTENT: CardContent = {
   child_first_name: "this child",
   activity_name: "Swimming lesson",
   chapter: "social",
-  tier: "Modified",
+  tier: "Adapted",
   tier_label: "Take it at their pace",
   intro: "They do best when things are calm and predictable.",
   strategies: [{ title: "Arrive a few minutes early", detail: "So the pool fills up gradually." }],
