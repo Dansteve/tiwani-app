@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useId } from "react";
+import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -285,9 +286,12 @@ export function CoachMarks({ open, onClose, steps = DASHBOARD_TOUR_STEPS }: Coac
     };
   }, [targetRect]);
 
-  if (!open || !step) return null;
+  // Portal to <body> so the fixed overlay escapes the page's stacking context. Rendered inline it
+  // was trapped below the app shell's fixed sidebar (z-30) despite z-50, which clipped the tooltip's
+  // left edge behind the sidebar. document is guarded for the static-export prerender pass.
+  if (!open || !step || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50"
       // The dim backdrop. A click on it skips the tour (matching the alerts overlay's backdrop-dismiss),
@@ -381,6 +385,7 @@ export function CoachMarks({ open, onClose, steps = DASHBOARD_TOUR_STEPS }: Coac
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
